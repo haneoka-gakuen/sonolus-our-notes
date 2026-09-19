@@ -1,0 +1,34 @@
+{
+  "name": "@haneoka/cassiopeia-sonolus-engine",
+  "private": true,
+  "description": "Sonolus play, watch, preview, and tutorial engine for Our Notes charts",
+  "license": "MPL-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/haneoka-gakuen/cassiopeia-plugin-sonolus.git",
+    "directory": "engine"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "pnpm run typecheck:tools && node ./scripts/build.ts",
+    "typecheck:tools": "tsc --project ./tsconfig.tools.json"
+  },
+  "dependencies": {
+    "@sonolus/core": "7.15.3"
+  },
+  "devDependencies": {
+    "@sonolus/express": "7.5.3",
+    "@sonolus/free-pack": "1.2.0",
+    "@sonolus/sonolus.js": "9.7.3",
+    "@sonolus/sonolus.js-compiler": "1.8.3",
+    "@types/node": "22.20.1",
+    "multer": "2.2.0",
+    "typebox": "1.3.7",
+    "typescript": "5.8.3"
+  },
+  "version": "0.1.0",
+  "exports": {
+    "./package.json": "./package.json",
+    "./dist/*": "./dist/*"
+  }
+}
