@@ -18,61 +18,67 @@ export const toBucketWindows = (windows: Windows) => ({
 // MasterLiveJudgementTiming, assist level 0. Sonolus exposes only
 // Perfect/Great/Good/Miss, but keeping Bad and the complete input range here
 // lets the play archetypes reproduce the original timing boundaries and map
-// the unsupported Bad result explicitly.
+// the unsupported Bad result explicitly. The input range is the union of the
+// actual rows, not a shortcut derived from the Miss row. Native Just rows are
+// ±2 ms where present; ordinary Sonolus play intentionally does not activate
+// that Gekisou-only result.
 const normal = {
-    perfect: ms(42),
+    perfect: ms(50),
     great: ms(83),
-    good: ms(108),
+    good: ms(100),
     bad: ms(125),
     miss: ms(130),
     input: ms(130),
 }
 
 const flick = {
-    perfect: ms(83, 58),
-    great: ms(83, 83),
-    good: ms(83, 108),
-    bad: ms(83, 125),
-    miss: ms(83, 130),
+    perfect: ms(83, 67),
+    great: ms(0, 83),
+    good: ms(0, 117),
+    bad: ms(0, 125),
+    miss: ms(0, 130),
     input: ms(83, 130),
 }
 
 const slideEnd = {
-    perfect: ms(42, 66),
-    great: ms(99, 166),
-    good: ms(124, 191),
-    bad: ms(141, 208),
-    // MasterLiveJudgementTiming stores Miss itself as symmetric +/-150 ms.
-    // Late Bad remains valid to +208 ms, so input has its own outer range.
-    miss: ms(150),
-    input: ms(150, 208),
+    perfect: ms(84, 66),
+    great: ms(0, 166),
+    good: ms(0, 191),
+    bad: ms(0, 208),
+    miss: ms(0, 150),
+    input: ms(84, 208),
 }
 
-const easy = {
-    perfect: ms(58, 66),
-    great: ms(58, 66),
-    good: ms(58, 66),
-    bad: ms(58, 66),
+// Types 2/15 have only Perfect and Miss rows. Keep public intermediate
+// buckets inside the native Perfect row so they cannot manufacture a
+// Great/Good/Bad result that the native table does not contain.
+const slideStart = {
+    perfect: ms(67),
+    great: ms(67),
+    good: ms(67),
+    bad: ms(67),
     miss: ms(58, 130),
-    input: ms(58, 130),
+    input: ms(67, 130),
 }
 
+// Types 21/22 likewise have only Perfect and Miss rows, with Miss starting
+// at zero on the early side.
 const trace = {
-    perfect: ms(58, 66),
-    great: ms(58, 66),
-    good: ms(58, 66),
-    bad: ms(58, 66),
-    miss: ms(58, 130),
-    input: ms(58, 130),
+    perfect: ms(67),
+    great: ms(67),
+    good: ms(67),
+    bad: ms(67),
+    miss: ms(0, 130),
+    input: ms(67, 130),
 }
 
 export const windows = {
-    tapNote: { normal, critical: easy },
+    tapNote: { normal, critical: normal },
     flickNote: { normal: flick, critical: flick },
     traceNote: { normal: trace, critical: trace },
     traceFlickNote: { normal: flick, critical: flick },
     slideTraceNote: { normal: trace, critical: trace },
-    slideStartNote: { normal, critical: easy },
+    slideStartNote: { normal: slideStart, critical: slideStart },
     slideEndNote: { normal: slideEnd, critical: slideEnd },
     slideEndTraceNote: { normal: trace, critical: trace },
     slideEndFlickNote: { normal: flick, critical: flick },

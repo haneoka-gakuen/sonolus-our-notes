@@ -1,77 +1,73 @@
-import { ClaimManager } from './ClaimManager.js'
+import { ClaimManager } from "./ClaimManager.js";
 
 const disallowedEmpties = levelMemory({
-    old: Collection(16, TouchId),
-    now: Collection(16, TouchId),
-})
+  old: Collection(16, TouchId),
+  now: Collection(16, TouchId),
+});
 
-export const canEmpty = (touch: Touch) => !disallowedEmpties.now.has(touch.id)
+export const canEmpty = (touch: Touch) => !disallowedEmpties.now.has(touch.id);
 
 export const disallowEmpty = (touch: Touch) => {
-    disallowedEmpties.now.add(touch.id)
-}
+  disallowedEmpties.now.add(touch.id);
+};
 
-const claimStartManager = new ClaimManager()
+const claimStartManager = new ClaimManager();
 
 export const claimStart = (index: number, time: number, hitbox: Rect, fullHitbox: Rect) => {
-    claimStartManager.claim(index, time, hitbox, fullHitbox, (touch) => touch.started)
-}
+  claimStartManager.claim(index, time, hitbox, fullHitbox, (touch) => touch.started);
+};
 
-export const getClaimedStart = (index: number) => claimStartManager.getClaimedTouchIndex(index)
+export const getClaimedStart = (index: number) => claimStartManager.getClaimedTouchIndex(index);
 
-export const claimEndManager = new ClaimManager()
+export const claimEndManager = new ClaimManager();
 
-export const claimEnd = (
-    index: number,
-    time: number,
-    hitbox: Rect,
-    fullHitbox: Rect,
-    targetTime: number,
-) => {
-    claimEndManager.claim(
-        index,
-        time,
-        hitbox,
-        fullHitbox,
-        (touch) => touch.ended && canEnd(touch, targetTime),
-    )
-}
+const isMaintained = (touch: Touch) => !touch.started && !touch.ended;
 
-export const getClaimedEnd = (index: number) => claimEndManager.getClaimedTouchIndex(index)
+export const claimEnd = (index: number, noteTime: number, hitbox: Rect, fullHitbox: Rect, lockoutTime: number) => {
+  claimEndManager.claim(
+    index,
+    noteTime,
+    hitbox,
+    fullHitbox,
+    (touch) => canEnd(touch, lockoutTime) && (touch.ended || (time.now >= noteTime && isMaintained(touch))),
+  );
+};
+
+export const getClaimedEnd = (index: number) => claimEndManager.getClaimedTouchIndex(index);
 
 const disallowedEnds = levelMemory({
-    old: Dictionary(16, TouchId, Number),
-    now: Dictionary(16, TouchId, Number),
-})
+  old: Dictionary(16, TouchId, Number),
+  now: Dictionary(16, TouchId, Number),
+});
 
 const canEnd = (touch: Touch, targetTime: number) => {
-    const index = disallowedEnds.now.indexOf(touch.id)
-    if (index === -1) return true
+  const index = disallowedEnds.now.indexOf(touch.id);
+  if (index === -1) return true;
 
-    return disallowedEnds.now.getValue(index) < targetTime
-}
+  return disallowedEnds.now.getValue(index) < targetTime;
+};
 
 export const disallowEnd = (touch: Touch, untilTime: number) => {
-    disallowedEnds.now.set(touch.id, untilTime)
-}
+  disallowedEnds.now.set(touch.id, untilTime);
+};
 
 export class InputManager extends SpawnableArchetype({}) {
-    updateSequential() {
-        claimStartManager.clear()
+  updateSequential() {
+    claimStartManager.clear();
 
-        claimEndManager.clear()
+    claimEndManager.clear();
 
-        disallowedEmpties.now.copyTo(disallowedEmpties.old)
-        disallowedEmpties.now.clear()
+    disallowedEmpties.now.copyTo(disallowedEmpties.old);
+    disallowedEmpties.now.clear();
 
-        disallowedEnds.now.copyTo(disallowedEnds.old)
-        disallowedEnds.now.clear()
+    disallowedEnds.now.copyTo(disallowedEnds.old);
+    disallowedEnds.now.clear();
 
-        for (const touch of touches) {
-            if (disallowedEmpties.old.has(touch.id)) disallowedEmpties.now.add(touch.id)
+    for (const touch of touches) {
+      if (disallowedEmpties.old.has(touch.id)) disallowedEmpties.now.add(touch.id);
 
-            const index = disallowedEnds.old.indexOf(touch.id)
-            if (index !== -1) disallowedEnds.now.set(touch.id, disallowedEnds.old.getValue(index))
-        }
+      const index = disallowedEnds.old.indexOf(touch.id);
+      if (index !== -1) disallowedEnds.now.set(touch.id, disallowedEnds.old.getValue(index));
     }
+  }
 }
