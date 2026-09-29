@@ -98,12 +98,12 @@ export abstract class FlickNote extends FlatNote {
   }
 
   playSFX() {
-    if (
-      this.result.judgment === Judgment.Perfect &&
-      this.flickImport.direction !== FlickDirection.Up &&
-      effect.clips.flickSide.exists
-    ) {
+    // GetTapSeType selects the SE purely by note type: every judgement of a
+    // directional flick plays the side cue, every up-flick the flick cue.
+    if (this.flickImport.direction !== FlickDirection.Up && effect.clips.flickSide.exists) {
       effect.clips.flickSide.play(sfxDistance);
+    } else if (effect.clips.flickPerfect.exists) {
+      effect.clips.flickPerfect.play(sfxDistance);
     } else {
       super.playSFX();
     }

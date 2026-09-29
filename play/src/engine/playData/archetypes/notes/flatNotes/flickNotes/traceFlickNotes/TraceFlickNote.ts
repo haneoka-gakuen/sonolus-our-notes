@@ -1,4 +1,4 @@
-import { isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
+import { consumeFlickTouch, isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
 import { note } from '../../../../../note.js'
 import { scaledScreen } from '../../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../../skin.js'
@@ -37,9 +37,10 @@ export abstract class TraceFlickNote extends FlickNote {
     touch() {
         if (time.now < this.inputTime.min) return
 
-        const latched = scanFlickLatch(this.flickImport.direction, this.fullHitbox.l, this.fullHitbox.r)
+        const latched = scanFlickLatch( this.fullHitbox.l, this.fullHitbox.r)
         if (latched !== -9999) this.flickLatchedTime = latched
         if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            consumeFlickTouch(this.flickLatchedTime)
             this.completeTraceFlick(this.flickLatchedTime)
         }
     }

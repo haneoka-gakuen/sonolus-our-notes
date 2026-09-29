@@ -11,12 +11,6 @@ export const minFlickVR = 0.5
 export const minFlickDelta = 0.15
 export const minFlickSpeed = 14
 
-// IsTargetDirectionFlick quantizes the swipe against the note's horizontal
-// axis within DirectionFlickAngle degrees; Normal (Up) accepts any direction.
-// The authored angle is a per-live setting that is not in the master data;
-// 60 degrees keeps comfortable diagonal swipes inside the cone.
-const directionFlickCos = Math.cos((60 * Math.PI) / 180)
-
 export function isFlickTouch(touch: Touch): boolean {
     const { x, y } = touch.delta
     if (x * x + y * y >= minFlickDelta * minFlickDelta) return true
@@ -25,18 +19,6 @@ export function isFlickTouch(touch: Touch): boolean {
     return touch.vr >= minFlickVR
 }
 
-export function matchesFlickDirection(touch: Touch, direction: FlickDirection): boolean {
-    if (direction === FlickDirection.Up) return true
-    let dx = touch.delta.x
-    let dy = touch.delta.y
-    if (dx === 0 && dy === 0) {
-        dx = touch.velocity.x
-        dy = touch.velocity.y
-        if (dx === 0 && dy === 0) return true // release-only signal: direction unknown
-    }
-    const axis = (direction === FlickDirection.Left ? -dx : dx) / Math.hypot(dx, dy)
-    return axis >= directionFlickCos
-}
 
 /**
  * FlickUpdater's near-position latch scan: any pressed finger (held or
@@ -45,17 +27,36 @@ export function matchesFlickDirection(touch: Touch, direction: FlickDirection): 
  * Hitboxes are full-height natively (judgement Y offsets are unbounded), so
  * only the X bounds are checked, in transformed screen coordinates.
  */
-export function scanFlickLatch(direction: FlickDirection, l: number, r: number): number {
+// FTLiveSimulator drains bucket 0 through GetPriorityNote: one note wins per
+// frame, so a single swipe judges exactly one flick. Touches consumed by
+// another flick in the same frame are skipped here.
+const consumedFlickTouches = levelMemory({
+    ids: Dictionary(16, TouchId, Number),
+    frame: Number,
+})
+
+export function scanFlickLatch(l: number, r: number): number {
     let latch = -9999
     for (const touch of touches) {
         if (!isFlickTouch(touch)) continue
-        if (!matchesFlickDirection(touch, direction)) continue
         if (touch.lastPosition.x < l || touch.lastPosition.x > r) continue
+
+        const index = consumedFlickTouches.ids.indexOf(touch.id)
+        if (index !== -1 && consumedFlickTouches.ids.getValue(index) === time.now) continue
 
         disallowEmpty(touch)
         latch = touch.time
     }
     return latch
+}
+
+/** Marks the swipe that judged a flick as consumed for this frame. */
+export function consumeFlickTouch(latchedTime: number): void {
+    for (const touch of touches) {
+        if (touch.time !== latchedTime) continue
+        consumedFlickTouches.ids.set(touch.id, time.now)
+        return
+    }
 }
 
 /**

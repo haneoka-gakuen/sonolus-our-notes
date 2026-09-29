@@ -1,5 +1,5 @@
 import { ease } from '../../../../../../../../../shared/src/engine/data/EaseType.js'
-import { isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
+import { consumeFlickTouch, isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
 import { getHitbox, getNativeJudgmentLeniency } from '../../../../../lane.js'
 import { archetypes } from '../../../../index.js'
 import { FlickNote } from '../FlickNote.js'
@@ -54,6 +54,7 @@ export abstract class SlideEndFlickNote extends FlickNote {
         }
 
         if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            consumeFlickTouch(this.flickLatchedTime)
             this.completeAt(this.flickLatchedTime)
         }
     }
@@ -115,12 +116,12 @@ export abstract class SlideEndFlickNote extends FlickNote {
             }),
         })
 
-        const latched = scanFlickLatch(this.flickImport.direction, hitbox.l, hitbox.r)
+        const latched = scanFlickLatch( hitbox.l, hitbox.r)
         if (latched !== -9999) this.flickLatchedTime = latched
     }
 
     lateLatch() {
-        const latched = scanFlickLatch(this.flickImport.direction, this.fullHitbox.l, this.fullHitbox.r)
+        const latched = scanFlickLatch( this.fullHitbox.l, this.fullHitbox.r)
         if (latched !== -9999) this.flickLatchedTime = latched
     }
 }

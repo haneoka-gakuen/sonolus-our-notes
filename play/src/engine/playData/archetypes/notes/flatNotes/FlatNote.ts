@@ -472,7 +472,6 @@ export abstract class FlatNote extends Note {
   }
 
   playLaneEffects() {
-    const layout = groundEffectLayout({ lane: this.import.lane, size: this.import.size });
     const direction = options.mirror
       ? this.import.originalDirection === 1
         ? 2
@@ -481,23 +480,53 @@ export abstract class FlatNote extends Note {
           : 0
       : this.import.originalDirection;
 
+    // LiveLaneEffectView lights every physical lane of the note separately
+    // (one width-1 fill per lane), not one quad stretched across the span.
+    const laneStart = Math.ceil(this.import.lane - this.import.size / 2 + 1e-6);
+    const laneEnd = Math.floor(this.import.lane + this.import.size / 2 - 1e-6);
+
     if (this.import.operateType === 1 || this.import.operateType === 101) {
-      particle.effects.laneNormal.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1)
+        particle.effects.laneNormal.spawn(
+          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+          nativeLaneEffectLifetime,
+          false,
+        );
     } else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
       this.import.operateType === 42 ||
       this.import.operateType === 102
     ) {
-      if (direction === 1) {
-        particle.effects.laneFlickLeft.spawn(layout, nativeLaneEffectLifetime, false);
-      } else if (direction === 2) {
-        particle.effects.laneFlickRight.spawn(layout, nativeLaneEffectLifetime, false);
-      } else {
-        particle.effects.laneFlick.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1) {
+        if (direction === 1) {
+          particle.effects.laneFlickLeft.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        } else if (direction === 2) {
+          particle.effects.laneFlickRight.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        } else {
+          particle.effects.laneFlick.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        }
       }
     } else if (this.import.operateType === 20 || this.import.operateType === 22) {
-      particle.effects.laneSlide.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1)
+        particle.effects.laneSlide.spawn(
+          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+          nativeLaneEffectLifetime,
+          false,
+        );
     }
   }
+
 }

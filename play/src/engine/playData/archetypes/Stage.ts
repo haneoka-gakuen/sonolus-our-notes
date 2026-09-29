@@ -60,7 +60,12 @@ export class Stage extends Archetype {
     onEmptyMove(touch: Touch) {
         const l = this.xToL(touch.position.x)
         const oldL = this.xToL(touch.lastPosition.x)
-        if (l === oldL) return
+        if (l === oldL) {
+            // LiveLaneFingerState re-marks the InVain lanes every frame a
+            // finger holds an empty lane, so the fill stays lit while held.
+            if (options.laneEffectEnabled) this.playEmptyLaneEffects(l)
+            return
+        }
 
         this.playEmptyEffects(l)
     }
@@ -86,11 +91,17 @@ export class Stage extends Archetype {
     }
 
     playEmptyLaneEffects(l: number) {
-        particle.effects.laneInVain.spawn(
-            groundEffectLayout({ lane: l + 0.5, size: 0.5 }),
-            nativeLaneEffectLifetime,
-            false,
-        )
+        // SetInVainLane marks the tapped lane and its pair neighbour (i ^ 1);
+        // each is its own width-1 fill.
+        const lanes = [l, l % 2 === 0 ? l + 1 : l - 1]
+        for (const lane of lanes) {
+            if (lane < -6 || lane > 5) continue
+            particle.effects.laneInVain.spawn(
+                groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+                nativeLaneEffectLifetime,
+                false,
+            )
+        }
     }
 
     drawSekaiStage() {
