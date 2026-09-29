@@ -379,7 +379,9 @@ export abstract class FlatNote extends Note {
     // LiveGameNoteEffectBase.Play maps Miss to animator state 0, so no
     // authored effect animation is selected.
     if (options.noteEffectEnabled && this.nativeJudgment !== 1) this.playNoteEffects();
-    if (options.laneEffectEnabled) this.playLaneEffects();
+    // LiveLaneEffectView.UpdateFrame only lights lanes for Good..Just
+    // (native judgements 3..6). Bad and Miss leave the lane dark.
+    if (options.laneEffectEnabled && this.nativeJudgment >= 3) this.playLaneEffects();
   }
 
   judge(hitTime: number) {
@@ -484,8 +486,17 @@ export abstract class FlatNote extends Note {
     // (one width-1 fill per lane), not one quad stretched across the span.
     // The note rect is lane +/- size (size is the half-width); lanes index the
     // physical slots, each spanning [lane, lane + 1].
-    const laneStart = Math.round(this.import.lane - this.import.size);
-    const laneEnd = laneStart + Math.max(1, Math.round(this.import.size * 2)) - 1;
+    // Native lane ranges use System.Math.Round(float), whose default midpoint
+    // rule is ToEven. JavaScript Math.round differs for .5 ties and negatives.
+    const nativeRoundToEven = (value: number) => {
+      const floor = Math.floor(value);
+      const fraction = value - floor;
+      if (fraction < 0.5) return floor;
+      if (fraction > 0.5) return floor + 1;
+      return floor % 2 === 0 ? floor : floor + 1;
+    };
+    const laneStart = nativeRoundToEven(this.import.lane - this.import.size);
+    const laneEnd = laneStart + Math.max(1, nativeRoundToEven(this.import.size * 2)) - 1;
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
       for (let lane = laneStart; lane <= laneEnd; lane += 1)
