@@ -1,46 +1,28 @@
-import { windows } from '../../../../../../../../../shared/src/engine/data/windows.js'
-import { minFlickVR } from '../../../../../flick.js'
-import {
-    claimStart,
-    disallowEmpty,
-    disallowEnd,
-    getClaimedStart,
-} from '../../../../InputManager.js'
+import { isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
 import { FlickNote } from '../FlickNote.js'
 
+// FTLiveSimulator judges flick notes from the current-frame flick input of
+// any pressed finger (GetUseSimulateInputUnitPair pairs flicks by BeginLane,
+// with no fresh-touch requirement), so a finger already holding a slide can
+// swipe the flick without releasing first.
 export abstract class SingleFlickNote extends FlickNote {
-    activated = this.entityMemory(Boolean)
-
-    updateSequential() {
-        if (time.now < this.inputTime.min) return
-
-        if (this.activated) return
-
-        claimStart(this.info.index, this.targetTime, this.hitbox, this.fullHitbox)
-    }
-
     touch() {
         if (time.now < this.inputTime.min) return
 
-        if (!this.activated) {
-            const index = getClaimedStart(this.info.index)
-            if (index === -1) return
+        const latched = scanFlickLatch(this.flickImport.direction, this.fullHitbox.l, this.fullHitbox.r)
+        if (latched !== -9999) this.flickLatchedTime = latched
+        if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            this.completeAt(this.flickLatchedTime)
+        }
+    }
 
-            const touch = touches.get(index)
-
-            disallowEmpty(touch)
-            disallowEnd(touch, this.targetTime + windows.slideEndLockoutDuration)
-
-            this.activated = true
+    updateParallel() {
+        // touch() only fires on touch events; complete a latched swipe once
+        // the note time arrives on an otherwise quiet frame.
+        if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            this.completeAt(this.flickLatchedTime)
         }
 
-        for (const touch of touches) {
-            if (touch.vr < minFlickVR) continue
-            if (touch.startTime < this.inputTime.min) continue
-            if (!this.fullHitbox.contains(touch.lastPosition)) continue
-
-            this.complete(touch)
-            return
-        }
+        super.updateParallel()
     }
 }

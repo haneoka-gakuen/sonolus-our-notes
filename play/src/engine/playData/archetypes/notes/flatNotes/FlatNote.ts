@@ -3,10 +3,10 @@ import { nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { options } from "../../../../configuration/options.js";
-import { sfxDistance } from "../../../effect.js";
+import { effect, sfxDistance } from "../../../effect.js";
 import { getHitbox, getNativeJudgmentLeniency, lane } from "../../../lane.js";
 import { note } from "../../../note.js";
-import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId } from "../../../particle.js";
+import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnNativeEffect } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
 
@@ -306,6 +306,8 @@ export abstract class FlatNote extends Note {
   }
 
   playHitEffects(hitTime: number) {
+    // HapticFeedback.judgement: Bad..Just vibrate (native judgement >= 2).
+    this.result.haptic = options.hapticsEnabled && this.nativeJudgment >= 2 ? HapticType.Medium : HapticType.None;
     if (this.shouldPlaySFX) this.playSFX();
     // LiveGameNoteEffectBase.Play maps Miss to animator state 0, so no
     // authored effect animation is selected.
@@ -347,6 +349,14 @@ export abstract class FlatNote extends Note {
   }
 
   playSFX() {
+    // IsEnableSeJudgement gates note SE on judgements 3..6 (Good..Just).
+    // Bad and Miss play nothing; a Just plays the dedicated two-layer Just
+    // cue instead of the Perfect waveform.
+    if (this.nativeJudgment <= 2) return;
+    if (this.nativeJudgment === 6 && effect.clips.just.exists) {
+      effect.clips.just.play(sfxDistance);
+      return;
+    }
     if ("fallback" in this.clips && this.useFallbackClip) {
       this.clips.fallback.play(sfxDistance);
     } else if ("great" in this.clips && "good" in this.clips) {
@@ -367,7 +377,7 @@ export abstract class FlatNote extends Note {
   }
 
   playNoteEffects() {
-    // The bounded capture includes the original wall mesh, billboards and glow.
+    // One native effect carries the wall mesh, sprites, particles and bloom.
     this.playCircularNoteEffect();
   }
 
@@ -385,15 +395,12 @@ export abstract class FlatNote extends Note {
   }
 
   playCircularNoteEffect() {
-    particle.effects.spawn(
+    // Authored per width bucket; the spawn rect stretches the remainder.
+    spawnNativeEffect(
       sizedEffectId(this.nativeNoteEffectId, this.import.size),
-      linearEffectLayout({
-        lane: this.import.lane,
-        size: this.import.size,
-        shear: 0,
-      }),
+      this.import.lane,
+      this.import.size,
       this.noteEffectDuration,
-      false,
     );
   }
 

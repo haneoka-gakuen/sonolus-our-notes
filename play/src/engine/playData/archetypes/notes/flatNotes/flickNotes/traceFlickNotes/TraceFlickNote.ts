@@ -1,8 +1,7 @@
-import { minFlickVR } from '../../../../../flick.js'
+import { isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
 import { note } from '../../../../../note.js'
 import { scaledScreen } from '../../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../../skin.js'
-import { disallowEmpty } from '../../../../InputManager.js'
 import { FlickNote } from '../FlickNote.js'
 
 export abstract class TraceFlickNote extends FlickNote {
@@ -14,18 +13,12 @@ export abstract class TraceFlickNote extends FlickNote {
         fallback: SkinSprite
     }
 
-    earlyInputTime = this.entityMemory(Number)
-    earlyHitTime = this.entityMemory(Number)
-
     diamondLayout = this.entityMemory(Rect)
 
     diamondZ = this.entityMemory(Number)
 
     initialize() {
         super.initialize()
-
-        this.earlyInputTime = this.targetTime + input.offset
-        this.earlyHitTime = -9999
 
         if (!this.useFallbackSprites) {
             const w = note.h / scaledScreen.wToH
@@ -44,48 +37,21 @@ export abstract class TraceFlickNote extends FlickNote {
     touch() {
         if (time.now < this.inputTime.min) return
 
-        if (time.now < this.earlyInputTime) {
-            this.earlyTouch()
-        } else {
-            this.lateTouch()
+        const latched = scanFlickLatch(this.flickImport.direction, this.fullHitbox.l, this.fullHitbox.r)
+        if (latched !== -9999) this.flickLatchedTime = latched
+        if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            this.completeTraceFlick(this.flickLatchedTime)
         }
     }
 
     updateParallel() {
-        this.triggerEarlyTouch()
+        // touch() only fires on touch events; complete a latched swipe once
+        // the note time arrives on an otherwise quiet frame.
+        if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            this.completeTraceFlick(this.flickLatchedTime)
+        }
 
         super.updateParallel()
-    }
-
-    earlyTouch() {
-        for (const touch of touches) {
-            if (touch.vr < minFlickVR) continue
-            if (!this.fullHitbox.contains(touch.position)) continue
-
-            disallowEmpty(touch)
-            this.earlyHitTime = touch.time
-            return
-        }
-    }
-
-    lateTouch() {
-        for (const touch of touches) {
-            if (touch.vr < minFlickVR) continue
-            if (!this.fullHitbox.contains(touch.lastPosition)) continue
-
-            disallowEmpty(touch)
-            this.completeTraceFlick(Math.max(touch.time, this.targetTime))
-            return
-        }
-    }
-
-    triggerEarlyTouch() {
-        if (this.despawn) return
-        if (time.now < this.earlyInputTime) return
-        if (this.earlyHitTime === -9999) return
-
-        this.completeTraceFlick(this.earlyHitTime)
-        this.despawn = true
     }
 
     render() {

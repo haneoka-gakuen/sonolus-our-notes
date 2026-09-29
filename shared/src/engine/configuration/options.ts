@@ -87,11 +87,28 @@ export const optionsDefinition = {
         type: 'toggle',
         def: 0,
     },
+    // HapticFeedbackParameter: every note family vibrates on judgements
+    // Bad..Just with feedback type 1 (Android HapticFeedbackConstants.LONG_PRESS).
+    hapticsEnabled: {
+        name: Text.Haptic,
+        scope: 'Our Notes',
+        type: 'toggle',
+        def: 1,
+    },
     noteEffectEnabled: {
         name: Text.NoteEffect,
         scope: 'Our Notes',
         type: 'toggle',
         def: 1,
+    },
+    // MasterLiveQualitySettings: Low loads effect001Light (the lightweight
+    // effects), High the full effect001 prefabs. Light is the default here.
+    noteEffectProfile: {
+        name: 'Note Effect Quality',
+        scope: 'Our Notes',
+        type: 'select',
+        def: 0,
+        values: ['Light', 'Standard'],
     },
     noteEffectSize: {
         name: Text.NoteEffectSize,

@@ -1,5 +1,5 @@
 import { ease } from '../../../../../../../../../shared/src/engine/data/EaseType.js'
-import { minFlickVR } from '../../../../../flick.js'
+import { isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
 import { getHitbox, getNativeJudgmentLeniency } from '../../../../../lane.js'
 import { archetypes } from '../../../../index.js'
 import { FlickNote } from '../FlickNote.js'
@@ -48,10 +48,28 @@ export abstract class SlideEndFlickNote extends FlickNote {
         if (this.startInfo.state === EntityState.Active) return
 
         if (time.now < this.earlyInputTime) {
-            this.earlyTouch()
+            this.earlyLatch()
         } else {
-            this.lateTouch()
+            this.lateLatch()
         }
+
+        if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+            this.completeAt(this.flickLatchedTime)
+        }
+    }
+
+    updateParallel() {
+        // touch() only fires on touch events; complete a latched swipe once
+        // the note time arrives on an otherwise quiet frame. The slide-end
+        // flick accepts its swipe from note time onward (or on release).
+        if (
+            isFlickLatchReady(this.flickLatchedTime, this.targetTime) &&
+            this.startInfo.state !== EntityState.Active
+        ) {
+            this.completeAt(this.flickLatchedTime)
+        }
+
+        super.updateParallel()
     }
 
     get slideImport() {
@@ -74,7 +92,10 @@ export abstract class SlideEndFlickNote extends FlickNote {
         return archetypes.NormalSlideStartNote.import.get(this.slideImport.tailRef)
     }
 
-    earlyTouch() {
+    earlyLatch() {
+        // The swipe is latched against the connector's interpolated position
+        // while the slide is still travelling, so a held finger following the
+        // line can swipe the ending flick without lifting off.
         const s = ease(
             this.slideImport.ease,
             Math.unlerpClamped(
@@ -94,26 +115,12 @@ export abstract class SlideEndFlickNote extends FlickNote {
             }),
         })
 
-        for (const touch of touches) {
-            if (touch.vr < minFlickVR) continue
-            if (!hitbox.contains(touch.lastPosition)) continue
-
-            // The native SlideEndFlick updater consumes the current-frame
-            // flick input. It does not require the finger to leave the final
-            // connector or lift first, so a held hidden-long segment may end
-            // in a flick without an artificial release between the two.
-            this.complete(touch)
-            return
-        }
+        const latched = scanFlickLatch(this.flickImport.direction, hitbox.l, hitbox.r)
+        if (latched !== -9999) this.flickLatchedTime = latched
     }
 
-    lateTouch() {
-        for (const touch of touches) {
-            if (touch.vr < minFlickVR) continue
-            if (!this.fullHitbox.contains(touch.lastPosition)) continue
-
-            this.complete(touch)
-            return
-        }
+    lateLatch() {
+        const latched = scanFlickLatch(this.flickImport.direction, this.fullHitbox.l, this.fullHitbox.r)
+        if (latched !== -9999) this.flickLatchedTime = latched
     }
 }

@@ -1,27 +1,33 @@
 import { nativeLaneEffectLifetime } from '../../../../shared/src/engine/data/lane.js'
 import { scaledScreen } from './scaledScreen.js'
 
+// The tutorial lane spans -2..2 (chart width 8) and uses the default Light profile.
 export const particle = defineParticle({
     effects: {
         laneNormal: 'Our Notes Lane Normal',
         laneSlide: 'Our Notes Lane Slide',
         laneFlick: 'Our Notes Lane Flick',
 
-        normalNote: 'Our Notes Native Normal',
-        slideNote: 'Our Notes Native Slide',
-        flickNote: 'Our Notes Native Flick',
-        connectNote: 'Our Notes Native Connect',
-        slideLoop: 'Our Notes Native Slide Loop',
-        bakedWidth4_0: 'Our Notes Native Normal Width 4',
-        bakedWidth10_0: 'Our Notes Native Normal Width 10',
-        bakedWidth4_1: 'Our Notes Native Slide Width 4',
-        bakedWidth10_1: 'Our Notes Native Slide Width 10',
-        bakedWidth4_2: 'Our Notes Native Flick Width 4',
-        bakedWidth10_2: 'Our Notes Native Flick Width 10',
-        bakedWidth4_3: 'Our Notes Native Connect Width 4',
-        bakedWidth10_3: 'Our Notes Native Connect Width 10',
-        bakedWidth4_4: 'Our Notes Native Slide Loop Width 4',
-        bakedWidth10_4: 'Our Notes Native Slide Loop Width 10',
+        normalNote: 'Our Notes Light Normal W8 P0',
+        normalNote_P1: 'Our Notes Light Normal W8 P1',
+        normalNote_P2: 'Our Notes Light Normal W8 P2',
+        normalNote_P3: 'Our Notes Light Normal W8 P3',
+        slideNote: 'Our Notes Light Slide W8 P0',
+        slideNote_P1: 'Our Notes Light Slide W8 P1',
+        slideNote_P2: 'Our Notes Light Slide W8 P2',
+        slideNote_P3: 'Our Notes Light Slide W8 P3',
+        flickNote: 'Our Notes Light Flick W8 P0',
+        flickNote_P1: 'Our Notes Light Flick W8 P1',
+        flickNote_P2: 'Our Notes Light Flick W8 P2',
+        flickNote_P3: 'Our Notes Light Flick W8 P3',
+        connectNote: 'Our Notes Light Connect W8 P0',
+        connectNote_P1: 'Our Notes Light Connect W8 P1',
+        connectNote_P2: 'Our Notes Light Connect W8 P2',
+        connectNote_P3: 'Our Notes Light Connect W8 P3',
+        slideLoop: 'Our Notes Light Slide Loop W8 P0',
+        slideLoop_P1: 'Our Notes Light Slide Loop W8 P1',
+        slideLoop_P2: 'Our Notes Light Slide Loop W8 P2',
+        slideLoop_P3: 'Our Notes Light Slide Loop W8 P3',
     },
 })
 
@@ -35,8 +41,16 @@ const noteEffectLayout = () => {
     return new Rect({ l, r, b, t })
 }
 
-export const playNoteEffect = (effect: ParticleEffect, duration: number) =>
-    particle.effects.spawn(sizedEffectId(effect.id, 2), noteEffectLayout(), duration, false)
+/** The lane is centred, so every plane layer (P0..P3, consecutive ids) shares one rect. */
+export const playNoteEffect = (effect: ParticleEffect, duration: number) => {
+    for (let plane = 0; plane < 4; plane++)
+        particle.effects.spawn(
+            ((effect.id as unknown as number) + plane) as unknown as ParticleEffectId,
+            noteEffectLayout(),
+            duration,
+            false,
+        )
+}
 
 export const playLaneEffect = (effect: ParticleEffect) =>
     effect.spawn(
@@ -45,35 +59,29 @@ export const playLaneEffect = (effect: ParticleEffect) =>
         false,
     )
 
-export const spawnHoldEffect = () =>
-    particle.effects.spawn(sizedEffectId(particle.effects.slideLoop.id, 2), noteEffectLayout(), 1, true)
-
-/** Select an authored width capture instead of stretching every star across a wide note. */
-export const sizedEffectId = (id: ParticleEffect['id'], size: number) => {
-    if (id === particle.effects.normalNote.id) {
-        if (size <= 1.25 && particle.effects.bakedWidth4_0.exists) return particle.effects.bakedWidth4_0.id
-        if (size >= 2 && particle.effects.bakedWidth10_0.exists) return particle.effects.bakedWidth10_0.id
-        return id
+/** Hold loop: all four plane layers (consecutive ids) on the centred rect. */
+export const spawnHoldEffect = (): HoldEffectInstances => {
+    const id = particle.effects.slideLoop.id as unknown as number
+    const layout = noteEffectLayout()
+    return {
+        p0: particle.effects.spawn(id as unknown as ParticleEffectId, layout, 1, true),
+        p1: particle.effects.spawn((id + 1) as unknown as ParticleEffectId, layout, 1, true),
+        p2: particle.effects.spawn((id + 2) as unknown as ParticleEffectId, layout, 1, true),
+        p3: particle.effects.spawn((id + 3) as unknown as ParticleEffectId, layout, 1, true),
     }
-    if (id === particle.effects.slideNote.id) {
-        if (size <= 1.25 && particle.effects.bakedWidth4_1.exists) return particle.effects.bakedWidth4_1.id
-        if (size >= 2 && particle.effects.bakedWidth10_1.exists) return particle.effects.bakedWidth10_1.id
-        return id
-    }
-    if (id === particle.effects.flickNote.id) {
-        if (size <= 1.25 && particle.effects.bakedWidth4_2.exists) return particle.effects.bakedWidth4_2.id
-        if (size >= 2 && particle.effects.bakedWidth10_2.exists) return particle.effects.bakedWidth10_2.id
-        return id
-    }
-    if (id === particle.effects.connectNote.id) {
-        if (size <= 1.25 && particle.effects.bakedWidth4_3.exists) return particle.effects.bakedWidth4_3.id
-        if (size >= 2 && particle.effects.bakedWidth10_3.exists) return particle.effects.bakedWidth10_3.id
-        return id
-    }
-    if (id === particle.effects.slideLoop.id) {
-        if (size <= 1.25 && particle.effects.bakedWidth4_4.exists) return particle.effects.bakedWidth4_4.id
-        if (size >= 2 && particle.effects.bakedWidth10_4.exists) return particle.effects.bakedWidth10_4.id
-        return id
-    }
-    return id
 }
+
+export type HoldEffectInstances = {
+    p0: ParticleEffectInstanceId
+    p1: ParticleEffectInstanceId
+    p2: ParticleEffectInstanceId
+    p3: ParticleEffectInstanceId
+}
+
+export const destroyHoldEffect = (instances: HoldEffectInstances) => {
+    particle.effects.destroy(instances.p0)
+    particle.effects.destroy(instances.p1)
+    particle.effects.destroy(instances.p2)
+    particle.effects.destroy(instances.p3)
+}
+

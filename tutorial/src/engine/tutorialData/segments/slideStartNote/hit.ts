@@ -6,11 +6,16 @@ import {
     particle,
     playLaneEffect,
     playNoteEffect,
-    spawnHoldEffect,
+    destroyHoldEffect, spawnHoldEffect,
 } from '../../particle.js'
 
 let sfxInstanceId = tutorialMemory(LoopedEffectClipInstanceId)
-let effectInstanceId = tutorialMemory(ParticleEffectInstanceId)
+const effectInstanceIds = tutorialMemory({
+    p0: ParticleEffectInstanceId,
+    p1: ParticleEffectInstanceId,
+    p2: ParticleEffectInstanceId,
+    p3: ParticleEffectInstanceId,
+})
 
 export const slideStartNoteHit = {
     enter() {
@@ -23,7 +28,13 @@ export const slideStartNoteHit = {
         playLaneEffect(particle.effects.laneSlide)
 
         sfxInstanceId = effect.clips.normalHold.loop()
-        effectInstanceId = spawnHoldEffect()
+        {
+        const ids = spawnHoldEffect()
+        effectInstanceIds.p0 = ids.p0
+        effectInstanceIds.p1 = ids.p1
+        effectInstanceIds.p2 = ids.p2
+        effectInstanceIds.p3 = ids.p3
+    }
     },
 
     update() {
@@ -35,6 +46,6 @@ export const slideStartNoteHit = {
         connector.clear()
 
         effect.clips.stopLoop(sfxInstanceId)
-        particle.effects.destroy(effectInstanceId)
+        destroyHoldEffect(effectInstanceIds)
     },
 }

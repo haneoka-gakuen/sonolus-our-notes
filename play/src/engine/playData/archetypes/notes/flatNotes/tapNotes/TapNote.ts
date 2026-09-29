@@ -1,5 +1,5 @@
 import { windows } from '../../../../../../../../shared/src/engine/data/windows.js'
-import { claimStart, disallowEmpty, disallowEnd, getClaimedStart } from '../../../InputManager.js'
+import { claimStart, disallowEmpty, getClaimedStart } from '../../../InputManager.js'
 import { FlatNote } from '../FlatNote.js'
 
 export abstract class TapNote extends FlatNote {
@@ -22,7 +22,6 @@ export abstract class TapNote extends FlatNote {
 
     complete(touch: Touch) {
         disallowEmpty(touch)
-        disallowEnd(touch, this.targetTime + windows.slideEndLockoutDuration)
 
         this.result.judgment = this.judge(touch.startTime)
         this.result.accuracy = touch.startTime - this.targetTime

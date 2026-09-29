@@ -5,7 +5,7 @@ import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine
 import { options } from "../../../../configuration/options.js";
 import { sfxDistance } from "../../../effect.js";
 import { note } from "../../../note.js";
-import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId } from "../../../particle.js";
+import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnNativeEffect } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
 
@@ -351,7 +351,7 @@ export abstract class FlatNote extends Note {
   }
 
   playNoteEffects() {
-    // The bounded capture includes the original wall mesh, billboards and glow.
+    // One native effect carries the wall mesh, sprites, particles and bloom.
     this.playCircularNoteEffect();
   }
 
@@ -369,15 +369,11 @@ export abstract class FlatNote extends Note {
   }
 
   playCircularNoteEffect() {
-    particle.effects.spawn(
+    spawnNativeEffect(
       sizedEffectId(this.nativeNoteEffectId, this.import.size),
-      linearEffectLayout({
-        lane: this.import.lane,
-        size: this.import.size,
-        shear: 0,
-      }),
+      this.import.lane,
+      this.import.size,
       this.noteEffectDuration,
-      false,
     );
   }
 

@@ -33,6 +33,12 @@ export abstract class FlickNote extends FlatNote {
     z: Number,
   });
 
+  // FlickUpdater's near-position latch: a qualifying swipe inside the input
+  // window is remembered (with its time) and the note judges later - while
+  // the finger is still pressed once the note time is reached, or on release.
+  // -9999 means "not latched".
+  flickLatchedTime = this.entityMemory(Number)
+
   preprocess() {
     super.preprocess();
 
@@ -55,6 +61,8 @@ export abstract class FlickNote extends FlatNote {
       ).copyTo(this.arrow.animation);
 
     this.arrow.z = getZ(layer.note.arrow, this.targetTime, this.import.lane);
+
+    this.flickLatchedTime = -9999;
   }
 
   renderBody() {
@@ -102,13 +110,17 @@ export abstract class FlickNote extends FlatNote {
   }
 
   complete(touch: Touch) {
-    this.result.judgment = this.judge(touch.time);
-    this.result.accuracy = touch.time - this.targetTime;
+    this.completeAt(touch.time);
+  }
+
+  completeAt(hitTime: number) {
+    this.result.judgment = this.judge(hitTime);
+    this.result.accuracy = hitTime - this.targetTime;
 
     this.result.bucket.index = this.bucket.index;
     this.result.bucket.value = this.result.accuracy * 1000;
 
-    this.playHitEffects(touch.time);
+    this.playHitEffects(hitTime);
 
     this.despawn = true;
   }

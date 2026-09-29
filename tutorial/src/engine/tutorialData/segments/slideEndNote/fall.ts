@@ -3,10 +3,15 @@ import { noteDisplay } from '../../components/noteDisplay.js'
 import { slide } from '../../components/slide.js'
 import { effect } from '../../effect.js'
 import { drawHand } from '../../instruction.js'
-import { particle, spawnHoldEffect } from '../../particle.js'
+import { particle, destroyHoldEffect, spawnHoldEffect } from '../../particle.js'
 
 let sfxInstanceId = tutorialMemory(LoopedEffectClipInstanceId)
-let effectInstanceId = tutorialMemory(ParticleEffectInstanceId)
+const effectInstanceIds = tutorialMemory({
+    p0: ParticleEffectInstanceId,
+    p1: ParticleEffectInstanceId,
+    p2: ParticleEffectInstanceId,
+    p3: ParticleEffectInstanceId,
+})
 
 export const slideEndNoteFall = {
     enter() {
@@ -15,7 +20,13 @@ export const slideEndNoteFall = {
         connector.showFallOut()
 
         sfxInstanceId = effect.clips.normalHold.loop()
-        effectInstanceId = spawnHoldEffect()
+        {
+        const ids = spawnHoldEffect()
+        effectInstanceIds.p0 = ids.p0
+        effectInstanceIds.p1 = ids.p1
+        effectInstanceIds.p2 = ids.p2
+        effectInstanceIds.p3 = ids.p3
+    }
     },
 
     update() {
@@ -28,6 +39,6 @@ export const slideEndNoteFall = {
         connector.clear()
 
         effect.clips.stopLoop(sfxInstanceId)
-        particle.effects.destroy(effectInstanceId)
+        destroyHoldEffect(effectInstanceIds)
     },
 }

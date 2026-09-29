@@ -7,6 +7,9 @@ export const effect = defineEffect({
         normalPerfect: EffectClipName.Perfect,
         normalGreat: EffectClipName.Great,
         normalGood: EffectClipName.Good,
+        // LiveNoteSeType 8 (Just) has its own two-layer cue; the game never
+        // plays the Perfect waveform for a Just.
+        just: 'Our Notes Just',
 
         flickPerfect: EffectClipName.PerfectAlternative,
         flickGreat: EffectClipName.GreatAlternative,

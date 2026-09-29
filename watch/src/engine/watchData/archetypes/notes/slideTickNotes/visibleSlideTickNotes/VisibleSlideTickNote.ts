@@ -2,7 +2,7 @@ import { approach } from '../../../../../../../../shared/src/engine/data/note.js
 import { options } from '../../../../../configuration/options.js'
 import { sfxDistance } from '../../../../effect.js'
 import { note } from '../../../../note.js'
-import { linearEffectLayout } from '../../../../particle.js'
+import { sizedEffectId, spawnNativeEffect } from '../../../../particle.js'
 import { scaledScreen } from '../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../skin.js'
 import { SlideTickNote } from '../SlideTickNote.js'
@@ -130,10 +130,6 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     }
 
     playNoteEffect() {
-        this.effect.spawn(
-            linearEffectLayout({ lane: this.import.lane, size: this.import.size, shear: 0 }),
-            5 / 12,
-            false,
-        )
+        spawnNativeEffect(sizedEffectId(this.effect.id, this.import.size), this.import.lane, this.import.size, 5 / 12)
     }
 }

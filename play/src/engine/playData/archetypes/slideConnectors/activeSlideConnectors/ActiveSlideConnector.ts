@@ -1,8 +1,9 @@
+import { NATIVE_EFFECT_PLANE_COUNT } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { options } from "../../../../configuration/options.js";
 import { effect } from "../../../effect.js";
 import { note } from "../../../note.js";
-import { linearEffectLayout, particle, sizedEffectId } from "../../../particle.js";
+import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
 import { getZ, layer } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 
@@ -140,13 +141,24 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   bakedCircularEffectId = this.entityMemory(Number);
+  // One instance per plane layer (NATIVE_EFFECT_PLANES); index 0 lives in
+  // effectInstanceIds.circular so the existing spawn/destroy checks hold.
+  circularPlaneInstanceIds = this.entityMemory(Tuple(NATIVE_EFFECT_PLANE_COUNT - 1, ParticleEffectInstanceId));
 
   spawnCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
     const size = (r - l) / 2;
-    const id = sizedEffectId(this.effects.circular.id, size);
+    this.spawnCircularPlanes(sizedEffectId(this.effects.circular.id, size));
+  }
+
+  spawnCircularPlanes(id: ParticleEffectId) {
     this.bakedCircularEffectId = id;
     this.effectInstanceIds.circular = particle.effects.spawn(id, new Quad(), 1, true);
+    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
+      this.circularPlaneInstanceIds.set(
+        plane - 1,
+        particle.effects.spawn(((id as unknown as number) + plane) as unknown as ParticleEffectId, new Quad(), 1, true),
+      );
   }
 
   updateCircularEffect() {
@@ -156,23 +168,19 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     const nextEffectId = sizedEffectId(this.effects.circular.id, size);
     if (this.bakedCircularEffectId !== nextEffectId) {
-      particle.effects.destroy(this.effectInstanceIds.circular);
-      this.bakedCircularEffectId = nextEffectId;
-      this.effectInstanceIds.circular = particle.effects.spawn(nextEffectId, new Quad(), 1, true);
+      this.destroyCircularEffect();
+      this.spawnCircularPlanes(nextEffectId);
     }
 
-    particle.effects.move(
-      this.effectInstanceIds.circular,
-      linearEffectLayout({
-        lane,
-        size,
-        shear: 0,
-      }),
-    );
+    particle.effects.move(this.effectInstanceIds.circular, nativeEffectPlaneLayout({ plane: 0, lane, size }));
+    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
+      particle.effects.move(this.circularPlaneInstanceIds.get(plane - 1), nativeEffectPlaneLayout({ plane, lane, size }));
   }
 
   destroyCircularEffect() {
     particle.effects.destroy(this.effectInstanceIds.circular);
+    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
+      particle.effects.destroy(this.circularPlaneInstanceIds.get(plane - 1));
     this.effectInstanceIds.circular = 0;
   }
 

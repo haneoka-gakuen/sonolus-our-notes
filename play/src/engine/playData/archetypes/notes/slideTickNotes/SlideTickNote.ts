@@ -1,3 +1,4 @@
+import { options } from '../../../../configuration/options.js'
 import { getHitbox, getNativeJudgmentLeniency } from '../../../lane.js'
 import { disallowEmpty } from '../../InputManager.js'
 import { Note } from '../Note.js'
@@ -50,13 +51,33 @@ export abstract class SlideTickNote extends Note {
         }
     }
 
+    updateSequential() {
+        // touch() only fires on touch events; a stationary finger holding the
+        // slide still judges the tick at its own time (IsJudgementTraceNote
+        // in the Just/After states requires only Press).
+        if (time.now >= this.inputTime) {
+            for (const touch of touches) {
+                if (touch.started || touch.ended) continue
+                if (!this.fullHitbox.contains(touch.position)) continue
+
+                this.completeByPresence()
+                return
+            }
+        }
+    }
+
     updateParallel() {
         if (time.now > this.inputTime) this.despawn = true
     }
 
     complete(touch: Touch) {
         disallowEmpty(touch)
+        if (options.hapticsEnabled) this.result.haptic = HapticType.Medium
 
+        this.completeByPresence()
+    }
+
+    completeByPresence() {
         this.result.judgment = Judgment.Perfect
         this.result.accuracy = 0
 
