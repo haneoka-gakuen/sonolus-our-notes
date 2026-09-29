@@ -482,8 +482,10 @@ export abstract class FlatNote extends Note {
 
     // LiveLaneEffectView lights every physical lane of the note separately
     // (one width-1 fill per lane), not one quad stretched across the span.
-    const laneStart = Math.ceil(this.import.lane - this.import.size / 2 + 1e-6);
-    const laneEnd = Math.floor(this.import.lane + this.import.size / 2 - 1e-6);
+    // The note rect is lane +/- size (size is the half-width); lanes index the
+    // physical slots, each spanning [lane, lane + 1].
+    const laneStart = Math.round(this.import.lane - this.import.size);
+    const laneEnd = laneStart + Math.max(1, Math.round(this.import.size * 2)) - 1;
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
       for (let lane = laneStart; lane <= laneEnd; lane += 1)

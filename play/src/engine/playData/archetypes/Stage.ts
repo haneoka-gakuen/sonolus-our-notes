@@ -92,17 +92,26 @@ export class Stage extends Archetype {
 
     playEmptyLaneEffects(l: number) {
         // SetInVainLane marks the tapped lane and its pair neighbour (i ^ 1);
-        // each is its own width-1 fill.
+        // each is its own width-1 fill. LiveLaneEffectView replays with
+        // stop+clear+play each frame, so the held lane shows one restart
+        // cycle, never a stack of overlapping fades.
         const lanes = [l, l % 2 === 0 ? l + 1 : l - 1]
         for (const lane of lanes) {
             if (lane < -6 || lane > 5) continue
-            particle.effects.laneInVain.spawn(
+
+            const existing = this.inVainInstances.indexOf(lane)
+            if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing))
+
+            const instance = particle.effects.laneInVain.spawn(
                 groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
                 nativeLaneEffectLifetime,
                 false,
             )
+            this.inVainInstances.set(lane, instance)
         }
     }
+
+    inVainInstances = levelMemory(Dictionary(12, Number, Number))
 
     drawSekaiStage() {
         skin.sprites.sekaiStage.draw(
