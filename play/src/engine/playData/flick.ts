@@ -8,12 +8,14 @@ export const minFlickVR = 0.5
 // Moved/Stationary phases only). A release velocity cannot express a swipe
 // during a held slide, so movement is the primary signal and vr a fallback
 // for swipes that release within one frame.
-export const minFlickDelta = 0.35
-export const minFlickSpeed = 20
+export const minFlickDelta = 0.15
+export const minFlickSpeed = 14
 
 // IsTargetDirectionFlick quantizes the swipe against the note's horizontal
 // axis within DirectionFlickAngle degrees; Normal (Up) accepts any direction.
-const directionFlickCos = Math.cos((45 * Math.PI) / 180)
+// The authored angle is a per-live setting that is not in the master data;
+// 60 degrees keeps comfortable diagonal swipes inside the cone.
+const directionFlickCos = Math.cos((60 * Math.PI) / 180)
 
 export function isFlickTouch(touch: Touch): boolean {
     const { x, y } = touch.delta

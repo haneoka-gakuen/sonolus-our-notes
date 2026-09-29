@@ -10,6 +10,68 @@ import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnN
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
 
+const ZERO_OVERHANG: readonly [number, number] = [0, 0]
+
+// sonolus.js requires object member access on compile-time keys, so the
+// Authored tilt-0 cap overhangs per skin (noteOverhangs.ts is the sourced
+// table), pre-scaled to stage units. Plain numeric literals because
+// sonolus.js resolves no runtime objects inside initialize().
+const nativeNoteOverhangL = (operateType: number): number => {
+    if (skin.sprites.noteSkinMarker002.exists) {
+        if (operateType === 1 || operateType === 101) return 0.075
+        if (operateType === 20) return 0.075
+        if (operateType === 21 || operateType === 120) return 0.065
+        if (operateType === 22) return 0.075
+        if (operateType === 40 || operateType === 102) return 0.08
+        if (operateType === 41) return 0.08
+        if (operateType === 42) return 0.08
+        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0.045
+        return 0
+    }
+    if (skin.sprites.noteSkinMarker003.exists) {
+        if (operateType === 1 || operateType === 101) return 0.065
+        if (operateType === 20) return 0.065
+        if (operateType === 21 || operateType === 120) return -0.045
+        if (operateType === 22) return 0.065
+        if (operateType === 40 || operateType === 102) return 0.065
+        if (operateType === 41) return 0.065
+        if (operateType === 42) return 0.065
+        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0.065
+        return 0
+    }
+    // skin001: only the slide-end caps overhang.
+    if (operateType === 22) return 0.09
+    return 0
+}
+
+const nativeNoteOverhangR = (operateType: number): number => {
+    if (skin.sprites.noteSkinMarker002.exists) {
+        if (operateType === 1 || operateType === 101) return 0
+        if (operateType === 20) return 0
+        if (operateType === 21 || operateType === 120) return 0
+        if (operateType === 22) return 0
+        if (operateType === 40 || operateType === 102) return 0
+        if (operateType === 41) return 0
+        if (operateType === 42) return 0
+        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0
+        return 0
+    }
+    if (skin.sprites.noteSkinMarker003.exists) {
+        if (operateType === 1 || operateType === 101) return 0
+        if (operateType === 20) return 0
+        if (operateType === 21 || operateType === 120) return 0
+        if (operateType === 22) return 0
+        if (operateType === 40 || operateType === 102) return 0
+        if (operateType === 41) return 0
+        if (operateType === 42) return 0
+        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0
+        return 0
+    }
+    // skin001: only the slide-end caps overhang.
+    if (operateType === 22) return 0.09
+    return 0
+}
+
 export abstract class FlatNote extends Note {
   abstract sprites: {
     left: SkinSprite;
@@ -101,12 +163,17 @@ export abstract class FlatNote extends Note {
     const b = 1 + h;
     const t = 1 - h;
 
-    const ml = l + 0.3;
-    const mr = r - 0.3;
+    // Native caps draw beyond the note rect by the skin's authored
+    // overhangs (OnSetViewWidth); the input hitbox above stays authored.
+    const vl = l - nativeNoteOverhangL(this.import.operateType);
+    const vr = r + nativeNoteOverhangR(this.import.operateType);
 
-    perspectiveLayout({ l, r: ml, b, t }).copyTo(this.spriteLayouts.left);
+    const ml = vl + 0.3;
+    const mr = vr - 0.3;
+
+    perspectiveLayout({ l: vl, r: ml, b, t }).copyTo(this.spriteLayouts.left);
     perspectiveLayout({ l: ml, r: mr, b, t }).copyTo(this.spriteLayouts.middle);
-    perspectiveLayout({ l: mr, r, b, t }).copyTo(this.spriteLayouts.right);
+    perspectiveLayout({ l: mr, r: vr, b, t }).copyTo(this.spriteLayouts.right);
 
     this.z = getZ(this.layer, this.targetTime, this.import.lane);
     this.result.accuracy = this.windows.input.max;

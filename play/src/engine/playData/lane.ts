@@ -35,19 +35,21 @@ export const getNativeJudgmentLeniency = ({
     originalCritical: number
     originalSize: number
 }) => {
-    // Normal: Default / EasyDefault.
-    if (operateType === 1) return originalCritical ? 1.4 : 0.5
+    // GetUseSimulateInputUnitPair widens every authored offset by one more
+    // half chart lane (minLane = LaneStart - offset - 0.5); 0.5 chart lane =
+    // 0.25 stage units per side, added to every row below.
+    if (operateType === 1) return originalCritical ? 1.65 : 0.75
 
     // SlideBegin: SlideBegin / EasySlideBegin.
-    if (operateType === 20) return originalCritical ? 1.4 : 1
+    if (operateType === 20) return originalCritical ? 1.65 : 1.25
 
     // Slide: 2 at width 4, decreasing linearly to 1 at width 5.
     if (operateType === 21 || operateType === 120)
-        return Math.lerp(1, 0.5, Math.unlerpClamped(4, 5, originalSize))
+        return Math.lerp(1.25, 0.75, Math.unlerpClamped(4, 5, originalSize))
 
     // SlideEnd and ordinary flick constructors.
     if (operateType === 22 || operateType === 40 || operateType === 41 || operateType === 42)
-        return 1.5
+        return 1.75
 
     // Trace and hidden trace-backed nodes.
     if (
@@ -60,10 +62,10 @@ export const getNativeJudgmentLeniency = ({
         operateType === 104 ||
         operateType === 105
     )
-        return 1.4
+        return 1.65
 
     // GuideBeginFlick (102) deliberately receives Default in the native ctor.
-    return 0.5
+    return 0.75
 }
 
 export const getHitbox = ({ l, r, leniency }: { l: number; r: number; leniency: number }) => {
