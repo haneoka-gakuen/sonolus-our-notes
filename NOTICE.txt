@@ -5,7 +5,7 @@ Mozilla Public License, v. 2.0. The complete terms accompany this artifact
 in LICENSE. The build-specific corresponding-source location accompanies
 this artifact in SOURCE.txt; the project source repository is:
 
-https://github.com/haneoka-gakuen/haneoka
+https://github.com/haneoka-gakuen/sonolus-our-notes
 
 The implementation began from NonSpicyBurrito's MIT-licensed
 sonolus-pjsekai-engine. Its copyright and permission notice accompanies this

@@ -1,17 +1,29 @@
 {
-  "name": "@haneoka/cassiopeia-sonolus-engine",
-  "private": true,
-  "description": "Sonolus play, watch, preview, and tutorial engine for Our Notes charts",
+  "name": "@haneoka/sonolus-our-notes",
+  "private": false,
+  "description": "Standalone Sonolus play, watch, preview, and tutorial engine for Our Notes charts",
   "license": "MPL-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/haneoka-gakuen/cassiopeia-plugin-sonolus.git",
-    "directory": "engine"
+    "url": "git+https://github.com/haneoka-gakuen/sonolus-our-notes.git"
   },
+  "homepage": "https://github.com/haneoka-gakuen/sonolus-our-notes#readme",
   "type": "module",
+  "files": [
+    "dist",
+    "contract",
+    "optionaltools",
+    "LICENSE",
+    "LICENSE.pjsekai.txt",
+    "NOTICE.txt",
+    "README.md"
+  ],
   "scripts": {
     "build": "pnpm run typecheck:tools && node ./scripts/build.ts",
-    "typecheck:tools": "tsc --project ./tsconfig.tools.json"
+    "typecheck:tools": "tsc --project ./tsconfig.tools.json",
+    "check": "pnpm run typecheck:tools && pnpm run verify:contract",
+    "verify:contract": "node ./scripts/verify-contract.ts",
+    "prepack": "pnpm run check"
   },
   "dependencies": {
     "@sonolus/core": "7.15.4"
@@ -27,8 +39,17 @@
     "typescript": "5.8.3"
   },
   "version": "0.1.0",
+  "packageManager": "pnpm@11.14.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "exports": {
     "./package.json": "./package.json",
+    "./contract/native-effects.json": "./contract/native-effects.json",
     "./dist/*": "./dist/*"
   }
 }

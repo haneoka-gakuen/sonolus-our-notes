@@ -13,6 +13,7 @@
   },
   "include": [
     "./esbuild.config.ts",
+    "./dev-bgm.ts",
     "./play/sonolus-cli.config.ts",
     "./preview/sonolus-cli.config.ts",
     "./scripts/**/*.ts",

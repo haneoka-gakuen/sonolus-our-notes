@@ -2,7 +2,6 @@ import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-
 const engineRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(engineRoot, "dist");
 /** Local dev: parallel facets stage here before merging into `dist/`. */

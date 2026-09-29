@@ -7,8 +7,12 @@
 // keep that layout.
 
 export const NATIVE_EFFECT_PROFILES = ['Our Notes Light', 'Our Notes Native'] as const
+/** MasterLiveQualitySettings values used to author the two native profiles. */
+export const NATIVE_EFFECT_PROFILE_QUALITIES = [2, 0] as const
 /** Chart widths with authored effects; must match NATIVE_EFFECT_WIDTHS. */
 export const NATIVE_EFFECT_WIDTHS = [4, 6, 8, 12, 24] as const
+/** Width thresholds used by nativeEffectWidthBucket. */
+export const NATIVE_EFFECT_WIDTH_THRESHOLDS = [5, 7, 10, 18] as const
 const WIDTH_COUNT = NATIVE_EFFECT_WIDTHS.length
 
 /**
@@ -24,7 +28,7 @@ export const NATIVE_EFFECT_PLANES = [
     { alpha1: 1, slope: 1 },
 ] as const
 export const NATIVE_EFFECT_PLANE_COUNT = NATIVE_EFFECT_PLANES.length
-const PLANE_LABELS = ['P0', 'P1', 'P2', 'P3'] as const
+export const NATIVE_EFFECT_PLANE_LABELS = ['P0', 'P1', 'P2', 'P3'] as const
 
 /** Base names without profile prefix, keyed by the engine's effect slots. */
 export const NATIVE_EFFECT_BASES = {
@@ -57,6 +61,25 @@ export const NATIVE_EFFECT_BASES = {
 
 type NativeEffectKey = keyof typeof NATIVE_EFFECT_BASES
 
+/** Public asset/compiler contract generated into contract/native-effects.json. */
+export const NATIVE_EFFECT_CONTRACT = {
+    schemaVersion: 1,
+    engine: 'ourNotes',
+    package: '@haneoka/sonolus-our-notes',
+    targets: ['play', 'watch', 'preview', 'tutorial'],
+    nativeEffects: {
+        profiles: NATIVE_EFFECT_PROFILES,
+        profileQualities: NATIVE_EFFECT_PROFILE_QUALITIES,
+        widths: NATIVE_EFFECT_WIDTHS,
+        widthThresholds: NATIVE_EFFECT_WIDTH_THRESHOLDS,
+        planes: NATIVE_EFFECT_PLANES.map((plane, index) => ({
+            label: NATIVE_EFFECT_PLANE_LABELS[index]!,
+            ...plane,
+        })),
+        baseNames: NATIVE_EFFECT_BASES,
+    },
+} as const
+
 /**
  * Particle effect table: each base key names its first (Light, width 4)
  * variant and is followed by the remaining variants of its block.
@@ -66,7 +89,7 @@ export const nativeEffectTable = (): Record<NativeEffectKey, string> & Record<st
     for (const [key, base] of Object.entries(NATIVE_EFFECT_BASES) as [NativeEffectKey, string][]) {
         NATIVE_EFFECT_PROFILES.forEach((profile, profileIndex) => {
             NATIVE_EFFECT_WIDTHS.forEach((width, widthIndex) => {
-                PLANE_LABELS.forEach((plane, planeIndex) => {
+                NATIVE_EFFECT_PLANE_LABELS.forEach((plane, planeIndex) => {
                     const first = profileIndex === 0 && widthIndex === 0 && planeIndex === 0
                     const name = `${profile} ${base} W${width} ${plane}`
                     table[first ? key : `${key}_${profileIndex}_${widthIndex}_${planeIndex}`] = name
@@ -80,10 +103,10 @@ export const nativeEffectTable = (): Record<NativeEffectKey, string> & Record<st
 /** Nearest authored width bucket for an engine half width (`size`, lane units = chart width / 4). */
 export const nativeEffectWidthBucket = (size: number) => {
     const width = size * 4
-    if (width < 5) return 0
-    if (width < 7) return 1
-    if (width < 10) return 2
-    if (width < 18) return 3
+    if (width < NATIVE_EFFECT_WIDTH_THRESHOLDS[0]) return 0
+    if (width < NATIVE_EFFECT_WIDTH_THRESHOLDS[1]) return 1
+    if (width < NATIVE_EFFECT_WIDTH_THRESHOLDS[2]) return 2
+    if (width < NATIVE_EFFECT_WIDTH_THRESHOLDS[3]) return 3
     return 4
 }
 

@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "engine": "ourNotes",
+  "package": "@haneoka/sonolus-our-notes",
+  "targets": [
+    "play",
+    "watch",
+    "preview",
+    "tutorial"
+  ],
+  "nativeEffects": {
+    "profiles": [
+      "Our Notes Light",
+      "Our Notes Native"
+    ],
+    "profileQualities": [
+      2,
+      0
+    ],
+    "widths": [
+      4,
+      6,
+      8,
+      12,
+      24
+    ],
+    "widthThresholds": [
+      5,
+      7,
+      10,
+      18
+    ],
+    "planes": [
+      {
+        "label": "P0",
+        "alpha1": 1,
+        "slope": -0.590625732432454
+      },
+      {
+        "label": "P1",
+        "alpha1": 0.9376218323586744,
+        "slope": -0.5537835814814996
+      },
+      {
+        "label": "P2",
+        "alpha1": 1.0665188470066516,
+        "slope": -0.6299134751663208
+      },
+      {
+        "label": "P3",
+        "alpha1": 1,
+        "slope": 1
+      }
+    ],
+    "baseNames": {
+      "normalNoteCircular": "Normal",
+      "normalNoteGreat": "Normal Great",
+      "normalNoteGood": "Normal Good",
+      "normalNoteBad": "Normal Bad",
+      "slideNoteCircular": "Slide",
+      "slideNoteGreat": "Slide Great",
+      "slideNoteGood": "Slide Good",
+      "slideNoteBad": "Slide Bad",
+      "flickNoteCircular": "Flick",
+      "flickNoteGreat": "Flick Great",
+      "flickNoteGood": "Flick Good",
+      "flickNoteBad": "Flick Bad",
+      "flickLeftWall": "Flick Left",
+      "flickLeftGreat": "Flick Left Great",
+      "flickLeftGood": "Flick Left Good",
+      "flickLeftBad": "Flick Left Bad",
+      "flickRightWall": "Flick Right",
+      "flickRightGreat": "Flick Right Great",
+      "flickRightGood": "Flick Right Good",
+      "flickRightBad": "Flick Right Bad",
+      "normalTraceNoteCircular": "Connect",
+      "normalTraceNoteGreat": "Connect Great",
+      "normalTraceNoteGood": "Connect Good",
+      "normalTraceNoteBad": "Connect Bad",
+      "normalSlideConnectorCircular": "Slide Loop"
+    }
+  }
+}
