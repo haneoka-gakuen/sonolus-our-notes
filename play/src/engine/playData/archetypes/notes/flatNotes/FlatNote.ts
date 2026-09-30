@@ -1,3 +1,4 @@
+import { nativeNoteCapLeftOverhang, nativeNoteCapRightOverhang } from "../../../../../../../shared/src/engine/data/noteOverhangs.js";
 import { approach, getNoteHalfHeight } from "../../../../../../../shared/src/engine/data/note.js";
 import { nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
@@ -9,68 +10,6 @@ import { note } from "../../../note.js";
 import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnNativeEffect } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
-
-const ZERO_OVERHANG: readonly [number, number] = [0, 0]
-
-// sonolus.js requires object member access on compile-time keys, so the
-// Authored tilt-0 cap overhangs per skin (noteOverhangs.ts is the sourced
-// table), pre-scaled to stage units. Plain numeric literals because
-// sonolus.js resolves no runtime objects inside initialize().
-const nativeNoteOverhangL = (operateType: number): number => {
-    if (skin.sprites.noteSkinMarker002.exists) {
-        if (operateType === 1 || operateType === 101) return 0.075
-        if (operateType === 20) return 0.075
-        if (operateType === 21 || operateType === 120) return 0.065
-        if (operateType === 22) return 0.075
-        if (operateType === 40 || operateType === 102) return 0.08
-        if (operateType === 41) return 0.08
-        if (operateType === 42) return 0.08
-        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0.045
-        return 0
-    }
-    if (skin.sprites.noteSkinMarker003.exists) {
-        if (operateType === 1 || operateType === 101) return 0.065
-        if (operateType === 20) return 0.065
-        if (operateType === 21 || operateType === 120) return -0.045
-        if (operateType === 22) return 0.065
-        if (operateType === 40 || operateType === 102) return 0.065
-        if (operateType === 41) return 0.065
-        if (operateType === 42) return 0.065
-        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0.065
-        return 0
-    }
-    // skin001: only the slide-end caps overhang.
-    if (operateType === 22) return 0.09
-    return 0
-}
-
-const nativeNoteOverhangR = (operateType: number): number => {
-    if (skin.sprites.noteSkinMarker002.exists) {
-        if (operateType === 1 || operateType === 101) return 0
-        if (operateType === 20) return 0
-        if (operateType === 21 || operateType === 120) return 0
-        if (operateType === 22) return 0
-        if (operateType === 40 || operateType === 102) return 0
-        if (operateType === 41) return 0
-        if (operateType === 42) return 0
-        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0
-        return 0
-    }
-    if (skin.sprites.noteSkinMarker003.exists) {
-        if (operateType === 1 || operateType === 101) return 0
-        if (operateType === 20) return 0
-        if (operateType === 21 || operateType === 120) return 0
-        if (operateType === 22) return 0
-        if (operateType === 40 || operateType === 102) return 0
-        if (operateType === 41) return 0
-        if (operateType === 42) return 0
-        if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 0
-        return 0
-    }
-    // skin001: only the slide-end caps overhang.
-    if (operateType === 22) return 0.09
-    return 0
-}
 
 export abstract class FlatNote extends Note {
   abstract sprites: {
@@ -165,8 +104,8 @@ export abstract class FlatNote extends Note {
 
     // Native caps draw beyond the note rect by the skin's authored
     // overhangs (OnSetViewWidth); the input hitbox above stays authored.
-    const vl = l - nativeNoteOverhangL(this.import.operateType);
-    const vr = r + nativeNoteOverhangR(this.import.operateType);
+    const vl = l - nativeNoteCapLeftOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
+    const vr = r + nativeNoteCapRightOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
 
     const ml = vl + 0.3;
     const mr = vr - 0.3;
@@ -375,7 +314,7 @@ export abstract class FlatNote extends Note {
   playHitEffects(hitTime: number) {
     // HapticFeedback.judgement: Bad..Just vibrate (native judgement >= 2).
     this.result.haptic = options.hapticsEnabled && this.nativeJudgment >= 2 ? HapticType.Medium : HapticType.None;
-    if (this.shouldPlaySFX) this.playSFX();
+    if (this.shouldPlaySFX && this.nativeJudgment >= 3) this.playSFX();
     // LiveGameNoteEffectBase.Play maps Miss to animator state 0, so no
     // authored effect animation is selected.
     if (options.noteEffectEnabled && this.nativeJudgment !== 1) this.playNoteEffects();

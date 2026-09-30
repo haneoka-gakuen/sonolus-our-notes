@@ -14,6 +14,7 @@ export const effect = defineEffect({
         flickSide: 'Our Notes Flick Side',
 
         normalHold: EffectClipName.Hold,
+        holdSecondary: 'Our Notes Hold Layer 2',
 
         normalTick: 'Our Notes Tick',
 

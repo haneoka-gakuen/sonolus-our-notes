@@ -11,11 +11,18 @@
   "nativeEffects": {
     "profiles": [
       "Our Notes Light",
-      "Our Notes Native"
+      "Our Notes Native",
+      "Our Notes Simple"
     ],
     "profileQualities": [
       2,
-      0
+      0,
+      2
+    ],
+    "profileSkins": [
+      "effect001",
+      "effect001",
+      "effect001Simple"
     ],
     "widths": [
       4,

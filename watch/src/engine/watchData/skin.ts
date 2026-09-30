@@ -2,6 +2,9 @@ import { SkinSpriteName } from '@sonolus/core'
 
 export const skin = defineSkin({
     sprites: {
+        nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',
+        nativeArrowAnimationSkin002: 'Our Notes Native Flick Arrow Animation Skin 002',
+        nativeArrowAnimationSkin003: 'Our Notes Native Flick Arrow Animation Skin 003',
         sekaiStage: 'Our Notes Stage',
         laneTapArea: 'Our Notes Lane Tap Area',
         laneTapAreaTopLeft: 'Our Notes Lane Tap Area Top Left',

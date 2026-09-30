@@ -1,7 +1,8 @@
+import { nativeNoteCapLeftOverhang, nativeNoteCapRightOverhang } from "../../../../../../../shared/src/engine/data/noteOverhangs.js";
 import { getNoteHalfHeight } from '../../../../../../../shared/src/engine/data/note.js'
 import { note } from '../../../note.js'
 import { panel } from '../../../panel.js'
-import { getZ, layer } from '../../../skin.js'
+import { getZ, layer, skin } from '../../../skin.js'
 import { Note } from '../Note.js'
 
 export abstract class FlatNote extends Note {
@@ -20,8 +21,8 @@ export abstract class FlatNote extends Note {
 
         const z = getZ(this.layer, time, this.import.lane)
 
-        const l = this.import.lane - this.import.size
-        const r = this.import.lane + this.import.size
+        const l = this.import.lane - this.import.size - nativeNoteCapLeftOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+        const r = this.import.lane + this.import.size + nativeNoteCapRightOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
         const h = note.h * (getNoteHalfHeight(this.import.operateType) / (79 / 850 / 2))
         const b = -h
         const t = h

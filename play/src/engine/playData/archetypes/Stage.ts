@@ -1,279 +1,434 @@
-import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
 import {
-    laneBase,
-    nativeLaneEffectLifetime,
-    nativeJudgmentLineHalfHeight,
-    nativeStage,
-    projectLaneZ,
-} from '../../../../../shared/src/engine/data/lane.js'
-import { options } from '../../configuration/options.js'
-import { effect, sfxDistance } from '../effect.js'
-import { getHitbox, lane } from '../lane.js'
-import { groundEffectLayout, particle } from '../particle.js'
-import { layer, skin } from '../skin.js'
-import { canEmpty } from './InputManager.js'
+  getNativeArrowAnimationSkin,
+  NativeArrowAnimationSkin,
+} from "../../../../../shared/src/engine/data/nativeArrowAnimation.js";
+import { updateNativeArrowFrames } from "../../../../../shared/src/engine/data/nativeArrowFrames.js";
+import { perspectiveLayout } from "../../../../../shared/src/engine/data/utils.js";
+import {
+  laneBase,
+  nativeLaneEffectLifetime,
+  nativeJudgmentLineHalfHeight,
+  nativeStage,
+  projectLaneZ,
+} from "../../../../../shared/src/engine/data/lane.js";
+import { options } from "../../configuration/options.js";
+import { effect, sfxDistance } from "../effect.js";
+import { getHitbox, lane } from "../lane.js";
+import { note } from "../note.js";
+import { groundEffectLayout, particle } from "../particle.js";
+import { layer, skin } from "../skin.js";
+import { canEmpty } from "./InputManager.js";
+import { archetypes } from "./index.js";
 
 export class Stage extends Archetype {
-    hitbox = this.entityMemory(Rect)
-    slotHitbox = this.entityMemory(Rect)
+  hitbox = this.entityMemory(Rect);
+  slotHitbox = this.entityMemory(Rect);
+  holdInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
+  holdSecondaryInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
 
-    spawnOrder() {
-        return 1
+  spawnOrder() {
+    return 1;
+  }
+
+  shouldSpawn() {
+    return entityInfos.get(0).state === EntityState.Despawned;
+  }
+
+  preprocess() {
+    if (options.sfxEnabled && options.autoSFX && effect.clips.normalHold.exists) {
+      this.scheduleHeldSFX();
     }
+  }
 
-    shouldSpawn() {
-        return entityInfos.get(0).state === EntityState.Despawned
+  initialize() {
+    getHitbox({ l: lane.hitbox.l, r: lane.hitbox.r, leniency: 0 }).copyTo(this.hitbox);
+    getHitbox({ l: lane.slots.l, r: lane.slots.r, leniency: 0 }).copyTo(this.slotHitbox);
+  }
+
+  touchOrder = 2;
+  touch() {
+    for (const touch of touches) {
+      if (!this.hitbox.contains(touch.position)) continue;
+      if (!canEmpty(touch)) continue;
+
+      if (touch.started) {
+        this.onEmptyStart(touch);
+      } else {
+        this.onEmptyMove(touch);
+      }
     }
+  }
 
-    initialize() {
-        getHitbox({ l: lane.hitbox.l, r: lane.hitbox.r, leniency: 0 }).copyTo(this.hitbox)
-        getHitbox({ l: lane.slots.l, r: lane.slots.r, leniency: 0 }).copyTo(this.slotHitbox)
-    }
+  updateSequential() {
+    if (!options.markerAnimation) return;
+    const nativeSkin = getNativeArrowAnimationSkin(
+      skin.sprites.nativeArrowAnimationSkin001.exists,
+      skin.sprites.nativeArrowAnimationSkin002.exists,
+      skin.sprites.nativeArrowAnimationSkin003.exists,
+    );
+    if (nativeSkin !== NativeArrowAnimationSkin.None) updateNativeArrowFrames(nativeSkin, time.now);
+  }
 
-    touchOrder = 2
-    touch() {
-        for (const touch of touches) {
-            if (!this.hitbox.contains(touch.position)) continue
-            if (!canEmpty(touch)) continue
+  updateParallel() {
+    this.updateHeldSFX();
 
-            if (touch.started) {
-                this.onEmptyStart(touch)
-            } else {
-                this.onEmptyMove(touch)
-            }
+    // lane_base is the authored Unity stage mesh baked into the native
+    // skin. A generic six-lane PJS stage has different perspective and
+    // must not be presented as an approximation when that asset is absent.
+    if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();
+
+    this.drawLaneDetails();
+  }
+
+  updateHeldSFX() {
+    let active = false;
+
+    if (options.sfxEnabled && !options.autoSFX && effect.clips.normalHold.exists) {
+      for (const entityInfo of entityInfos) {
+        if (entityInfo.state !== EntityState.Active) continue;
+
+        if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
+          const connectorImport = archetypes.NormalActiveSlideConnector.import.get(entityInfo.index);
+          const headImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
+          const tailImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
+          const headTime = bpmChanges.at(headImport.beat).time;
+          const tailTime = bpmChanges.at(tailImport.beat).time;
+          const startSharedMemory = archetypes.NormalActiveSlideConnector.slideStartNote.sharedMemory.get(
+            connectorImport.startRef,
+          );
+
+          if (
+            headTime <= time.now &&
+            time.now < tailTime &&
+            time.scaled >= timeScaleChanges.at(headTime).scaledTime - note.duration &&
+            startSharedMemory.lastActiveTime === time.now
+          ) {
+            active = true;
+            break;
+          }
+        } else if (entityInfo.archetype === archetypes.CriticalActiveSlideConnector.index) {
+          const connectorImport = archetypes.CriticalActiveSlideConnector.import.get(entityInfo.index);
+          const headImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
+          const tailImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
+          const headTime = bpmChanges.at(headImport.beat).time;
+          const tailTime = bpmChanges.at(tailImport.beat).time;
+          const startSharedMemory = archetypes.CriticalActiveSlideConnector.slideStartNote.sharedMemory.get(
+            connectorImport.startRef,
+          );
+
+          if (
+            headTime <= time.now &&
+            time.now < tailTime &&
+            time.scaled >= timeScaleChanges.at(headTime).scaledTime - note.duration &&
+            startSharedMemory.lastActiveTime === time.now
+          ) {
+            active = true;
+            break;
+          }
         }
+      }
     }
 
-    updateParallel() {
-        // lane_base is the authored Unity stage mesh baked into the native
-        // skin. A generic six-lane PJS stage has different perspective and
-        // must not be presented as an approximation when that asset is absent.
-        if (skin.sprites.sekaiStage.exists) this.drawSekaiStage()
-
-        this.drawLaneDetails()
-    }
-
-    onEmptyStart(touch: Touch) {
-        this.playEmptyEffects(this.xToL(touch.position.x))
-    }
-
-    onEmptyMove(touch: Touch) {
-        const l = this.xToL(touch.position.x)
-        const oldL = this.xToL(touch.lastPosition.x)
-        if (l === oldL) {
-            // LiveLaneFingerState re-marks the InVain lanes every frame a
-            // finger holds an empty lane, so the fill stays lit while held.
-            if (options.laneEffectEnabled) this.playEmptyLaneEffects(l)
-            return
+    if (active) {
+      if (!this.holdInstanceId) {
+        this.holdInstanceId = effect.clips.normalHold.loop();
+        if (effect.clips.holdSecondary.exists) {
+          this.holdSecondaryInstanceId = effect.clips.holdSecondary.loop();
         }
-
-        this.playEmptyEffects(l)
+      }
+      return;
     }
 
-    xToL(x: number) {
-        return Math.clamp(
-            Math.floor(Math.unlerp(this.slotHitbox.l, this.slotHitbox.r, x) * 12 - 6),
-            -6,
-            5,
-        )
+    if (this.holdSecondaryInstanceId) {
+      effect.clips.stopLoop(this.holdSecondaryInstanceId);
+      this.holdSecondaryInstanceId = 0;
+    }
+    if (this.holdInstanceId) {
+      effect.clips.stopLoop(this.holdInstanceId);
+      this.holdInstanceId = 0;
+    }
+  }
+
+  scheduleHeldSFX() {
+    let hasPrevious = false;
+    let previousEnd = 0;
+
+    while (true) {
+      const start = this.scanHeldIntervals(hasPrevious ? previousEnd : -999999, 0, false);
+      if (start === 999999) return;
+
+      let end = start;
+      while (true) {
+        const nextEnd = this.scanHeldIntervals(0, end, true);
+        if (nextEnd === end) break;
+        end = nextEnd;
+      }
+
+      const id = effect.clips.normalHold.scheduleLoop(start);
+      effect.clips.scheduleStopLoop(id, end);
+
+      if (effect.clips.holdSecondary.exists) {
+        const secondaryId = effect.clips.holdSecondary.scheduleLoop(start);
+        effect.clips.scheduleStopLoop(secondaryId, end);
+      }
+
+      previousEnd = end;
+      hasPrevious = true;
+    }
+  }
+
+  scanHeldIntervals(previousEnd: number, currentEnd: number, extending: boolean) {
+    let value = extending ? currentEnd : 999999;
+
+    for (const entityInfo of entityInfos) {
+      let intervalStart = 0;
+      let intervalEnd = 0;
+
+      if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
+        const connectorImport = archetypes.NormalActiveSlideConnector.import.get(entityInfo.index);
+        const headImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
+        const tailImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
+        intervalStart = bpmChanges.at(headImport.beat).time;
+        intervalEnd = bpmChanges.at(tailImport.beat).time;
+      } else if (entityInfo.archetype === archetypes.CriticalActiveSlideConnector.index) {
+        const connectorImport = archetypes.CriticalActiveSlideConnector.import.get(entityInfo.index);
+        const headImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
+        const tailImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
+        intervalStart = bpmChanges.at(headImport.beat).time;
+        intervalEnd = bpmChanges.at(tailImport.beat).time;
+      } else {
+        continue;
+      }
+
+      if (intervalEnd <= intervalStart) continue;
+
+      if (extending) {
+        if (intervalStart <= currentEnd && intervalEnd > value) value = intervalEnd;
+      } else if (intervalStart > previousEnd && intervalStart < value) {
+        value = intervalStart;
+      }
     }
 
-    playEmptyEffects(l: number) {
-        streams.set(-9999, time.now, 0)
-        streams.set(l, time.now, 0)
+    return value;
+  }
 
-        if (options.sfxEnabled) this.playEmptySFX()
-        if (options.laneEffectEnabled) this.playEmptyLaneEffects(l)
+  onEmptyStart(touch: Touch) {
+    this.playEmptyEffects(this.xToL(touch.position.x));
+  }
+
+  onEmptyMove(touch: Touch) {
+    const l = this.xToL(touch.position.x);
+    const oldL = this.xToL(touch.lastPosition.x);
+    if (l === oldL) {
+      // LiveLaneFingerState re-marks the InVain lanes every frame a
+      // finger holds an empty lane, so the fill stays lit while held.
+      if (options.laneEffectEnabled) this.playEmptyLaneEffects(l);
+      return;
     }
 
-    playEmptySFX() {
-        effect.clips.stage.play(sfxDistance)
+    this.playEmptyEffects(l);
+  }
+
+  xToL(x: number) {
+    return Math.clamp(Math.floor(Math.unlerp(this.slotHitbox.l, this.slotHitbox.r, x) * 12 - 6), -6, 5);
+  }
+
+  playEmptyEffects(l: number) {
+    streams.set(-9999, time.now, 0);
+    streams.set(l, time.now, 0);
+
+    if (options.sfxEnabled) this.playEmptySFX();
+    if (options.laneEffectEnabled) this.playEmptyLaneEffects(l);
+  }
+
+  playEmptySFX() {
+    effect.clips.stage.play(sfxDistance);
+  }
+
+  playEmptyLaneEffects(l: number) {
+    // SetInVainLane marks the tapped lane and its pair neighbour (i ^ 1);
+    // each is its own width-1 fill. LiveLaneEffectView replays with
+    // stop+clear+play each frame, so the held lane shows one restart
+    // cycle, never a stack of overlapping fades.
+    const lanes = [l, l % 2 === 0 ? l + 1 : l - 1];
+    for (const lane of lanes) {
+      if (lane < -6 || lane > 5) continue;
+
+      const existing = this.inVainInstances.indexOf(lane);
+      if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing));
+
+      const instance = particle.effects.laneInVain.spawn(
+        groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+        nativeLaneEffectLifetime,
+        false,
+      );
+      this.inVainInstances.set(lane, instance);
+    }
+  }
+
+  inVainInstances = levelMemory(Dictionary(12, Number, Number));
+
+  drawSekaiStage() {
+    skin.sprites.sekaiStage.draw(
+      new Rect(laneBase.layout),
+      [layer.stage],
+      laneBase.materialOpacity * options.laneOpacity,
+    );
+  }
+
+  drawLaneDetails() {
+    this.drawGuidelines();
+    this.drawTapArea();
+    this.drawJudgmentLine();
+  }
+
+  drawTapArea() {
+    if (!skin.sprites.laneTapArea.exists) return;
+
+    const halfWidth = (nativeStage.tapAreaWidth / nativeStage.laneWidth) * 6;
+    const halfLength = nativeStage.tapAreaLength / 2;
+    const innerHalfLength = halfLength - nativeStage.tapAreaBorder;
+    const borderX = (nativeStage.tapAreaBorder / nativeStage.laneWidth) * 12;
+    const x0 = -halfWidth;
+    const x1 = x0 + borderX;
+    const x2 = halfWidth - borderX;
+    const x3 = halfWidth;
+    const y0 = projectLaneZ(nativeStage.judgmentZ + halfLength);
+    const y1 = projectLaneZ(nativeStage.judgmentZ + innerHalfLength);
+    const y2 = projectLaneZ(nativeStage.judgmentZ - innerHalfLength);
+    const y3 = projectLaneZ(nativeStage.judgmentZ - halfLength);
+
+    if (
+      !skin.sprites.laneTapAreaTopLeft.exists ||
+      !skin.sprites.laneTapAreaTop.exists ||
+      !skin.sprites.laneTapAreaTopRight.exists ||
+      !skin.sprites.laneTapAreaLeft.exists ||
+      !skin.sprites.laneTapAreaCenter.exists ||
+      !skin.sprites.laneTapAreaRight.exists ||
+      !skin.sprites.laneTapAreaBottomLeft.exists ||
+      !skin.sprites.laneTapAreaBottom.exists ||
+      !skin.sprites.laneTapAreaBottomRight.exists
+    ) {
+      skin.sprites.laneTapArea.draw(
+        perspectiveLayout({ l: x0, r: x3, b: y3, t: y0 }),
+        [layer.tapArea],
+        options.laneOpacity,
+      );
+      return;
     }
 
-    playEmptyLaneEffects(l: number) {
-        // SetInVainLane marks the tapped lane and its pair neighbour (i ^ 1);
-        // each is its own width-1 fill. LiveLaneEffectView replays with
-        // stop+clear+play each frame, so the held lane shows one restart
-        // cycle, never a stack of overlapping fades.
-        const lanes = [l, l % 2 === 0 ? l + 1 : l - 1]
-        for (const lane of lanes) {
-            if (lane < -6 || lane > 5) continue
+    this.drawTapAreaPart(skin.sprites.laneTapAreaTopLeft, x0, x1, y1, y0);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaTop, x1, x2, y1, y0);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaTopRight, x2, x3, y1, y0);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaLeft, x0, x1, y2, y1);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaCenter, x1, x2, y2, y1);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaRight, x2, x3, y2, y1);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaBottomLeft, x0, x1, y3, y2);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaBottom, x1, x2, y3, y2);
+    this.drawTapAreaPart(skin.sprites.laneTapAreaBottomRight, x2, x3, y3, y2);
+  }
 
-            const existing = this.inVainInstances.indexOf(lane)
-            if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing))
+  drawTapAreaPart(sprite: SkinSprite, l: number, r: number, b: number, t: number) {
+    sprite.draw(perspectiveLayout({ l, r, b, t }), [layer.tapArea], options.laneOpacity);
+  }
 
-            const instance = particle.effects.laneInVain.spawn(
-                groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-                nativeLaneEffectLifetime,
-                false,
-            )
-            this.inVainInstances.set(lane, instance)
-        }
+  drawJudgmentLine() {
+    if (!options.showJudgmentLine || !skin.sprites.nativeJudgmentLine.exists) return;
+
+    const halfWidth = (nativeStage.judgmentLineWidth / nativeStage.laneWidth) * 6;
+    skin.sprites.nativeJudgmentLine.draw(
+      new Rect({
+        l: -halfWidth,
+        r: halfWidth,
+        b: 1 + nativeJudgmentLineHalfHeight,
+        t: 1 - nativeJudgmentLineHalfHeight,
+      }),
+      [layer.guideline],
+      options.guidelineOpacity,
+    );
+  }
+
+  drawGuidelines() {
+    if (!skin.sprites.guideline.exists || options.guidelineOpacity <= 0) return;
+
+    const count =
+      options.guidelineCount === 1
+        ? 4
+        : options.guidelineCount === 2
+          ? 6
+          : options.guidelineCount === 3
+            ? 8
+            : options.guidelineCount === 4
+              ? 12
+              : 0;
+    const mainDivisor = count ? 24 / count : 0;
+    const spaceDivisor = count <= 6 ? 2 : 0;
+
+    for (let index = 1; index < 24; index++) {
+      const main = mainDivisor > 0 && index % mainDivisor === 0;
+      const space = !main && spaceDivisor > 0 && index % spaceDivisor === 0;
+      if (!main && !space) continue;
+
+      const x = index / 2 - 6;
+      if (space) {
+        const halfWidth = (0.15 / nativeStage.laneWidth) * 6;
+        const halfLength = 1.3 / 2;
+        skin.sprites.guidelineSpace.draw(
+          perspectiveLayout({
+            l: x - halfWidth,
+            r: x + halfWidth,
+            b: projectLaneZ(nativeStage.judgmentZ - halfLength),
+            t: projectLaneZ(nativeStage.judgmentZ + halfLength),
+          }),
+          [layer.guideline],
+          options.guidelineOpacity * 0.5019608,
+        );
+      } else {
+        this.drawFullLaneLine(x, 0.15, 0.3, options.guidelineOpacity);
+      }
     }
 
-    inVainInstances = levelMemory(Dictionary(12, Number, Number))
+    const outsideX = 6 + (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
+    this.drawOutsideLine(-outsideX, options.guidelineOpacity);
+    this.drawOutsideLine(outsideX, options.guidelineOpacity);
+  }
 
-    drawSekaiStage() {
-        skin.sprites.sekaiStage.draw(
-            new Rect(laneBase.layout),
-            [layer.stage],
-            laneBase.materialOpacity * options.laneOpacity,
-        )
-    }
+  drawFullLaneLine(x: number, nearWidth: number, farWidth: number, alpha: number) {
+    const nearHalfWidth = (nearWidth / 2 / nativeStage.laneWidth) * 12;
+    const farHalfWidth = (farWidth / 2 / nativeStage.laneWidth) * 12;
+    skin.sprites.guideline.draw(
+      new Quad({
+        x1: x - nearHalfWidth,
+        x2: (x - farHalfWidth) * lane.t,
+        x3: (x + farHalfWidth) * lane.t,
+        x4: x + nearHalfWidth,
+        y1: 1,
+        y2: lane.t,
+        y3: lane.t,
+        y4: 1,
+      }),
+      [layer.guideline],
+      alpha,
+    );
+  }
 
-    drawLaneDetails() {
-        this.drawGuidelines()
-        this.drawTapArea()
-        this.drawJudgmentLine()
-    }
+  drawOutsideLine(x: number, alpha: number) {
+    if (!skin.sprites.outsideLine.exists) return;
 
-    drawTapArea() {
-        if (!skin.sprites.laneTapArea.exists) return
-
-        const halfWidth = (nativeStage.tapAreaWidth / nativeStage.laneWidth) * 6
-        const halfLength = nativeStage.tapAreaLength / 2
-        const innerHalfLength = halfLength - nativeStage.tapAreaBorder
-        const borderX = (nativeStage.tapAreaBorder / nativeStage.laneWidth) * 12
-        const x0 = -halfWidth
-        const x1 = x0 + borderX
-        const x2 = halfWidth - borderX
-        const x3 = halfWidth
-        const y0 = projectLaneZ(nativeStage.judgmentZ + halfLength)
-        const y1 = projectLaneZ(nativeStage.judgmentZ + innerHalfLength)
-        const y2 = projectLaneZ(nativeStage.judgmentZ - innerHalfLength)
-        const y3 = projectLaneZ(nativeStage.judgmentZ - halfLength)
-
-        if (
-            !skin.sprites.laneTapAreaTopLeft.exists ||
-            !skin.sprites.laneTapAreaTop.exists ||
-            !skin.sprites.laneTapAreaTopRight.exists ||
-            !skin.sprites.laneTapAreaLeft.exists ||
-            !skin.sprites.laneTapAreaCenter.exists ||
-            !skin.sprites.laneTapAreaRight.exists ||
-            !skin.sprites.laneTapAreaBottomLeft.exists ||
-            !skin.sprites.laneTapAreaBottom.exists ||
-            !skin.sprites.laneTapAreaBottomRight.exists
-        ) {
-            skin.sprites.laneTapArea.draw(
-                perspectiveLayout({ l: x0, r: x3, b: y3, t: y0 }),
-                [layer.tapArea],
-                options.laneOpacity,
-            )
-            return
-        }
-
-        this.drawTapAreaPart(skin.sprites.laneTapAreaTopLeft, x0, x1, y1, y0)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaTop, x1, x2, y1, y0)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaTopRight, x2, x3, y1, y0)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaLeft, x0, x1, y2, y1)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaCenter, x1, x2, y2, y1)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaRight, x2, x3, y2, y1)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaBottomLeft, x0, x1, y3, y2)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaBottom, x1, x2, y3, y2)
-        this.drawTapAreaPart(skin.sprites.laneTapAreaBottomRight, x2, x3, y3, y2)
-    }
-
-    drawTapAreaPart(sprite: SkinSprite, l: number, r: number, b: number, t: number) {
-        sprite.draw(perspectiveLayout({ l, r, b, t }), [layer.tapArea], options.laneOpacity)
-    }
-
-    drawJudgmentLine() {
-        if (!options.showJudgmentLine || !skin.sprites.nativeJudgmentLine.exists) return
-
-        const halfWidth = (nativeStage.judgmentLineWidth / nativeStage.laneWidth) * 6
-        skin.sprites.nativeJudgmentLine.draw(
-            new Rect({
-                l: -halfWidth,
-                r: halfWidth,
-                b: 1 + nativeJudgmentLineHalfHeight,
-                t: 1 - nativeJudgmentLineHalfHeight,
-            }),
-            [layer.guideline],
-            options.guidelineOpacity,
-        )
-    }
-
-    drawGuidelines() {
-        if (!skin.sprites.guideline.exists || options.guidelineOpacity <= 0) return
-
-        const count =
-            options.guidelineCount === 1
-                ? 4
-                : options.guidelineCount === 2
-                  ? 6
-                  : options.guidelineCount === 3
-                    ? 8
-                    : options.guidelineCount === 4
-                      ? 12
-                      : 0
-        const mainDivisor = count ? 24 / count : 0
-        const spaceDivisor = count <= 6 ? 2 : 0
-
-        for (let index = 1; index < 24; index++) {
-            const main = mainDivisor > 0 && index % mainDivisor === 0
-            const space = !main && spaceDivisor > 0 && index % spaceDivisor === 0
-            if (!main && !space) continue
-
-            const x = index / 2 - 6
-            if (space) {
-                const halfWidth = (0.15 / nativeStage.laneWidth) * 6
-                const halfLength = 1.3 / 2
-                skin.sprites.guidelineSpace.draw(
-                    perspectiveLayout({
-                        l: x - halfWidth,
-                        r: x + halfWidth,
-                        b: projectLaneZ(nativeStage.judgmentZ - halfLength),
-                        t: projectLaneZ(nativeStage.judgmentZ + halfLength),
-                    }),
-                    [layer.guideline],
-                    options.guidelineOpacity * 0.5019608,
-                )
-            } else {
-                this.drawFullLaneLine(x, 0.15, 0.3, options.guidelineOpacity)
-            }
-        }
-
-        const outsideX = 6 + (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12
-        this.drawOutsideLine(-outsideX, options.guidelineOpacity)
-        this.drawOutsideLine(outsideX, options.guidelineOpacity)
-    }
-
-    drawFullLaneLine(x: number, nearWidth: number, farWidth: number, alpha: number) {
-        const nearHalfWidth = (nearWidth / 2 / nativeStage.laneWidth) * 12
-        const farHalfWidth = (farWidth / 2 / nativeStage.laneWidth) * 12
-        skin.sprites.guideline.draw(
-            new Quad({
-                x1: x - nearHalfWidth,
-                x2: (x - farHalfWidth) * lane.t,
-                x3: (x + farHalfWidth) * lane.t,
-                x4: x + nearHalfWidth,
-                y1: 1,
-                y2: lane.t,
-                y3: lane.t,
-                y4: 1,
-            }),
-            [layer.guideline],
-            alpha,
-        )
-    }
-
-    drawOutsideLine(x: number, alpha: number) {
-        if (!skin.sprites.outsideLine.exists) return
-
-        const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12
-        skin.sprites.outsideLine.draw(
-            new Quad({
-                x1: x - halfWidth,
-                x2: (x - halfWidth) * lane.t,
-                x3: (x + halfWidth) * lane.t,
-                x4: x + halfWidth,
-                y1: 1,
-                y2: lane.t,
-                y3: lane.t,
-                y4: 1,
-            }),
-            [layer.guideline],
-            alpha,
-        )
-    }
+    const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
+    skin.sprites.outsideLine.draw(
+      new Quad({
+        x1: x - halfWidth,
+        x2: (x - halfWidth) * lane.t,
+        x3: (x + halfWidth) * lane.t,
+        x4: x + halfWidth,
+        y1: 1,
+        y2: lane.t,
+        y3: lane.t,
+        y4: 1,
+      }),
+      [layer.guideline],
+      alpha,
+    );
+  }
 }

@@ -1,77 +1,134 @@
 # `@haneoka/sonolus-our-notes`
 
-Standalone Sonolus play, watch, preview, and tutorial targets for Our Notes
-charts. This repository owns the engine runtime and its gameplay presentation;
-it does not own chart conversion, a web server, release catalogs, or game
-media.
+`@haneoka/sonolus-our-notes` is the native Sonolus engine for Our Notes. It
+ships the play, watch, preview, and tutorial targets plus their gameplay
+presentation, native effect profiles, authored skin contract, and required
+license/source notices.
 
-The engine has no dependency on Cassiopeia or a game server. A host builds the
-engine, supplies its own resource pack, and serves the generated `dist/`
-artifacts through whatever Sonolus server it already uses.
+Chart conversion stays in `@haneoka/cassiopeia-plugin-sonolus`. This engine has
+no Cassiopeia or game-server dependency. A host builds the engine, supplies its
+resource pack, and publishes the generated `dist/` files through its existing
+Sonolus server.
 
-## Build
+## Build from a clean checkout
+
+This repository owns its Sonolus compiler dependencies and has no unpublished
+peer package to clone. Use the pinned package manager and a low-memory build:
 
 ```sh
+git clone https://github.com/haneoka-gakuen/sonolus-our-notes.git
+cd sonolus-our-notes
+corepack enable
+corepack prepare pnpm@11.14.0 --activate
 pnpm install --frozen-lockfile
-pnpm build
+SONOLUS_BUILD_JOBS=1 SONOLUS_COMPILER_WORKERS=1 \
+  NODE_OPTIONS=--max-old-space-size=1536 pnpm build
 ```
 
-The build emits `EngineConfiguration`, one `Engine*Data` file per target, and
-the required license/source notices in `dist/`. Builds use one compiler worker
-and one target at a time by default. `SONOLUS_BUILD_JOBS` and
-`SONOLUS_COMPILER_WORKERS` accept values from 1 to 4.
+The current build requires Node 24 or newer. `pnpm build` compiles four bounded
+facets—play, watch, preview, and tutorial—and emits these files in `dist/`:
 
-For local CLI playback, provide an audio file with `SONOLUS_ENGINE_BGM`:
+```text
+EngineConfiguration
+EnginePlayData
+EngineWatchData
+EnginePreviewData
+EngineTutorialData
+LICENSE
+LICENSE.pjsekai.txt
+NOTICE.txt
+SOURCE.txt
+```
+
+`SONOLUS_BUILD_JOBS` and `SONOLUS_COMPILER_WORKERS` accept values from 1 to 4.
+Use `1` on a constrained machine; each additional compiler worker retains a
+large graph in memory.
+
+## Local CLI playback with BGM
+
+The play and watch configurations use the host-provided
+`SONOLUS_ENGINE_BGM` file for local preview audio:
 
 ```sh
-SONOLUS_ENGINE_BGM="$PWD/music.mp3" pnpm exec sonolus-cli ./play/sonolus-cli.config.ts
+SONOLUS_ENGINE_BGM="$PWD/music.mp3" \
+  pnpm exec sonolus-cli ./play/sonolus-cli.config.ts
 ```
 
-The optional effect capture tools in [`optionaltools/effects`](optionaltools/effects)
-run from a host workspace with Cassiopeia, its Our Notes plugin, its Three renderer
-and Three.js installed. They build sprite resources from the host's media and
-remain separate from engine compilation.
-
-For a constrained machine, pass the memory limit to the build command:
+The config copies that file to the CLI development root as `bgm.mp3` and adds
+its hash and URL to the preview level. Preview and tutorial builds use their
+own `sonolus-cli.config.ts` files:
 
 ```sh
-NODE_OPTIONS=--max-old-space-size=1536 pnpm build
+pnpm exec sonolus-cli ./preview/sonolus-cli.config.ts
+pnpm exec sonolus-cli ./tutorial/sonolus-cli.config.ts
 ```
 
-## Host contract
+The source-level configs import their level/engine objects from TypeScript;
+there is no JSON input manifest for the engine build. The host supplies chart
+conversion output and release level metadata separately.
 
-The package includes the native effect profile contract at
-[`contract/native-effects.json`](contract/native-effects.json). An asset
-compiler should read that file rather than importing this engine's source or
-assuming a repository path. It defines the four targets, the two native effect
-profiles, the authored width buckets, the four projection planes, and the
-width bucket thresholds, and stable base effect names. The host still supplies the baked skin, sound,
-particle, and background resources and chooses their storage URLs.
+## Host artifact workflow
 
-The package can be consumed as a build artifact by a host package:
+After `pnpm build`, publish the generated engine files and the required notices
+from `dist/` to the Sonolus server already used by the host. A host can locate
+the built package without assuming a repository path:
 
 ```ts
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const enginePackageRoot = dirname(
-  fileURLToPath(import.meta.resolve("@haneoka/sonolus-our-notes/package.json")),
+const packageRoot = dirname(
+  fileURLToPath(import.meta.resolve("@haneoka/sonolus-our-notes/package.json"))
 );
-const engineDist = `${enginePackageRoot}/dist`;
-// Publish `engineDist/EngineConfiguration` and the Engine*Data files from here.
+const engineDist = `${packageRoot}/dist`;
+
+// Publish these files from engineDist:
+// EngineConfiguration, EnginePlayData, EngineWatchData,
+// EnginePreviewData, EngineTutorialData, LICENSE, LICENSE.pjsekai.txt,
+// NOTICE.txt, and SOURCE.txt.
 ```
 
-The host supplies optional local-preview audio through `SONOLUS_ENGINE_BGM`. Catalogs, chart conversion, level metadata, HTTP routes,
-release storage, authentication, and production resource URLs remain host
-code.
+The host then creates its Sonolus engine record from `EngineConfiguration`,
+selects `EnginePlayData`/`EngineWatchData`/`EnginePreviewData`/
+`EngineTutorialData` for each target, and serves the resource pack described by
+the host's level/catalog metadata.
 
-Set `SONOLUS_ENGINE_REVISION` when a build runs from a source snapshot without
-the native engine Git metadata; otherwise the build records the engine
-repository's own `HEAD` in `dist/SOURCE.txt`.
+## Native effect contract
 
-## License
+The host asset compiler reads
+[`contract/native-effects.json`](contract/native-effects.json). It defines the
+four targets, native effect profiles, authored width buckets, projection
+planes, width thresholds, and stable base effect names. Use those values when
+baking sprites or particle resources; keep the resource URLs and storage policy
+in host code.
 
-Haneoka-authored source is covered by [MPL-2.0](LICENSE). Third-party engine code retains its MIT license; preserve
-[`LICENSE.pjsekai.txt`](LICENSE.pjsekai.txt) and [`NOTICE.txt`](NOTICE.txt)
-when redistributing source or build artifacts. Game-derived media and host
-asset packs are supplied and licensed by their respective operators.
+## Optional effect capture tools
+
+The tools in [`optionaltools/effects`](optionaltools/effects) capture sprites
+from a host workspace that already has Cassiopeia, the Our Notes plugin, the
+Three renderer, Three.js, and the source media pack. They are separate from
+engine compilation:
+
+```sh
+node optionaltools/effects/serve.mjs /path/to/extracted/runtime /path/to/output
+node optionaltools/effects/bake.mjs /path/to/extracted/runtime /path/to/output
+```
+
+`serve.mjs` requires an extracted runtime directory containing `unity/`; it
+mounts the built Cassiopeia/Our Notes/Three bundles for the capture page.
+`bake.mjs` drives that local capture page through the configured browser agent.
+Run these tools only when the host needs baked native effect resources. The
+engine build itself does not load a chart or a game media archive.
+
+## Lifetime, resources, and licenses
+
+The engine artifacts are immutable build outputs. A server owns their storage
+and HTTP lifetime; the Sonolus client owns runtime loading and disposal. The
+host owns resource packs, BGM, charts, level metadata, catalog routes,
+authentication, and release URLs.
+
+Preserve [LICENSE](LICENSE),
+[`LICENSE.pjsekai.txt`](LICENSE.pjsekai.txt), and
+[`NOTICE.txt`](NOTICE.txt) when redistributing source or build artifacts.
+Haneoka-authored code is MPL-2.0; upstream engine code retains its MIT license;
+game-derived media and host asset packs retain the terms set by their operators.

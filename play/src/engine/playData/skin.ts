@@ -2,11 +2,11 @@ import { SkinSpriteName } from '@sonolus/core'
 
 export const skin = defineSkin({
     sprites: {
-        // Exactly one of these markers exists in the active skin pack; the
-        // note-cap overhang table is selected by it (noteOverhangs.ts).
-        noteSkinMarker001: 'Our Notes Native Flick Arrow Animation Skin skin001',
-        noteSkinMarker002: 'Our Notes Native Flick Arrow Animation Skin skin002',
-        noteSkinMarker003: 'Our Notes Native Flick Arrow Animation Skin skin003',
+        // Exactly one marker exists in the active skin pack; it selects the
+        // source-driven arrow thresholds, geometry, and animation curves.
+        nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',
+        nativeArrowAnimationSkin002: 'Our Notes Native Flick Arrow Animation Skin 002',
+        nativeArrowAnimationSkin003: 'Our Notes Native Flick Arrow Animation Skin 003',
         sekaiStage: 'Our Notes Stage',
         laneTapArea: 'Our Notes Lane Tap Area',
         laneTapAreaTopLeft: 'Our Notes Lane Tap Area Top Left',

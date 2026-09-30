@@ -57,6 +57,7 @@ async function buildSingleFacet(name: string): Promise<void> {
   if (!facet) {
     throw new Error(`Unknown facet ${JSON.stringify(name)}. Expected one of: ${FACETS.map((f) => f.name).join(", ")}`);
   }
+  await run("node", ["./scripts/generate-native-arrow-data.ts"], {});
   const facetRoot = resolve(matrixRoot, facet.name);
   rmSync(facetRoot, { recursive: true, force: true });
   await buildFacet(facet.name, resolve(facetRoot, "dev"), resolve(facetRoot, "dist"));
@@ -67,6 +68,7 @@ async function buildSingleFacet(name: string): Promise<void> {
  * `dist/`, and stamp the distribution with licenses + the source pointer.
  */
 async function buildAll(): Promise<void> {
+  await run("node", ["./scripts/generate-native-arrow-data.ts"], {});
   rmSync(stagingRoot, { recursive: true, force: true });
 
   // Compiler graphs are memory intensive. Default to one facet; opt-in

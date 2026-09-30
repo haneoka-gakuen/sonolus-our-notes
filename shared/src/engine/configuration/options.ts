@@ -101,14 +101,13 @@ export const optionsDefinition = {
         type: 'toggle',
         def: 1,
     },
-    // MasterLiveQualitySettings: Low loads effect001Light (the lightweight
-    // effects), High the full effect001 prefabs. Light is the default here.
+    // Native effect profiles: Light, Native, and Simple. Light is the default.
     noteEffectProfile: {
-        name: 'Note Effect Quality',
+        name: 'Note Effect Style',
         scope: 'Our Notes',
         type: 'select',
         def: 0,
-        values: ['Light', 'Standard'],
+        values: ['Standard (Light)', 'Standard', 'Simple (Light)'],
     },
     noteEffectSize: {
         name: Text.NoteEffectSize,

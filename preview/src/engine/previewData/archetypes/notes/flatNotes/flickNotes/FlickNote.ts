@@ -3,6 +3,7 @@ import {
     getPreviewArrowLayout,
     getArrowSpriteId,
 } from '../../../../../../../../shared/src/engine/data/arrowSprites.js'
+import { getNativeArrowAnimationSkin } from '../../../../../../../../shared/src/engine/data/nativeArrowAnimation.js'
 import { options } from '../../../../../configuration/options.js'
 import { scaledScreen } from '../../../../scaledScreen.js'
 import { getZ, layer, skin } from '../../../../skin.js'
@@ -31,10 +32,17 @@ export abstract class FlickNote extends FlatNote {
 
         const z = getZ(layer.note.arrow, time, this.import.lane)
 
+        const nativeSkin = getNativeArrowAnimationSkin(
+            skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin001.id),
+            skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin002.id),
+            skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin003.id),
+        )
+
         const arrowSpriteId = getArrowSpriteId(
             this.arrowSprites,
             this.import.size,
             this.flickImport.direction,
+            nativeSkin,
         )
 
         if (skin.sprites.exists(arrowSpriteId)) {
@@ -46,6 +54,7 @@ export abstract class FlickNote extends FlatNote {
                     this.import.lane,
                     0,
                     scaledScreen.wToH,
+                    nativeSkin,
                 ).add(pos),
                 [z],
                 1,

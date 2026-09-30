@@ -1,7 +1,6 @@
 import { NATIVE_EFFECT_PLANE_COUNT } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { options } from "../../../../configuration/options.js";
-import { effect } from "../../../effect.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
 import { getZ, layer } from "../../../skin.js";
@@ -13,11 +12,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     middle: SkinSprite;
     right: SkinSprite;
     fallback: SkinSprite;
-  };
-
-  abstract clips: {
-    hold: EffectClip;
-    fallback: EffectClip;
   };
 
   abstract effects: {
@@ -34,14 +28,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   preprocess() {
     super.preprocess();
-
-    if (options.sfxEnabled) {
-      if (replay.isReplay) {
-        this.scheduleReplaySFX();
-      } else {
-        this.scheduleSFX(this.head.time, this.tail.time);
-      }
-    }
   }
 
   updateParallel() {
@@ -86,10 +72,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     return !this.slideSprites.left.exists || !this.slideSprites.middle.exists || !this.slideSprites.right.exists;
   }
 
-  get useFallbackClip() {
-    return !this.clips.hold.exists;
-  }
-
   get shouldScheduleCircularEffect() {
     return options.noteEffectEnabled && this.effects.circular.exists;
   }
@@ -123,31 +105,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     this.slideSprites.left.draw(perspectiveLayout({ l, r: ml, b, t }), [this.slideZ], 1);
     this.slideSprites.middle.draw(perspectiveLayout({ l: ml, r: mr, b, t }), [this.slideZ], 1);
     this.slideSprites.right.draw(perspectiveLayout({ l: mr, r, b, t }), [this.slideZ], 1);
-  }
-
-  scheduleReplaySFX() {
-    if (this.import.startRef !== this.import.headRef) return;
-
-    let key = -999999;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    while (true) {
-      const startTime = streams.getNextKey(this.import.startRef, key);
-      if (startTime === key) break;
-
-      const endTime = streams.getValue(this.import.startRef, startTime);
-      this.scheduleSFX(startTime, Math.min(endTime, this.end.time));
-
-      key = startTime;
-    }
-  }
-
-  scheduleSFX(startTime: number, endTime: number) {
-    const id =
-      "fallback" in this.clips && this.useFallbackClip
-        ? this.clips.fallback.scheduleLoop(startTime)
-        : this.clips.hold.scheduleLoop(startTime);
-
-    effect.clips.scheduleStopLoop(id, endTime);
   }
 
   bakedCircularEffectId = this.entityMemory(Number);

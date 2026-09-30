@@ -1,7 +1,6 @@
 import { NATIVE_EFFECT_PLANE_COUNT } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { options } from "../../../../configuration/options.js";
-import { effect } from "../../../effect.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
 import { getZ, layer } from "../../../skin.js";
@@ -15,17 +14,11 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     fallback: SkinSprite;
   };
 
-  abstract clips: {
-    hold: EffectClip;
-    fallback: EffectClip;
-  };
-
   abstract effects: {
     circular: ParticleEffect;
     linear: ParticleEffect;
   };
 
-  sfxInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
   effectInstanceIds = this.entityMemory({
     circular: ParticleEffectInstanceId,
     linear: ParticleEffectInstanceId,
@@ -35,8 +28,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   preprocess() {
     super.preprocess();
-
-    if (this.shouldScheduleSFX) this.scheduleSFX();
   }
 
   initialize() {
@@ -60,8 +51,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     if (time.now < this.head.time) return;
 
     if (this.visual === VisualType.Activated) {
-      if (this.shouldPlaySFX && !this.sfxInstanceId) this.playSFX();
-
       if (this.shouldPlayCircularEffect) {
         if (!this.effectInstanceIds.circular) this.spawnCircularEffect();
 
@@ -74,8 +63,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
         this.updateLinearEffect();
       }
     } else {
-      if (this.shouldPlaySFX && this.sfxInstanceId) this.stopSFX();
-
       if (this.shouldPlayCircularEffect && this.effectInstanceIds.circular) this.destroyCircularEffect();
 
       if (this.shouldPlayLinearEffect && this.effectInstanceIds.linear) this.destroyLinearEffect();
@@ -85,27 +72,9 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   terminate() {
-    if (this.shouldPlaySFX && this.sfxInstanceId) this.stopSFX();
-
     if (this.shouldPlayCircularEffect && this.effectInstanceIds.circular) this.destroyCircularEffect();
 
     if (this.shouldPlayLinearEffect && this.effectInstanceIds.linear) this.destroyLinearEffect();
-  }
-
-  get shouldScheduleSFX() {
-    return (
-      options.sfxEnabled &&
-      (this.useFallbackClip ? this.clips.fallback.exists : this.clips.hold.exists) &&
-      options.autoSFX
-    );
-  }
-
-  get shouldPlaySFX() {
-    return (
-      options.sfxEnabled &&
-      (this.useFallbackClip ? this.clips.fallback.exists : this.clips.hold.exists) &&
-      !options.autoSFX
-    );
   }
 
   get shouldPlayCircularEffect() {
@@ -118,26 +87,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   get useFallbackSlideSprite() {
     return !this.slideSprites.left.exists || !this.slideSprites.middle.exists || !this.slideSprites.right.exists;
-  }
-
-  get useFallbackClip() {
-    return !this.clips.hold.exists;
-  }
-
-  scheduleSFX() {
-    const id = this.useFallbackClip
-      ? this.clips.fallback.scheduleLoop(this.head.time)
-      : this.clips.hold.scheduleLoop(this.head.time);
-    effect.clips.scheduleStopLoop(id, this.tail.time);
-  }
-
-  playSFX() {
-    this.sfxInstanceId = this.useFallbackClip ? this.clips.fallback.loop() : this.clips.hold.loop();
-  }
-
-  stopSFX() {
-    effect.clips.stopLoop(this.sfxInstanceId);
-    this.sfxInstanceId = 0;
   }
 
   bakedCircularEffectId = this.entityMemory(Number);

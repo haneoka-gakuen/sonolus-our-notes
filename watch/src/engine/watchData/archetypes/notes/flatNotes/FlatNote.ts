@@ -1,3 +1,4 @@
+import { nativeNoteCapLeftOverhang, nativeNoteCapRightOverhang } from "../../../../../../../shared/src/engine/data/noteOverhangs.js";
 import { lane, nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { approach, getNoteHalfHeight } from "../../../../../../../shared/src/engine/data/note.js";
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
@@ -241,8 +242,8 @@ export abstract class FlatNote extends Note {
   globalInitialize() {
     if (options.hidden > 0) this.hiddenTime = this.visualTime.max - note.duration * options.hidden;
 
-    const l = this.import.lane - this.import.size;
-    const r = this.import.lane + this.import.size;
+    const l = this.import.lane - this.import.size - nativeNoteCapLeftOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
+    const r = this.import.lane + this.import.size + nativeNoteCapRightOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
 
     const h = getNoteHalfHeight(this.import.operateType);
     const b = 1 + h;
@@ -347,7 +348,9 @@ export abstract class FlatNote extends Note {
     // LiveGameNoteEffectBase.Play maps Miss to animator state 0, so no
     // authored effect animation is selected.
     if (options.noteEffectEnabled && this.nativeJudgment !== 1) this.playNoteEffects();
-    if (options.laneEffectEnabled) this.playLaneEffects();
+    // Native lane feedback starts at Good (3) and includes replayed Gekisou
+    // (6); Bad (2) and Miss (1) leave the lane dark.
+    if (options.laneEffectEnabled && this.nativeJudgment >= 3) this.playLaneEffects();
   }
 
   playNoteEffects() {

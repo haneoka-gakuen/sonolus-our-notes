@@ -56,6 +56,10 @@ export const skin = defineSkin({
         criticalTraceNoteDiamond: 'Our Notes Trace Diamond Yellow',
         criticalTraceNoteFallback: SkinSpriteName.NoteTickYellow,
 
+        nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',
+        nativeArrowAnimationSkin002: 'Our Notes Native Flick Arrow Animation Skin 002',
+        nativeArrowAnimationSkin003: 'Our Notes Native Flick Arrow Animation Skin 003',
+
         normalSlideTickNote: 'Our Notes Diamond Green',
         normalSlideTickNoteFallback: SkinSpriteName.NoteTickGreen,
 

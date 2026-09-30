@@ -1,5 +1,14 @@
-import { getArrowLayout, getArrowSpriteId } from "../../../../../../../../shared/src/engine/data/arrowSprites.js";
+import {
+  getArrowLayout,
+  getArrowSpriteId,
+  getNativeArrowAnimationLayout,
+} from "../../../../../../../../shared/src/engine/data/arrowSprites.js";
 import { FlickDirection } from "../../../../../../../../shared/src/engine/data/FlickDirection.js";
+import {
+  getNativeArrowAnimationSkin,
+  NativeArrowAnimationSkin,
+} from "../../../../../../../../shared/src/engine/data/nativeArrowAnimation.js";
+import { readNativeArrowFrame } from "../../../../../../../../shared/src/engine/data/nativeArrowFrames.js";
 import { options } from "../../../../../configuration/options.js";
 import { effect, sfxDistance } from "../../../../effect.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
@@ -37,10 +46,16 @@ export abstract class FlickNote extends FlatNote {
   globalInitialize() {
     super.globalInitialize();
 
-    this.arrow.sprite = getArrowSpriteId(this.arrowSprites, this.import.size, this.flickImport.direction);
+    const nativeSkin = getNativeArrowAnimationSkin(
+      skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin001.id),
+      skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin002.id),
+      skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin003.id),
+    );
+
+    this.arrow.sprite = getArrowSpriteId(this.arrowSprites, this.import.size, this.flickImport.direction, nativeSkin);
 
     if (skin.sprites.exists(this.arrow.sprite)) {
-      getArrowLayout(this.import.size, this.flickImport.direction, this.import.lane, 1).copyTo(this.arrow.layout);
+      getArrowLayout(this.import.size, this.flickImport.direction, this.import.lane, 1, nativeSkin).copyTo(this.arrow.layout);
     }
 
     if (options.markerAnimation)
@@ -85,14 +100,15 @@ export abstract class FlickNote extends FlatNote {
   }
 
   scheduleReplaySFX() {
-    if (!this.import.judgment) return;
+    if (this.nativeJudgment < 3) return;
 
     if (
-      this.import.judgment === Judgment.Perfect &&
       this.flickImport.direction !== FlickDirection.Up &&
       effect.clips.flickSide.exists
     ) {
       effect.clips.flickSide.schedule(this.hitTime, sfxDistance);
+    } else if (effect.clips.flickPerfect.exists) {
+      effect.clips.flickPerfect.schedule(this.hitTime, sfxDistance);
     } else {
       super.scheduleReplaySFX();
     }
@@ -108,6 +124,30 @@ export abstract class FlickNote extends FlatNote {
     if (!skin.sprites.exists(this.arrow.sprite)) return;
 
     if (options.markerAnimation) {
+      const nativeSkin = getNativeArrowAnimationSkin(
+        skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin001.id),
+        skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin002.id),
+        skin.sprites.exists(skin.sprites.nativeArrowAnimationSkin003.id),
+      );
+      if (nativeSkin !== NativeArrowAnimationSkin.None) {
+        const animation = readNativeArrowFrame(this.flickImport.direction);
+        skin.sprites.draw(
+          this.arrow.sprite,
+          getNativeArrowAnimationLayout(
+            this.arrow.layout,
+            this.flickImport.direction,
+            this.import.lane,
+            1,
+            animation.x,
+            animation.y,
+            animation.scaleX,
+            animation.scaleY,
+          ).mul(this.y),
+          [this.arrow.z],
+          animation.alpha,
+        );
+        return;
+      }
       const s = Math.mod(time.now, 0.5) / 0.5;
 
       skin.sprites.draw(
