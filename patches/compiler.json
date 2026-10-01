@@ -1,0 +1,13 @@
+{
+  "version": "1.8.4",
+  "patchFile": "sonolus.js-compiler@1.8.4.patch",
+  "patchSha256": "f935b96016d1888110fbc05c7f6241405874471814f953d6c917934a1b20ffb7",
+  "files": {
+    "ir/optimize/propagate/analyze/compare.js": "5ba107769760808927b2d5417bd125657a251c51d90955a82ec1f1db5acf17d2",
+    "ir/optimize/propagate/analyze/meet.js": "3751b551d74c74367618503e01a28c809b07c050ab2d748ba07aa3357b07c8ea",
+    "ir/optimize/propagate/analyze/first-entry-index.js": "56530400b427187c81cedd5b3605b53a603982cb73e968d2cafe751ff9ce8b76",
+    "ir/dataflowAnalysis/forward/index.js": "ecd2008beea7dc2d6a5b278ef20fe6e380758872ae47469e460f90bb1137a47c",
+    "ir/dataflowAnalysis/backward/index.js": "55f103af9012ace45b3e82d0818b4c6fbf1c8dd07d36787751fa7fa3ec1bad5f"
+  },
+  "reviewedUnifiedDiffSha256": "c0752abaecc5b56f97bccd2124696407c8aedcf0b325372363e08d3c629d871e"
+}

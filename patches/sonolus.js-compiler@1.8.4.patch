@@ -1,0 +1,124 @@
+diff --git a/dist/ir/dataflowAnalysis/backward/index.js b/dist/ir/dataflowAnalysis/backward/index.js
+index 0603a19c974bef3bd6d6f1f37d77f54e432229b2..d2b587902ce076269444d124877260130319a40f 100644
+--- a/dist/ir/dataflowAnalysis/backward/index.js
++++ b/dist/ir/dataflowAnalysis/backward/index.js
+@@ -3,7 +3,7 @@ import { meetAll } from '../utils.js';
+ export const dataAnalysisBackwardIR = (ir, irs, initial, states, operators) => {
+     const { transfer, meet, compare } = operators;
+     const graph = generate(ir, irs);
+-    const workList = [...irs];
++    const workList = [...irs].reverse();
+     while ((ir = workList.shift())) {
+         const inputs = graph.outs.get(ir);
+         if (!inputs)
+diff --git a/dist/ir/dataflowAnalysis/forward/index.js b/dist/ir/dataflowAnalysis/forward/index.js
+index 9f30b69c1e3d7176c20f9e6c270b2b0ff4fb3ab0..4206271fb79bb0335120976c5afdf60636aeb9a3 100644
+--- a/dist/ir/dataflowAnalysis/forward/index.js
++++ b/dist/ir/dataflowAnalysis/forward/index.js
+@@ -4,7 +4,19 @@ export const dataAnalysisForwardIR = (ir, irs, initial, states, operators) => {
+     const { transfer, meet, compare } = operators;
+     const graph = generate(ir, irs);
+     const workList = [...irs];
+-    while ((ir = workList.shift())) {
++    const queued = new Map();
++    for (const node of workList) queued.set(node, (queued.get(node) ?? 0) + 1);
++    let head = 0;
++    while (head < workList.length && (ir = workList[head++])) {
++        workList[head - 1] = undefined;
++        const pending = queued.get(ir);
++        if (pending === 1) queued.delete(ir);
++        else queued.set(ir, pending - 1);
++        // Retain FIFO order and multiplicity without repeated shift/includes.
++        if (head >= 4096 && head * 2 > workList.length) {
++            workList.splice(0, head);
++            head = 0;
++        }
+         const inputs = graph.ins.get(ir);
+         if (!inputs)
+             throw new Error('Unexpected missing ins');
+@@ -26,8 +38,9 @@ export const dataAnalysisForwardIR = (ir, irs, initial, states, operators) => {
+         if (!outs)
+             throw new Error('Unexpected missing outs');
+         for (const ir of outs) {
+-            if (workList.includes(ir))
++            if (queued.has(ir))
+                 continue;
++            queued.set(ir, 1);
+             workList.push(ir);
+         }
+     }
+diff --git a/dist/ir/optimize/propagate/analyze/compare.js b/dist/ir/optimize/propagate/analyze/compare.js
+index e57ce8497a5f675aa90973e96b36afebdb17019c..1ce0ad90b6db312dd8916c16fe6cae2d9d157c60 100644
+--- a/dist/ir/optimize/propagate/analyze/compare.js
++++ b/dist/ir/optimize/propagate/analyze/compare.js
+@@ -1,6 +1,14 @@
+-import { myMapCompare } from '../../../../utils/MyMap.js';
+-export const comparePropagateStates = (a, b) => myMapCompare(a, b, (elementA, elementB) => {
+-    if (elementA === 'T' || elementB === 'T')
+-        return elementA === elementB;
+-    return elementA.value === elementB.value;
+-});
++import { firstEntryIndex } from './first-entry-index.js';
++export const comparePropagateStates = (a, b) => {
++    if (a === b) return true;
++    if (a.length !== b.length) return false;
++    const index = firstEntryIndex(b);
++    for (const { k, v: elementA } of a) {
++        const elementB = k === k ? index.get(k) : undefined;
++        if (elementB === undefined) return false;
++        if (elementA === 'T' || elementB === 'T') {
++            if (elementA !== elementB) return false;
++        } else if (elementA.value !== elementB.value) return false;
++    }
++    return true;
++};
+diff --git a/dist/ir/optimize/propagate/analyze/first-entry-index.js b/dist/ir/optimize/propagate/analyze/first-entry-index.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..fc3b04a7c38a04ed52e6659156134da7b8e77f1f
+--- /dev/null
++++ b/dist/ir/optimize/propagate/analyze/first-entry-index.js
+@@ -0,0 +1,11 @@
++/** Local index for an immutable propagation state. Keep the first === match.
++ * Map uses SameValueZero, so NaN keys must remain absent as in myMapGet.
++ */
++export const firstEntryIndex = (state) => {
++    const index = new Map();
++    for (const { k, v } of state) {
++        if (k !== k || index.has(k)) continue;
++        index.set(k, v);
++    }
++    return index;
++};
+diff --git a/dist/ir/optimize/propagate/analyze/meet.js b/dist/ir/optimize/propagate/analyze/meet.js
+index cc461ed393043c7a5a67e6c54b7a05ec4f080c54..d4611a0b1d8910ceeea6d38e0a9b03a5283e60d0 100644
+--- a/dist/ir/optimize/propagate/analyze/meet.js
++++ b/dist/ir/optimize/propagate/analyze/meet.js
+@@ -1,10 +1,18 @@
+-import { myMapMerge } from '../../../../utils/MyMap.js';
+-export const meetPropagateStates = (a, b) => a === b
+-    ? a
+-    : myMapMerge(a, b, (elementA, elementB) => {
+-        if (elementA === 'T' || elementB === 'T')
+-            return 'T';
+-        if (!elementA || !elementB)
+-            return elementA ?? elementB;
+-        return elementA.value === elementB.value ? elementA : 'T';
+-    });
++import { firstEntryIndex } from './first-entry-index.js';
++export const meetPropagateStates = (a, b) => {
++    if (a === b) return a;
++    const left = firstEntryIndex(a);
++    const right = firstEntryIndex(b);
++    // The existing Set defines insertion order and normalizes -0 keys.
++    const keys = new Set([...a.map(({ k }) => k), ...b.map(({ k }) => k)]);
++    const result = [];
++    for (const k of keys) {
++        const elementA = k === k ? left.get(k) : undefined;
++        const elementB = k === k ? right.get(k) : undefined;
++        const v = elementA === 'T' || elementB === 'T' ? 'T'
++            : !elementA || !elementB ? elementA ?? elementB
++            : elementA.value === elementB.value ? elementA : 'T';
++        if (v !== undefined) result.push({ k, v });
++    }
++    return result;
++};

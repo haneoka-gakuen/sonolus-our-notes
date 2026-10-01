@@ -10,6 +10,7 @@ mkdirSync(outputRoot, { recursive: true });
 copyFileSync(resolve(engineRoot, "LICENSE"), resolve(outputRoot, "LICENSE"));
 copyFileSync(resolve(engineRoot, "NOTICE.txt"), resolve(outputRoot, "NOTICE.txt"));
 copyFileSync(resolve(engineRoot, "LICENSE.pjsekai.txt"), resolve(outputRoot, "LICENSE.pjsekai.txt"));
+copyFileSync(resolve(engineRoot, "LICENSE.sonolus-compiler.txt"), resolve(outputRoot, "LICENSE.sonolus-compiler.txt"));
 
 const explicitRevision = process.env.SONOLUS_ENGINE_REVISION?.trim();
 let gitRevision: string | undefined;

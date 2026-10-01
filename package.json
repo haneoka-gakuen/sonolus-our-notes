@@ -16,14 +16,18 @@
     "LICENSE",
     "LICENSE.pjsekai.txt",
     "NOTICE.txt",
-    "README.md"
+    "README.md",
+    "patches",
+    "docs/COMPILER.md",
+    "LICENSE.sonolus-compiler.txt"
   ],
   "scripts": {
     "build": "pnpm run typecheck:tools && node ./scripts/build.ts",
     "typecheck:tools": "tsc --project ./tsconfig.tools.json",
-    "check": "pnpm run typecheck:tools && pnpm run verify:contract",
+    "check": "pnpm run typecheck:tools && pnpm run verify:compiler && pnpm run verify:contract",
     "verify:contract": "node ./scripts/verify-contract.ts",
-    "prepack": "pnpm run check"
+    "prepack": "pnpm run check",
+    "verify:compiler": "node ./scripts/verify-compiler.ts"
   },
   "dependencies": {
     "@sonolus/core": "7.15.4"
