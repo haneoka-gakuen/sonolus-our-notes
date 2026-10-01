@@ -1,7 +1,11 @@
+import { nativeSlideSprites } from '../../../../shared/src/engine/data/nativeSlideSkin.js'
+import { nativeNoteCapSprites } from '../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { SkinSpriteName } from '@sonolus/core'
 
 export const skin = defineSkin({
     sprites: {
+        ...nativeNoteCapSprites,
+        ...nativeSlideSprites,
         // Exactly one marker exists in the active skin pack; it selects the
         // source-driven arrow thresholds, geometry, and animation curves.
         nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',

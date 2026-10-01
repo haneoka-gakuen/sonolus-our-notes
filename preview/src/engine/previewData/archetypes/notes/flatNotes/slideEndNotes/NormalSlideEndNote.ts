@@ -3,9 +3,9 @@ import { SlideEndNote } from './SlideEndNote.js'
 
 export class NormalSlideEndNote extends SlideEndNote {
     sprites = {
-        left: skin.sprites.slideNoteLeft,
-        middle: skin.sprites.slideNoteMiddle,
-        right: skin.sprites.slideNoteRight,
+        left: skin.sprites.slideEndNoteLeft,
+        middle: skin.sprites.slideEndNoteMiddle,
+        right: skin.sprites.slideEndNoteRight,
         fallback: skin.sprites.slideNoteEndFallback,
     }
 }

@@ -1,3 +1,4 @@
+import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS, nativeEffectPlaneAlpha } from '../../../../shared/src/engine/data/nativeEffects.js'
 import { nativeLaneEffectLifetime } from '../../../../shared/src/engine/data/lane.js'
 import { scaledScreen } from './scaledScreen.js'
 
@@ -41,12 +42,21 @@ const noteEffectLayout = () => {
     return new Rect({ l, r, b, t })
 }
 
-/** The lane is centred, so every plane layer (P0..P3, consecutive ids) shares one rect. */
+export const nativeNoteEffectLayout = (plane: number) => {
+    const b = 1
+    const t = 1 - 2 * scaledScreen.wToH
+    const bottom = nativeEffectPlaneAlpha(plane, b)
+    const top = nativeEffectPlaneAlpha(plane, t)
+    return { x1: -2 * bottom, x2: -2 * top, x3: 2 * top, x4: 2 * bottom,
+        y1: b, y2: t, y3: t, y4: b }
+}
+
+/** Native hit: each consecutive plane id receives its own projected quad. */
 export const playNoteEffect = (effect: ParticleEffect, duration: number) => {
-    for (let plane = 0; plane < 4; plane++)
+    for (let plane = 0; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
         particle.effects.spawn(
             ((effect.id as unknown as number) + plane) as unknown as ParticleEffectId,
-            noteEffectLayout(),
+            nativeNoteEffectLayout(plane),
             duration,
             false,
         )
@@ -59,15 +69,14 @@ export const playLaneEffect = (effect: ParticleEffect) =>
         false,
     )
 
-/** Hold loop: all four plane layers (consecutive ids) on the centred rect. */
+/** Hold uses the same four projected planes and the shared particle period. */
 export const spawnHoldEffect = (): HoldEffectInstances => {
     const id = particle.effects.slideLoop.id as unknown as number
-    const layout = noteEffectLayout()
     return {
-        p0: particle.effects.spawn(id as unknown as ParticleEffectId, layout, 1, true),
-        p1: particle.effects.spawn((id + 1) as unknown as ParticleEffectId, layout, 1, true),
-        p2: particle.effects.spawn((id + 2) as unknown as ParticleEffectId, layout, 1, true),
-        p3: particle.effects.spawn((id + 3) as unknown as ParticleEffectId, layout, 1, true),
+        p0: particle.effects.spawn(id as unknown as ParticleEffectId, nativeNoteEffectLayout(0), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
+        p1: particle.effects.spawn((id + 1) as unknown as ParticleEffectId, nativeNoteEffectLayout(1), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
+        p2: particle.effects.spawn((id + 2) as unknown as ParticleEffectId, nativeNoteEffectLayout(2), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
+        p3: particle.effects.spawn((id + 3) as unknown as ParticleEffectId, nativeNoteEffectLayout(3), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
     }
 }
 

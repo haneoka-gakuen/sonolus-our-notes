@@ -1,3 +1,4 @@
+import { getNativeSlideSpriteId } from '../../../../../shared/src/engine/data/nativeSlideSkin.js'
 import { approach, note } from '../../../../../shared/src/engine/data/note.js'
 import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
 import { segment } from '../segment.js'
@@ -41,22 +42,20 @@ export const connector = {
             } else {
                 sprites.active.draw(layout, [layer.note.connector], a)
             }
-        } else if (mode === Mode.FallIn || mode === Mode.Frozen) {
-            const t = approach(0, 2, 0)
-            const b = approach(0, 2, mode === Mode.FallIn ? segment.time : 2)
-
-            const layout = perspectiveLayout({ l: -2, r: 2, b, t })
-
-            sprites.normal.draw(layout, [layer.note.connector], 1)
         } else {
-            const t = approach(0, 2, mode === Mode.FallOut ? segment.time : 0)
-            const b = approach(0, 2, 2)
-
-            const layout = perspectiveLayout({ l: -2, r: 2, b, t })
-
-            // Native SlideLine selects the pressed strip directly. Tutorial
-            // must not reintroduce the PJS cosine cross-fade or slot glow.
-            sprites.active.draw(layout, [layer.note.connector], 1)
+            const first = mode === Mode.FallOut ? Math.clamp(segment.time / 2, 0, 1) : 0
+            const last = mode === Mode.FallIn ? Math.clamp(segment.time / 2, 0, 1) : 1
+            const clock = mode === Mode.FallIn ? segment.time : mode === Mode.FallOut ? 2 + segment.time : 2
+            for (let cell = 0; cell < 16; cell++) {
+                const min = Math.max(first, cell / 16)
+                const max = Math.min(last, (cell + 1) / 16)
+                if (max <= min) continue
+                const b = approach(0, 2, clock - min * 2)
+                const t = approach(0, 2, clock - max * 2)
+                const state = mode === Mode.FallOut || mode === Mode.Active ? 2 : 0
+                const id = getNativeSlideSpriteId(skin.sprites, (min + max) / 2, state)
+                if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout({ l: -2, r: 2, b, t }), [layer.note.connector], 1)
+            }
         }
     },
 

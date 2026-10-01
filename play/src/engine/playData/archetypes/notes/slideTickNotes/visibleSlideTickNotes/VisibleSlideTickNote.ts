@@ -1,10 +1,13 @@
+import { nativeNoteEffectDuration } from '../../../../../../../../shared/src/engine/data/nativeEffects.js'
+import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
+import { perspectiveLayout } from '../../../../../../../../shared/src/engine/data/utils.js'
+import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../../shared/src/engine/data/nativeNoteGeometry.js'
 import { approach } from '../../../../../../../../shared/src/engine/data/note.js'
 import { options } from '../../../../../configuration/options.js'
 import { sfxDistance } from '../../../../effect.js'
 import { note } from '../../../../note.js'
 import { sizedEffectId, spawnNativeEffect } from '../../../../particle.js'
-import { scaledScreen } from '../../../../scaledScreen.js'
-import { getZ, layer } from '../../../../skin.js'
+import { getZ, layer, skin } from '../../../../skin.js'
 import { SlideTickNote } from '../SlideTickNote.js'
 
 export abstract class VisibleSlideTickNote extends SlideTickNote {
@@ -23,6 +26,8 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     visualTime = this.entityMemory(Range)
     hiddenTime = this.entityMemory(Number)
 
+    bodyLayouts = this.entityMemory({ left: Rect, mainLeft: Rect, middle: Rect, mainRight: Rect, right: Rect })
+    bodyIds = this.entityMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, middle: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId })
     spriteLayout = this.entityMemory(Quad)
     z = this.entityMemory(Number)
 
@@ -49,20 +54,21 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
         if (options.hidden > 0)
             this.hiddenTime = this.visualTime.max - note.duration * options.hidden
 
-        const h = 59 / 850 / 2
-        const b = 1 + h
-        const t = 1 - h
-
-        const w = h / scaledScreen.wToH
-
-        new Rect({
-            l: this.import.lane - w,
-            r: this.import.lane + w,
-            b,
-            t,
-        })
-            .toQuad()
-            .copyTo(this.spriteLayout)
+        const rects = getNativeNoteRects(this.import.lane, this.import.size, 7,
+            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+        const parts = getNativeNoteParts(this.import.lane, this.import.size, false)
+        const main = getNativeNoteMainIds(skin.sprites, 7)
+        this.bodyIds.left = getNativeNoteCapId(skin.sprites, 7, parts.leftTilt, parts.leftRight)
+        this.bodyIds.right = getNativeNoteCapId(skin.sprites, 7, parts.rightTilt, parts.rightRight)
+        this.bodyIds.mainLeft = main.left
+        this.bodyIds.middle = main.middle
+        this.bodyIds.mainRight = main.right
+        new Rect(rects.left).copyTo(this.bodyLayouts.left)
+        new Rect(rects.mainLeft).copyTo(this.bodyLayouts.mainLeft)
+        new Rect(rects.middle).copyTo(this.bodyLayouts.middle)
+        new Rect(rects.mainRight).copyTo(this.bodyLayouts.mainRight)
+        new Rect(rects.right).copyTo(this.bodyLayouts.right)
+        new Rect(rects.mark).toQuad().copyTo(this.spriteLayout)
 
         this.z = getZ(layer.note.tick, this.targetTime, this.import.lane)
     }
@@ -108,7 +114,16 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
 
         if (this.useFallbackSprite) return
 
+        this.drawBody(this.bodyIds.left, this.bodyLayouts.left, this.y)
+        this.drawBody(this.bodyIds.mainLeft, this.bodyLayouts.mainLeft, this.y)
+        this.drawBody(this.bodyIds.middle, this.bodyLayouts.middle, this.y)
+        this.drawBody(this.bodyIds.mainRight, this.bodyLayouts.mainRight, this.y)
+        this.drawBody(this.bodyIds.right, this.bodyLayouts.right, this.y)
         this.sprites.tick.draw(this.spriteLayout.mul(this.y), [this.z], 1)
+    }
+
+    drawBody(id: SkinSpriteId, layout: RectLike, y: number) {
+        if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(layout).mul(y), [this.z - 1], 1)
     }
 
     playHitEffects() {
@@ -125,6 +140,6 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     }
 
     playNoteEffect() {
-        spawnNativeEffect(sizedEffectId(this.effect.id, this.import.size), this.import.lane, this.import.size, 5 / 12)
+        spawnNativeEffect(sizedEffectId(this.effect.id, this.import.size), this.import.lane, this.import.size, nativeNoteEffectDuration(options.noteEffectProfile, 21, 5))
     }
 }

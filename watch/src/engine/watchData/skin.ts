@@ -1,7 +1,11 @@
+import { nativeSlideSprites } from '../../../../shared/src/engine/data/nativeSlideSkin.js'
+import { nativeNoteCapSprites } from '../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { SkinSpriteName } from '@sonolus/core'
 
 export const skin = defineSkin({
     sprites: {
+        ...nativeNoteCapSprites,
+        ...nativeSlideSprites,
         nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',
         nativeArrowAnimationSkin002: 'Our Notes Native Flick Arrow Animation Skin 002',
         nativeArrowAnimationSkin003: 'Our Notes Native Flick Arrow Animation Skin 003',

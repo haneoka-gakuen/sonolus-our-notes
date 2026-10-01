@@ -1,4 +1,6 @@
+import { nativeNoteEffectDuration } from '../../../../../../shared/src/engine/data/nativeEffects.js'
 import { effect } from '../../effect.js'
+import { playTutorialSound } from '../../sound.js'
 import {
     particle,
     playLaneEffect,
@@ -7,9 +9,9 @@ import {
 
 export const slideEndNoteHit = {
     enter() {
-        effect.clips.normalPerfect.play(0)
+        playTutorialSound(effect.clips.normalPerfect)
 
-        playNoteEffect(particle.effects.slideNote, 7 / 12)
+        playNoteEffect(particle.effects.slideNote, nativeNoteEffectDuration(0, 22, 5))
         playLaneEffect(particle.effects.laneSlide)
     },
 }

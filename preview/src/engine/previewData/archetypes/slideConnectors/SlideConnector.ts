@@ -1,10 +1,12 @@
+import { getNativeSlideSpriteId } from '../../../../../../shared/src/engine/data/nativeSlideSkin.js'
 import { EaseType, ease } from '../../../../../../shared/src/engine/data/EaseType.js'
 import { options } from '../../../configuration/options.js'
 import { panel } from '../../panel.js'
-import { getZ, layer } from '../../skin.js'
+import { getZ, layer, skin } from '../../skin.js'
 import { archetypes } from '../index.js'
 
 export abstract class SlideConnector extends Archetype {
+    nativeLine = false
     abstract sprites: {
         normal: SkinSprite
         fallback: SkinSprite
@@ -61,10 +63,10 @@ export abstract class SlideConnector extends Archetype {
                 max: Math.min(t.max, (i + 1) * panel.h),
             }
 
-            for (let j = 0; j < 10; j++) {
+            for (let j = 0; j < 16; j++) {
                 const st = {
-                    min: Math.lerp(pt.min, pt.max, j / 10),
-                    max: Math.lerp(pt.min, pt.max, (j + 1) / 10),
+                    min: Math.lerp(pt.min, pt.max, j / 16),
+                    max: Math.lerp(pt.min, pt.max, (j + 1) / 16),
                 }
 
                 const s = {
@@ -92,7 +94,11 @@ export abstract class SlideConnector extends Archetype {
 
                 const a = this.getAlpha(ft.min, ft.max, st.min) * options.connectorAlpha
 
-                this.sprites.normal.draw(layout, [z], a)
+                if (this.nativeLine) {
+                    const progress = Math.unlerpClamped(ft.min, ft.max, (st.min + st.max) / 2)
+                    const id = getNativeSlideSpriteId(skin.sprites, progress, 0)
+                    if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [z], a)
+                } else this.sprites.normal.draw(layout, [z], a)
             }
         }
     }

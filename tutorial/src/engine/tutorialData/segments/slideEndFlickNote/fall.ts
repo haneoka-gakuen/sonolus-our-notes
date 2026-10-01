@@ -2,11 +2,10 @@ import { connector } from '../../components/connector.js'
 import { flickArrow } from '../../components/flickArrow.js'
 import { noteDisplay } from '../../components/noteDisplay.js'
 import { slide } from '../../components/slide.js'
-import { effect } from '../../effect.js'
+import { startHeldSound, stopHeldSound } from '../../sound.js'
 import { drawHand } from '../../instruction.js'
 import { particle, destroyHoldEffect, spawnHoldEffect } from '../../particle.js'
 
-let sfxInstanceId = tutorialMemory(LoopedEffectClipInstanceId)
 const effectInstanceIds = tutorialMemory({
     p0: ParticleEffectInstanceId,
     p1: ParticleEffectInstanceId,
@@ -21,7 +20,7 @@ export const slideEndFlickNoteFall = {
         slide.show()
         connector.showFallOut()
 
-        sfxInstanceId = effect.clips.normalHold.loop()
+        startHeldSound()
         {
         const ids = spawnHoldEffect()
         effectInstanceIds.p0 = ids.p0
@@ -41,7 +40,7 @@ export const slideEndFlickNoteFall = {
         slide.clear()
         connector.clear()
 
-        effect.clips.stopLoop(sfxInstanceId)
+        stopHeldSound()
         destroyHoldEffect(effectInstanceIds)
     },
 }

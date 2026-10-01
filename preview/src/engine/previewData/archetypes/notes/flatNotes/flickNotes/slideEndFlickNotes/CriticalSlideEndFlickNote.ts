@@ -3,10 +3,10 @@ import { SlideEndFlickNote } from './SlideEndFlickNote.js'
 
 export class CriticalSlideEndFlickNote extends SlideEndFlickNote {
     sprites = {
-        left: skin.sprites.criticalNoteLeft,
-        middle: skin.sprites.criticalNoteMiddle,
-        right: skin.sprites.criticalNoteRight,
-        fallback: skin.sprites.criticalNoteEndFallback,
+        left: skin.sprites.flickNoteLeft,
+        middle: skin.sprites.flickNoteMiddle,
+        right: skin.sprites.flickNoteRight,
+        fallback: skin.sprites.flickNoteEndFallback,
     }
 
     arrowSprites = {

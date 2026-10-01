@@ -1,8 +1,12 @@
+import { nativeSlideSprites } from '../../../../shared/src/engine/data/nativeSlideSkin.js'
+import { nativeNoteCapSprites } from '../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { SkinSpriteName } from '@sonolus/core'
 import { panel } from './panel.js'
 
 export const skin = defineSkin({
     sprites: {
+        ...nativeNoteCapSprites,
+        ...nativeSlideSprites,
         previewStage: 'Our Notes Preview Stage',
         previewBorder: 'Our Notes Preview Border',
         previewDivider: 'Our Notes Preview Divider',
@@ -19,9 +23,19 @@ export const skin = defineSkin({
         slideNoteFallback: SkinSpriteName.NoteHeadGreen,
         slideNoteEndFallback: SkinSpriteName.NoteTailGreen,
 
+        slideEndNoteLeft: 'Our Notes Note Green End Left',
+        slideEndNoteMiddle: 'Our Notes Note Green End Middle',
+        slideEndNoteRight: 'Our Notes Note Green End Right',
+
         flickNoteLeft: 'Our Notes Note Red Left',
         flickNoteMiddle: 'Our Notes Note Red Middle',
         flickNoteRight: 'Our Notes Note Red Right',
+
+        tapDecoration: 'Our Notes Tap Decoration',
+        slideDecoration: 'Our Notes Slide Decoration',
+        flickDecoration: 'Our Notes Flick Decoration',
+        flickLeftDecoration: 'Our Notes Flick Left Decoration',
+        flickRightDecoration: 'Our Notes Flick Right Decoration',
         flickNoteFallback: SkinSpriteName.NoteHeadRed,
         flickNoteEndFallback: SkinSpriteName.NoteTailRed,
 

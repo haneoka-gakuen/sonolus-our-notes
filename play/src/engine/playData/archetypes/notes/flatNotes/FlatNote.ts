@@ -1,5 +1,7 @@
-import { nativeNoteCapLeftOverhang, nativeNoteCapRightOverhang } from "../../../../../../../shared/src/engine/data/noteOverhangs.js";
-import { approach, getNoteHalfHeight } from "../../../../../../../shared/src/engine/data/note.js";
+import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
+import { nativeNoteEffectDuration } from "../../../../../../../shared/src/engine/data/nativeEffects.js";
+import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteParts, getNativeNoteRects } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
+import { approach } from "../../../../../../../shared/src/engine/data/note.js";
 import { nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
@@ -50,10 +52,13 @@ export abstract class FlatNote extends Note {
   inputTime = this.entityMemory(Range);
 
   spriteLayouts = this.entityMemory({
-    left: Quad,
-    middle: Quad,
-    right: Quad,
+    left: Rect,
+    mainLeft: Rect,
+    middle: Rect,
+    mainRight: Rect,
+    right: Rect,
   });
+  bodyIds = this.entityMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId });
   z = this.entityMemory(Number);
 
   y = this.entityMemory(Number);
@@ -98,21 +103,19 @@ export abstract class FlatNote extends Note {
       }),
     }).copyTo(this.fullHitbox);
 
-    const h = getNoteHalfHeight(this.import.operateType);
-    const b = 1 + h;
-    const t = 1 - h;
-
-    // Native caps draw beyond the note rect by the skin's authored
-    // overhangs (OnSetViewWidth); the input hitbox above stays authored.
-    const vl = l - nativeNoteCapLeftOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
-    const vr = r + nativeNoteCapRightOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
-
-    const ml = vl + 0.3;
-    const mr = vr - 0.3;
-
-    perspectiveLayout({ l: vl, r: ml, b, t }).copyTo(this.spriteLayouts.left);
-    perspectiveLayout({ l: ml, r: mr, b, t }).copyTo(this.spriteLayouts.middle);
-    perspectiveLayout({ l: mr, r: vr, b, t }).copyTo(this.spriteLayouts.right);
+    const rects = this.nativeRects;
+    const kind = this.nativeKind;
+    const parts = getNativeNoteParts(this.import.lane, this.import.size, false);
+    this.bodyIds.left = getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight);
+    this.bodyIds.right = getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight);
+    const main = getNativeNoteMainIds(skin.sprites, kind);
+    this.bodyIds.mainLeft = main.left;
+    this.bodyIds.mainRight = main.right;
+    new Rect(rects.left).copyTo(this.spriteLayouts.left);
+    new Rect(rects.mainLeft).copyTo(this.spriteLayouts.mainLeft);
+    new Rect(rects.mainRight).copyTo(this.spriteLayouts.mainRight);
+    new Rect(rects.middle).copyTo(this.spriteLayouts.middle);
+    new Rect(rects.right).copyTo(this.spriteLayouts.right);
 
     this.z = getZ(this.layer, this.targetTime, this.import.lane);
     this.result.accuracy = this.windows.input.max;
@@ -161,30 +164,7 @@ export abstract class FlatNote extends Note {
   }
 
   get noteEffectDuration() {
-    if (
-      this.import.operateType === 40 ||
-      this.import.operateType === 41 ||
-      this.import.operateType === 42 ||
-      this.import.operateType === 102
-    ) {
-      return this.nativeJudgment >= 5 ? 5 / 12 : 2 / 3;
-    }
-
-    if (
-      this.import.operateType === 20 ||
-      this.import.operateType === 21 ||
-      this.import.operateType === 22 ||
-      this.import.operateType === 60 ||
-      this.import.operateType === 61 ||
-      this.import.operateType === 62 ||
-      this.import.operateType === 63 ||
-      this.import.operateType === 104 ||
-      this.import.operateType === 105
-    ) {
-      return this.nativeJudgment >= 5 ? 7 / 12 : 5 / 12;
-    }
-
-    return 5 / 12;
+    return nativeNoteEffectDuration(options.noteEffectProfile, this.import.operateType, this.nativeJudgment);
   }
 
   get nativeNoteEffectId() {
@@ -266,22 +246,34 @@ export abstract class FlatNote extends Note {
   }
 
   renderBody() {
-    // A standard Sonolus note head is not a visual substitute for a
-    // missing skin001 slice. Preserve fidelity by omitting the body.
-    if (this.useFallbackSprites) return;
+    this.drawBodyPart(this.bodyIds.left, this.spriteLayouts.left);
+    this.drawBodyPart(this.bodyIds.mainLeft, this.spriteLayouts.mainLeft);
+    this.drawBodyPart(getNativeNoteMainIds(skin.sprites, this.nativeKind).middle, this.spriteLayouts.middle);
+    this.drawBodyPart(this.bodyIds.mainRight, this.spriteLayouts.mainRight);
+    this.drawBodyPart(this.bodyIds.right, this.spriteLayouts.right);
+  }
 
-    this.sprites.left.draw(this.spriteLayouts.left.mul(this.y), [this.z], 1);
-    this.sprites.middle.draw(this.spriteLayouts.middle.mul(this.y), [this.z], 1);
-    this.sprites.right.draw(this.spriteLayouts.right.mul(this.y), [this.z], 1);
+  drawBodyPart(id: SkinSpriteId, layout: RectLike) {
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(layout).mul(this.y), [this.z], 1);
+  }
+
+  get nativeKind() {
+    return getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror));
+  }
+
+  get nativeRects() {
+    return getNativeNoteRects(this.import.lane, this.import.size, this.nativeKind,
+      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
+  }
+
+  get nativeMarkRect() {
+    return getNativeNoteMarkRect(this.import.lane,
+      getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror)),
+      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
   }
 
   renderDecoration() {
-    const layout = perspectiveLayout({
-      l: this.import.lane - (25 * 6) / 1420,
-      r: this.import.lane + (25 * 6) / 1420,
-      b: 1 + 12.5 / 850,
-      t: 1 - 12.5 / 850,
-    }).mul(this.y);
+    const layout = perspectiveLayout(this.nativeMarkRect).mul(this.y);
     const z = getZ(layer.note.body + 0.5, this.targetTime, this.import.lane);
     const direction = options.mirror
       ? this.import.originalDirection === 1
@@ -293,7 +285,7 @@ export abstract class FlatNote extends Note {
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
       skin.sprites.tapDecoration.draw(layout, [z], 1);
-    } else if (this.import.operateType === 20 || this.import.operateType === 22) {
+    } else if (this.import.operateType === 20) {
       skin.sprites.slideDecoration.draw(layout, [z], 1);
     } else if (
       this.import.operateType === 40 ||

@@ -85,6 +85,34 @@
       "normalTraceNoteGood": "Connect Good",
       "normalTraceNoteBad": "Connect Bad",
       "normalSlideConnectorCircular": "Slide Loop"
+    },
+    "timings": {
+      "normal": [
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667
+      ],
+      "slide": [
+        0.5833333333333334,
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667
+      ],
+      "flick": [
+        0.4166666666666667,
+        0.5,
+        0.5,
+        0.5833333333333334
+      ],
+      "simpleFlick": [
+        0.75,
+        0.5,
+        0.5,
+        0.4166666666666667
+      ],
+      "loopAnimation": 0.1,
+      "loopParticle": 1
     }
   }
 }

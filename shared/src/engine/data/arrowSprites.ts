@@ -1,5 +1,5 @@
 import { FlickDirection } from "./FlickDirection.js";
-import { getNativeArrowGeometrySkin, NativeArrowAnimationSkin } from "./nativeArrowAnimation.js";
+import { getNativeArrowAnimation, getNativeArrowGeometrySkin, NativeArrowAnimationSkin } from "./nativeArrowAnimation.js";
 import {
   getNativeArrowSpriteIndexSkin001Left,
   getNativeArrowSpriteIndexSkin001Right,
@@ -152,12 +152,13 @@ export const getNativeArrowAnimationLayout = (
 ) => {
   const parentScale = direction === FlickDirection.Up ? 0.8 : 1;
   const unit = 100 / 850;
+  const horizontalUnit = (100 * 12) / 1420;
   const pivotY = judgmentY - (direction === FlickDirection.Up ? 1.15 : 1) * unit;
 
   return layout
     .translate(-lane, -pivotY)
     .scale(scaleX, scaleY)
-    .translate(lane + x * parentScale * unit, pivotY - (y - 1) * parentScale * unit);
+    .translate(lane + x * parentScale * horizontalUnit, pivotY - (y - 1) * parentScale * unit);
 };
 
 /** Orthographic chart-preview layout for the same native flick sprites. */
@@ -172,12 +173,16 @@ export const getPreviewArrowLayout = (
   const geometrySkin = getNativeArrowGeometrySkin(skin);
   const index = getArrowSpriteIndex(geometrySkin, size, direction);
   const scale = direction === FlickDirection.Up ? 0.8 : 1;
-  const w = ((getArrowWidth(geometrySkin, index, direction) * 12) / 1420 / 2) * scale;
-  const h = ((getArrowHeight(geometrySkin, index, direction) * 12) / 1420) * scale * wToH;
-  const centerOffset = (((direction === FlickDirection.Up ? 1.15 : 1) * 100 * 12) / 1420) * wToH;
+  // Preview has no animation clock. Freeze the same authored start pose
+  // used when marker animation is disabled in play/watch.
+  const animation = getNativeArrowAnimation(geometrySkin, direction, 0);
+  const w = ((getArrowWidth(geometrySkin, index, direction) * 12) / 1420 / 2) * scale * animation.scaleX;
+  const h = ((getArrowHeight(geometrySkin, index, direction) * 12) / 1420) * scale * animation.scaleY * wToH;
+  const unit = (100 * 12) / 1420;
+  const centerOffset = ((direction === FlickDirection.Up ? 0.35 : 0) + animation.y * scale) * unit * wToH;
 
   return new Rect({ l: -w, r: w, b: -h / 2, t: h / 2 })
     .toQuad()
     .rotate(direction === FlickDirection.Left ? Math.PI : 0)
-    .translate(lane, chartY + centerOffset);
+    .translate(lane + animation.x * scale * unit, chartY + centerOffset);
 };

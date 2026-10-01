@@ -13,6 +13,7 @@ import {
 } from "../../../../../shared/src/engine/data/lane.js";
 import { options } from "../../configuration/options.js";
 import { effect, sfxDistance } from "../effect.js";
+import { updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
 import { getHitbox, lane } from "../lane.js";
 import { note } from "../note.js";
 import { groundEffectLayout, particle } from "../particle.js";
@@ -129,24 +130,11 @@ export class Stage extends Archetype {
       }
     }
 
-    if (active) {
-      if (!this.holdInstanceId) {
-        this.holdInstanceId = effect.clips.normalHold.loop();
-        if (effect.clips.holdSecondary.exists) {
-          this.holdSecondaryInstanceId = effect.clips.holdSecondary.loop();
-        }
-      }
-      return;
-    }
+    updateHeldSound(this, active, options.sfxEnabled && !options.autoSFX);
+  }
 
-    if (this.holdSecondaryInstanceId) {
-      effect.clips.stopLoop(this.holdSecondaryInstanceId);
-      this.holdSecondaryInstanceId = 0;
-    }
-    if (this.holdInstanceId) {
-      effect.clips.stopLoop(this.holdInstanceId);
-      this.holdInstanceId = 0;
-    }
+  terminate() {
+    stopHeldSound(this);
   }
 
   scheduleHeldSFX() {
@@ -164,13 +152,7 @@ export class Stage extends Archetype {
         end = nextEnd;
       }
 
-      const id = effect.clips.normalHold.scheduleLoop(start);
-      effect.clips.scheduleStopLoop(id, end);
-
-      if (effect.clips.holdSecondary.exists) {
-        const secondaryId = effect.clips.holdSecondary.scheduleLoop(start);
-        effect.clips.scheduleStopLoop(secondaryId, end);
-      }
+      scheduleHeldSound(start, end);
 
       previousEnd = end;
       hasPrevious = true;
@@ -266,7 +248,7 @@ export class Stage extends Archetype {
     }
   }
 
-  inVainInstances = levelMemory(Dictionary(12, Number, Number));
+  inVainInstances = levelMemory(Dictionary(12, Number, ParticleEffectInstanceId));
 
   drawSekaiStage() {
     skin.sprites.sekaiStage.draw(

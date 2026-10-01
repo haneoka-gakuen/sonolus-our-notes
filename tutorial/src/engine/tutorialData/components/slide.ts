@@ -1,4 +1,5 @@
-import { note } from '../../../../../shared/src/engine/data/note.js'
+import { getNativeTutorialNoteRects } from '../../../../../shared/src/engine/data/nativeTutorialGeometry.generated.js'
+import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
 import { layer, skin } from '../skin.js'
 
@@ -10,30 +11,39 @@ const sprites = {
 
 let mode = tutorialMemory(Boolean)
 
+const ids = tutorialMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, middle: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId })
+const layouts = tutorialMemory({ left: Quad, mainLeft: Quad, middle: Quad, mainRight: Quad, right: Quad })
+
 export const slide = {
     update() {
         if (!mode) return
         if (!sprites.left.exists || !sprites.middle.exists || !sprites.right.exists) return
 
-        const l = -2
-        const r = 2
+        this.draw(ids.left, layouts.left)
+        this.draw(ids.mainLeft, layouts.mainLeft)
+        this.draw(ids.middle, layouts.middle)
+        this.draw(ids.mainRight, layouts.mainRight)
+        this.draw(ids.right, layouts.right)
+    },
 
-        const ml = l + 0.25
-        const mr = r - 0.25
-
-        const t = 1 - note.h
-        const b = 1 + note.h
-
-        sprites.left.draw(perspectiveLayout({ l, r: ml, t, b }), [layer.note.slide], 1)
-        sprites.middle.draw(
-            perspectiveLayout({ l: ml, r: mr, t, b }),
-            [layer.note.slide],
-            1,
-        )
-        sprites.right.draw(perspectiveLayout({ l: mr, r, t, b }), [layer.note.slide], 1)
+    draw(id: SkinSpriteId, layout: Quad) {
+        if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [layer.note.slide], 1)
     },
 
     show() {
+        const rects = getNativeTutorialNoteRects(1,
+            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+        const main = getNativeNoteMainIds(skin.sprites, 1)
+        ids.left = getNativeNoteCapId(skin.sprites, 1, 2, true)
+        ids.right = getNativeNoteCapId(skin.sprites, 1, 2, true)
+        ids.mainLeft = main.left
+        ids.middle = main.middle
+        ids.mainRight = main.right
+        perspectiveLayout(rects.left).copyTo(layouts.left)
+        perspectiveLayout(rects.mainLeft).copyTo(layouts.mainLeft)
+        perspectiveLayout(rects.middle).copyTo(layouts.middle)
+        perspectiveLayout(rects.mainRight).copyTo(layouts.mainRight)
+        perspectiveLayout(rects.right).copyTo(layouts.right)
         mode = true
     },
 

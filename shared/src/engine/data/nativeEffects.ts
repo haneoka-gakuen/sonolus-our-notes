@@ -4,6 +4,34 @@
 // `defineParticle` assigns ids in declaration order, so the table below must
 // keep that layout.
 
+/** Seconds from the selected effect Animator clips (Perfect, Great, Good, Bad). */
+export const NATIVE_PARTICLE_TIMINGS = {
+    normal: [5 / 12, 5 / 12, 5 / 12, 5 / 12],
+    slide: [7 / 12, 5 / 12, 5 / 12, 5 / 12],
+    flick: [5 / 12, 1 / 2, 1 / 2, 7 / 12],
+    simpleFlick: [3 / 4, 1 / 2, 1 / 2, 5 / 12],
+    loopAnimation: 1 / 10,
+    // Ten Animator cycles per Sonolus cycle. Particle tails can exceed one
+    // Animator cycle; authoring one second preserves their real-time speed.
+    loopParticle: 1,
+} as const
+
+/** Native judgment 1=Miss, 2=Bad, 3=Good, 4=Great, 5=Perfect (6 reserved). */
+export const nativeNoteEffectDuration = (profile: number, operateType: number, judgment: number) => {
+    if (judgment < 2) return 0
+    if (operateType === 40 || operateType === 41 || operateType === 42 || operateType === 102) {
+        if (judgment === 3 || judgment === 4) return 1 / 2
+        if (profile === 2) return judgment >= 5 ? 3 / 4 : 5 / 12
+        return judgment >= 5 ? 5 / 12 : 7 / 12
+    }
+    if (
+        operateType === 20 || operateType === 21 || operateType === 22 ||
+        operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 ||
+        operateType === 104 || operateType === 105
+    ) return judgment >= 5 ? 7 / 12 : 5 / 12
+    return 5 / 12
+}
+
 export const NATIVE_EFFECT_PROFILES = ['Our Notes Light', 'Our Notes Native', 'Our Notes Simple'] as const
 /** MasterLiveQualitySettings values used to author the three native profiles. */
 export const NATIVE_EFFECT_PROFILE_QUALITIES = [2, 0, 2] as const
@@ -79,6 +107,7 @@ export const NATIVE_EFFECT_CONTRACT = {
             ...plane,
         })),
         baseNames: NATIVE_EFFECT_BASES,
+        timings: NATIVE_PARTICLE_TIMINGS,
     },
 } as const
 

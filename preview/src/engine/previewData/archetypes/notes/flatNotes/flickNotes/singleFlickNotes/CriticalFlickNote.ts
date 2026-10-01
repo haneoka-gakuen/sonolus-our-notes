@@ -3,10 +3,10 @@ import { SingleFlickNote } from './SingleFlickNote.js'
 
 export class CriticalFlickNote extends SingleFlickNote {
     sprites = {
-        left: skin.sprites.criticalNoteLeft,
-        middle: skin.sprites.criticalNoteMiddle,
-        right: skin.sprites.criticalNoteRight,
-        fallback: skin.sprites.criticalNoteFallback,
+        left: skin.sprites.flickNoteLeft,
+        middle: skin.sprites.flickNoteMiddle,
+        right: skin.sprites.flickNoteRight,
+        fallback: skin.sprites.flickNoteFallback,
     }
 
     arrowSprites = {

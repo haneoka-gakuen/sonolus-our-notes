@@ -1,12 +1,15 @@
-import { NATIVE_EFFECT_PLANE_COUNT } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
+import { getNativeNoteCapId } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
+import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js';
+import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS, nativeEffectWidthBucket } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
-import { getZ, layer } from "../../../skin.js";
+import { getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 
 export abstract class ActiveSlideConnector extends SlideConnector {
+  override nativeLine = true;
   abstract slideSprites: {
     left: SkinSprite;
     middle: SkinSprite;
@@ -25,6 +28,17 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   });
 
   slideZ = this.entityMemory(Number);
+
+  // Resource selection and engine options are fixed for this entity's run.
+  // Dynamic lane/width and the width-bucket restart remain per-frame.
+  resources = this.entityMemory({
+    circularEnabled: Boolean,
+    linearEnabled: Boolean,
+    circularProfileBase: ParticleEffectId,
+    slideAvailable: Boolean,
+    skin002: Boolean,
+    skin003: Boolean,
+  });
 
   preprocess() {
     super.preprocess();
@@ -69,21 +83,27 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   get useFallbackSlideSprite() {
-    return !this.slideSprites.left.exists || !this.slideSprites.middle.exists || !this.slideSprites.right.exists;
+    return !this.resources.slideAvailable;
   }
 
   get shouldScheduleCircularEffect() {
-    return options.noteEffectEnabled && this.effects.circular.exists;
+    return this.resources.circularEnabled;
   }
 
   get shouldScheduleLinearEffect() {
-    return options.noteEffectEnabled && this.effects.linear.exists;
+    return this.resources.linearEnabled;
   }
 
   globalInitialize() {
     super.globalInitialize();
 
     this.slideZ = getZ(layer.note.slide, this.head.time, this.headImport.lane);
+    this.resources.circularEnabled = options.noteEffectEnabled && this.effects.circular.exists;
+    this.resources.linearEnabled = options.noteEffectEnabled && this.effects.linear.exists;
+    this.resources.circularProfileBase = sizedEffectId(this.effects.circular.id, 0);
+    this.resources.slideAvailable = this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
+    this.resources.skin002 = skin.sprites.nativeArrowAnimationSkin002.exists;
+    this.resources.skin003 = skin.sprites.nativeArrowAnimationSkin003.exists;
   }
 
   getAlpha() {
@@ -96,15 +116,18 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     const { l, r } = this.getEdgeBounds(time.scaled);
 
-    const b = 1 + note.h;
-    const t = 1 - note.h;
+    const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1,
+      this.resources.skin002, this.resources.skin003);
+    const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
+    this.drawSlidePart(getNativeNoteCapId(skin.sprites, 1, parts.leftTilt, parts.leftRight), rects.left);
+    this.drawSlidePart(skin.sprites.nativeSlideMainLeft.id, rects.mainLeft);
+    this.drawSlidePart(skin.sprites.nativeSlideMainMiddle.id, rects.middle);
+    this.drawSlidePart(skin.sprites.nativeSlideMainRight.id, rects.mainRight);
+    this.drawSlidePart(getNativeNoteCapId(skin.sprites, 1, parts.rightTilt, parts.rightRight), rects.right);
+  }
 
-    const ml = l + 0.25;
-    const mr = r - 0.25;
-
-    this.slideSprites.left.draw(perspectiveLayout({ l, r: ml, b, t }), [this.slideZ], 1);
-    this.slideSprites.middle.draw(perspectiveLayout({ l: ml, r: mr, b, t }), [this.slideZ], 1);
-    this.slideSprites.right.draw(perspectiveLayout({ l: mr, r, b, t }), [this.slideZ], 1);
+  drawSlidePart(id: SkinSpriteId, rect: RectLike) {
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(rect), [this.slideZ], 1);
   }
 
   bakedCircularEffectId = this.entityMemory(Number);
@@ -115,16 +138,17 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   spawnCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
     const size = (r - l) / 2;
-    this.spawnCircularPlanes(sizedEffectId(this.effects.circular.id, size));
+    const id = ((this.resources.circularProfileBase as unknown as number) + nativeEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
+    this.spawnCircularPlanes(id);
   }
 
   spawnCircularPlanes(id: ParticleEffectId) {
     this.bakedCircularEffectId = id;
-    this.effectInstanceIds.circular = particle.effects.spawn(id, new Quad(), 1, true);
+    this.effectInstanceIds.circular = particle.effects.spawn(id, new Quad(), NATIVE_PARTICLE_TIMINGS.loopParticle, true);
     for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
       this.circularPlaneInstanceIds.set(
         plane - 1,
-        particle.effects.spawn(((id as unknown as number) + plane) as unknown as ParticleEffectId, new Quad(), 1, true),
+        particle.effects.spawn(((id as unknown as number) + plane) as unknown as ParticleEffectId, new Quad(), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
       );
   }
 
@@ -133,7 +157,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     const lane = (l + r) / 2;
     const size = (r - l) / 2;
 
-    const nextEffectId = sizedEffectId(this.effects.circular.id, size);
+    const nextEffectId = ((this.resources.circularProfileBase as unknown as number) + nativeEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
     if (this.bakedCircularEffectId !== nextEffectId) {
       this.destroyCircularEffect();
       this.spawnCircularPlanes(nextEffectId);

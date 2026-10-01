@@ -1,5 +1,3 @@
-import { note } from '../../../../note.js'
-import { scaledScreen } from '../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../skin.js'
 import { FlatNote } from '../FlatNote.js'
 
@@ -31,14 +29,7 @@ export abstract class TraceNote extends FlatNote {
         super.globalInitialize()
 
         if (!this.useFallbackSprites) {
-            const w = note.h / scaledScreen.wToH
-
-            new Rect({
-                l: this.import.lane - w,
-                r: this.import.lane + w,
-                b: 1 + note.h,
-                t: 1 - note.h,
-            }).copyTo(this.diamondLayout)
+            new Rect(this.nativeMarkRect).copyTo(this.diamondLayout)
 
             this.diamondZ = getZ(layer.note.tick, this.targetTime, this.import.lane)
         }

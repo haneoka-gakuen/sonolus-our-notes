@@ -1,4 +1,7 @@
-import { approach, note } from '../../../../../shared/src/engine/data/note.js'
+import { getNativeTutorialNoteRects } from '../../../../../shared/src/engine/data/nativeTutorialGeometry.generated.js'
+import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
+import { approach } from '../../../../../shared/src/engine/data/note.js'
+import { getNativeNoteKind } from '../../../../../shared/src/engine/data/nativeNoteGeometry.js'
 import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
 import { segment } from '../segment.js'
 import { layer, skin } from '../skin.js'
@@ -50,69 +53,28 @@ enum Mode {
 
 let mode = tutorialMemory(DataType<Mode>)
 let available = tutorialMemory(Boolean)
+let decorationId = tutorialMemory(DataType<0 | SkinSpriteId>)
 
-const ids = tutorialMemory({
-    left: SkinSpriteId,
-    middle: SkinSpriteId,
-    right: SkinSpriteId,
-})
+const bodyIds = tutorialMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, middle: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId })
+const bodyRects = tutorialMemory({ left: Rect, mainLeft: Rect, middle: Rect, mainRight: Rect, right: Rect, mark: Rect })
 
 export const noteDisplay = {
     update() {
-        if (!mode) return
-        if (!available) return
+        if (!mode || !available) return
+        this.draw(bodyIds.left, bodyRects.left, layer.note.body)
+        this.draw(bodyIds.mainLeft, bodyRects.mainLeft, layer.note.body)
+        this.draw(bodyIds.middle, bodyRects.middle, layer.note.body)
+        this.draw(bodyIds.mainRight, bodyRects.mainRight, layer.note.body)
+        this.draw(bodyIds.right, bodyRects.right, layer.note.body)
+        if (decorationId && skin.sprites.exists(decorationId)) this.draw(decorationId, bodyRects.mark, layer.note.body + 0.5)
+    },
 
+    draw(id: SkinSpriteId, rect: RectLike, z: number) {
+        if (!skin.sprites.exists(id)) return
         if (mode === Mode.Overlay) {
-            const a = Math.unlerpClamped(1, 0.75, segment.time)
-
-            const l = -3
-            const r = 3
-
-            const ml = l + 0.6
-            const mr = r - 0.6
-
-            const t = 0.5 - note.h * 3
-            const b = 0.5 + note.h * 3
-
-            skin.sprites.draw(ids.left, new Rect({ l, r: ml, t, b }), [layer.note.body], a)
-            skin.sprites.draw(
-                ids.middle,
-                new Rect({ l: ml, r: mr, t, b }),
-                [layer.note.body],
-                a,
-            )
-            skin.sprites.draw(ids.right, new Rect({ l: mr, r, t, b }), [layer.note.body], a)
-        } else {
-            const y = mode === Mode.Fall ? approach(0, 2, segment.time) : 1
-
-            const l = -2
-            const r = 2
-
-            const ml = l + 0.3
-            const mr = r - 0.3
-
-            const t = 1 - note.h
-            const b = 1 + note.h
-
-            skin.sprites.draw(
-                ids.left,
-                perspectiveLayout({ l, r: ml, t, b }).mul(y),
-                [layer.note.body],
-                1,
-            )
-            skin.sprites.draw(
-                ids.middle,
-                perspectiveLayout({ l: ml, r: mr, t, b }).mul(y),
-                [layer.note.body],
-                1,
-            )
-            skin.sprites.draw(
-                ids.right,
-                perspectiveLayout({ l: mr, r, t, b }).mul(y),
-                [layer.note.body],
-                1,
-            )
-        }
+            skin.sprites.draw(id, new Rect(rect).toQuad().translate(0, -1).scale(1.5, 3).translate(0, 0.5),
+                [z], Math.unlerpClamped(1, 0.75, segment.time))
+        } else skin.sprites.draw(id, perspectiveLayout(rect).mul(mode === Mode.Fall ? approach(0, 2, segment.time) : 1), [z], 1)
     },
 
     showOverlay(type: keyof typeof noteSprites) {
@@ -136,15 +98,32 @@ export const noteDisplay = {
 
     setType(type: keyof typeof noteSprites) {
         available = false
+        const operateType = type === 'normal' ? 1 : type === 'slide' ? 20 : type === 'slideEnd' ? 22 : type === 'trace' || type === 'traceFlick' ? 60 : 40
+        const kind = getNativeNoteKind(operateType, 0)
+        const rects = getNativeTutorialNoteRects(kind,
+            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+        const main = getNativeNoteMainIds(skin.sprites, kind)
+        bodyIds.left = getNativeNoteCapId(skin.sprites, kind, 2, true)
+        bodyIds.right = getNativeNoteCapId(skin.sprites, kind, 2, true)
+        bodyIds.mainLeft = main.left
+        bodyIds.middle = main.middle
+        bodyIds.mainRight = main.right
+        new Rect(rects.left).copyTo(bodyRects.left)
+        new Rect(rects.mainLeft).copyTo(bodyRects.mainLeft)
+        new Rect(rects.middle).copyTo(bodyRects.middle)
+        new Rect(rects.mainRight).copyTo(bodyRects.mainRight)
+        new Rect(rects.right).copyTo(bodyRects.right)
+        new Rect(rects.mark).copyTo(bodyRects.mark)
+        decorationId = type === 'normal' ? skin.sprites.tapDecoration.id
+            : type === 'slide' ? skin.sprites.slideDecoration.id
+            : type === 'flick' || type === 'flickEnd' ? skin.sprites.flickDecoration.id : 0
 
-        for (const [key, sprites] of Object.entries(noteSprites)) {
-            if (key !== type) continue
-            if (!sprites.left.exists || !sprites.middle.exists || !sprites.right.exists) continue
-
-            available = true
-            ids.left = sprites.left.id
-            ids.middle = sprites.middle.id
-            ids.right = sprites.right.id
-        }
+        if (type === 'normal') available = noteSprites.normal.left.exists && noteSprites.normal.middle.exists && noteSprites.normal.right.exists
+        else if (type === 'trace') available = noteSprites.trace.left.exists && noteSprites.trace.middle.exists && noteSprites.trace.right.exists
+        else if (type === 'traceFlick') available = noteSprites.traceFlick.left.exists && noteSprites.traceFlick.middle.exists && noteSprites.traceFlick.right.exists
+        else if (type === 'slide') available = noteSprites.slide.left.exists && noteSprites.slide.middle.exists && noteSprites.slide.right.exists
+        else if (type === 'slideEnd') available = noteSprites.slideEnd.left.exists && noteSprites.slideEnd.middle.exists && noteSprites.slideEnd.right.exists
+        else if (type === 'flick') available = noteSprites.flick.left.exists && noteSprites.flick.middle.exists && noteSprites.flick.right.exists
+        else available = noteSprites.flickEnd.left.exists && noteSprites.flickEnd.middle.exists && noteSprites.flickEnd.right.exists
     },
 }

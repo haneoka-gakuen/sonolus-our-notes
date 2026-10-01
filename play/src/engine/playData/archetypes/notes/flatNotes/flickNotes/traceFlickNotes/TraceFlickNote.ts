@@ -1,6 +1,4 @@
 import { consumeFlickTouch, isFlickLatchReady, scanFlickLatch } from '../../../../../flick.js'
-import { note } from '../../../../../note.js'
-import { scaledScreen } from '../../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../../skin.js'
 import { FlickNote } from '../FlickNote.js'
 
@@ -21,14 +19,7 @@ export abstract class TraceFlickNote extends FlickNote {
         super.initialize()
 
         if (!this.useFallbackSprites) {
-            const w = note.h / scaledScreen.wToH
-
-            new Rect({
-                l: this.import.lane - w,
-                r: this.import.lane + w,
-                b: 1 + note.h,
-                t: 1 - note.h,
-            }).copyTo(this.diamondLayout)
+            new Rect(this.nativeMarkRect).copyTo(this.diamondLayout)
 
             this.diamondZ = getZ(layer.note.tick, this.targetTime, this.import.lane)
         }

@@ -1,4 +1,4 @@
-import { note } from '../../../../note.js'
+import { getNativePreviewNoteRect } from '../../../../../../../../shared/src/engine/data/nativeNoteGeometry.js'
 import { scaledScreen } from '../../../../scaledScreen.js'
 import { getZ, layer } from '../../../../skin.js'
 import { FlatNote } from '../FlatNote.js'
@@ -19,16 +19,9 @@ export abstract class TraceNote extends FlatNote {
 
         const z = getZ(layer.note.tick, time, this.import.lane)
 
-        const b = -note.h
-        const t = note.h
-
         if (!this.useFallbackSprites) {
-            const w = note.h / scaledScreen.wToH
-
-            const l = this.import.lane - w
-            const r = this.import.lane + w
-
-            this.sprites.diamond.draw(new Rect({ l, r, b, t }).add(pos), [z], 1)
+            const rect = getNativePreviewNoteRect(this.nativeMarkRect, scaledScreen.wToH)
+            this.sprites.diamond.draw(new Rect(rect).add(pos), [z], 1)
         }
 
         return { time, pos }

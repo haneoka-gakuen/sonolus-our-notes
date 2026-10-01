@@ -1,10 +1,12 @@
+import { nativeNoteEffectDuration } from '../../../../../../shared/src/engine/data/nativeEffects.js'
 import { effect } from '../../effect.js'
+import { playTutorialSound } from '../../sound.js'
 import { particle, playNoteEffect } from '../../particle.js'
 
 export const traceFlickNoteHit = {
     enter() {
-        effect.clips.flickPerfect.play(0)
+        playTutorialSound(effect.clips.flickPerfect)
 
-        playNoteEffect(particle.effects.flickNote, 5 / 12)
+        playNoteEffect(particle.effects.connectNote, nativeNoteEffectDuration(0, 104, 5))
     },
 }

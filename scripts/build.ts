@@ -1,8 +1,10 @@
-import { copyFileSync, existsSync, mkdirSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyInstalledCompiler } from "./verify-compiler.ts";
+import { isDeepStrictEqual } from "node:util";
+import { gunzipSync } from "node:zlib";
 const engineRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(engineRoot, "dist");
 /** Local dev: parallel facets stage here before merging into `dist/`. */
@@ -58,6 +60,8 @@ async function buildSingleFacet(name: string): Promise<void> {
   if (!facet) {
     throw new Error(`Unknown facet ${JSON.stringify(name)}. Expected one of: ${FACETS.map((f) => f.name).join(", ")}`);
   }
+  await run("node", ["./scripts/generate-contract.ts"], {});
+  await run("node", ["./scripts/generate-native-note-geometry.ts"], {});
   await run("node", ["./scripts/generate-native-arrow-data.ts"], {});
   const facetRoot = resolve(matrixRoot, facet.name);
   rmSync(facetRoot, { recursive: true, force: true });
@@ -69,6 +73,8 @@ async function buildSingleFacet(name: string): Promise<void> {
  * `dist/`, and stamp the distribution with licenses + the source pointer.
  */
 async function buildAll(): Promise<void> {
+  await run("node", ["./scripts/generate-contract.ts"], {});
+  await run("node", ["./scripts/generate-native-note-geometry.ts"], {});
   await run("node", ["./scripts/generate-native-arrow-data.ts"], {});
   rmSync(stagingRoot, { recursive: true, force: true });
 
@@ -86,8 +92,17 @@ async function buildAll(): Promise<void> {
     );
   }
 
-  // Merge the per-facet artifacts into the real dist/. EngineConfiguration is
-  // identical across facets, so copy it once from the first.
+  // Every facet shares one configuration; validate before replacing dist/.
+  const configuration = (name: string) => JSON.parse(gunzipSync(readFileSync(
+    resolve(stagingRoot, name, "dist", "EngineConfiguration"),
+  )).toString("utf8")) as unknown;
+  const firstConfiguration = configuration(FACETS[0].name);
+  for (const { name } of FACETS) {
+    if (!isDeepStrictEqual(firstConfiguration, configuration(name)))
+      throw new Error(`EngineConfiguration differs in ${name}; preserve the previous dist until all facets agree`);
+  }
+
+  // Merge only the complete, consistent artifact set.
   rmSync(distRoot, { recursive: true, force: true });
   mkdirSync(distRoot, { recursive: true });
   const first = FACETS[0];

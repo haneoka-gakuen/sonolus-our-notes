@@ -1,6 +1,8 @@
-import { nativeNoteCapLeftOverhang, nativeNoteCapRightOverhang } from "../../../../../../../shared/src/engine/data/noteOverhangs.js";
+import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
+import { nativeNoteEffectDuration } from "../../../../../../../shared/src/engine/data/nativeEffects.js";
+import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteParts, getNativeNoteRects } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
 import { lane, nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
-import { approach, getNoteHalfHeight } from "../../../../../../../shared/src/engine/data/note.js";
+import { approach } from "../../../../../../../shared/src/engine/data/note.js";
 import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
 import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { options } from "../../../../configuration/options.js";
@@ -48,10 +50,13 @@ export abstract class FlatNote extends Note {
   initialized = this.entityMemory(Boolean);
 
   spriteLayouts = this.entityMemory({
-    left: Quad,
-    middle: Quad,
-    right: Quad,
+    left: Rect,
+    mainLeft: Rect,
+    middle: Rect,
+    mainRight: Rect,
+    right: Rect,
   });
+  bodyIds = this.entityMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId });
   z = this.entityMemory(Number);
 
   y = this.entityMemory(Number);
@@ -148,30 +153,7 @@ export abstract class FlatNote extends Note {
   }
 
   get noteEffectDuration() {
-    if (
-      this.import.operateType === 40 ||
-      this.import.operateType === 41 ||
-      this.import.operateType === 42 ||
-      this.import.operateType === 102
-    ) {
-      return this.nativeJudgment >= 5 ? 5 / 12 : 2 / 3;
-    }
-
-    if (
-      this.import.operateType === 20 ||
-      this.import.operateType === 21 ||
-      this.import.operateType === 22 ||
-      this.import.operateType === 60 ||
-      this.import.operateType === 61 ||
-      this.import.operateType === 62 ||
-      this.import.operateType === 63 ||
-      this.import.operateType === 104 ||
-      this.import.operateType === 105
-    ) {
-      return this.nativeJudgment >= 5 ? 7 / 12 : 5 / 12;
-    }
-
-    return 5 / 12;
+    return nativeNoteEffectDuration(options.noteEffectProfile, this.import.operateType, this.nativeJudgment);
   }
 
   get nativeNoteEffectId() {
@@ -242,19 +224,19 @@ export abstract class FlatNote extends Note {
   globalInitialize() {
     if (options.hidden > 0) this.hiddenTime = this.visualTime.max - note.duration * options.hidden;
 
-    const l = this.import.lane - this.import.size - nativeNoteCapLeftOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
-    const r = this.import.lane + this.import.size + nativeNoteCapRightOverhang(this.import.operateType, skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
-
-    const h = getNoteHalfHeight(this.import.operateType);
-    const b = 1 + h;
-    const t = 1 - h;
-
-    const ml = l + 0.3;
-    const mr = r - 0.3;
-
-    perspectiveLayout({ l, r: ml, b, t }).copyTo(this.spriteLayouts.left);
-    perspectiveLayout({ l: ml, r: mr, b, t }).copyTo(this.spriteLayouts.middle);
-    perspectiveLayout({ l: mr, r, b, t }).copyTo(this.spriteLayouts.right);
+    const rects = this.nativeRects;
+    const kind = this.nativeKind;
+    const parts = getNativeNoteParts(this.import.lane, this.import.size, false);
+    this.bodyIds.left = getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight);
+    this.bodyIds.right = getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight);
+    const main = getNativeNoteMainIds(skin.sprites, kind);
+    this.bodyIds.mainLeft = main.left;
+    this.bodyIds.mainRight = main.right;
+    new Rect(rects.left).copyTo(this.spriteLayouts.left);
+    new Rect(rects.mainLeft).copyTo(this.spriteLayouts.mainLeft);
+    new Rect(rects.mainRight).copyTo(this.spriteLayouts.mainRight);
+    new Rect(rects.middle).copyTo(this.spriteLayouts.middle);
+    new Rect(rects.right).copyTo(this.spriteLayouts.right);
 
     this.z = getZ(this.layer, this.targetTime, this.import.lane);
   }
@@ -299,20 +281,34 @@ export abstract class FlatNote extends Note {
   }
 
   renderBody() {
-    if (this.useFallbackSprites) return;
+    this.drawBodyPart(this.bodyIds.left, this.spriteLayouts.left);
+    this.drawBodyPart(this.bodyIds.mainLeft, this.spriteLayouts.mainLeft);
+    this.drawBodyPart(getNativeNoteMainIds(skin.sprites, this.nativeKind).middle, this.spriteLayouts.middle);
+    this.drawBodyPart(this.bodyIds.mainRight, this.spriteLayouts.mainRight);
+    this.drawBodyPart(this.bodyIds.right, this.spriteLayouts.right);
+  }
 
-    this.sprites.left.draw(this.spriteLayouts.left.mul(this.y), [this.z], 1);
-    this.sprites.middle.draw(this.spriteLayouts.middle.mul(this.y), [this.z], 1);
-    this.sprites.right.draw(this.spriteLayouts.right.mul(this.y), [this.z], 1);
+  drawBodyPart(id: SkinSpriteId, layout: RectLike) {
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(layout).mul(this.y), [this.z], 1);
+  }
+
+  get nativeKind() {
+    return getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror));
+  }
+
+  get nativeRects() {
+    return getNativeNoteRects(this.import.lane, this.import.size, this.nativeKind,
+      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
+  }
+
+  get nativeMarkRect() {
+    return getNativeNoteMarkRect(this.import.lane,
+      getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror)),
+      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
   }
 
   renderDecoration() {
-    const layout = perspectiveLayout({
-      l: this.import.lane - (25 * 6) / 1420,
-      r: this.import.lane + (25 * 6) / 1420,
-      b: 1 + 12.5 / 850,
-      t: 1 - 12.5 / 850,
-    }).mul(this.y);
+    const layout = perspectiveLayout(this.nativeMarkRect).mul(this.y);
     const z = getZ(layer.note.body + 0.5, this.targetTime, this.import.lane);
     const direction = options.mirror
       ? this.import.originalDirection === 1
@@ -324,7 +320,7 @@ export abstract class FlatNote extends Note {
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
       skin.sprites.tapDecoration.draw(layout, [z], 1);
-    } else if (this.import.operateType === 20 || this.import.operateType === 22) {
+    } else if (this.import.operateType === 20) {
       skin.sprites.slideDecoration.draw(layout, [z], 1);
     } else if (
       this.import.operateType === 40 ||
@@ -381,7 +377,6 @@ export abstract class FlatNote extends Note {
   }
 
   playLaneEffects() {
-    const layout = groundEffectLayout({ lane: this.import.lane, size: this.import.size });
     const direction = options.mirror
       ? this.import.originalDirection === 1
         ? 2
@@ -390,23 +385,63 @@ export abstract class FlatNote extends Note {
           : 0
       : this.import.originalDirection;
 
+    // LiveLaneEffectView lights every physical lane of the note separately
+    // (one width-1 fill per lane), not one quad stretched across the span.
+    // The note rect is lane +/- size (size is the half-width); lanes index the
+    // physical slots, each spanning [lane, lane + 1].
+    // Native lane ranges use System.Math.Round(float), whose default midpoint
+    // rule is ToEven. JavaScript Math.round differs for .5 ties and negatives.
+    const nativeRoundToEven = (value: number) => {
+      const floor = Math.floor(value);
+      const fraction = value - floor;
+      if (fraction < 0.5) return floor;
+      if (fraction > 0.5) return floor + 1;
+      return floor % 2 === 0 ? floor : floor + 1;
+    };
+    const laneStart = nativeRoundToEven(this.import.lane - this.import.size);
+    const laneEnd = laneStart + Math.max(1, nativeRoundToEven(this.import.size * 2)) - 1;
+
     if (this.import.operateType === 1 || this.import.operateType === 101) {
-      particle.effects.laneNormal.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1)
+        particle.effects.laneNormal.spawn(
+          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+          nativeLaneEffectLifetime,
+          false,
+        );
     } else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
       this.import.operateType === 42 ||
       this.import.operateType === 102
     ) {
-      if (direction === 1) {
-        particle.effects.laneFlickLeft.spawn(layout, nativeLaneEffectLifetime, false);
-      } else if (direction === 2) {
-        particle.effects.laneFlickRight.spawn(layout, nativeLaneEffectLifetime, false);
-      } else {
-        particle.effects.laneFlick.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1) {
+        if (direction === 1) {
+          particle.effects.laneFlickLeft.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        } else if (direction === 2) {
+          particle.effects.laneFlickRight.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        } else {
+          particle.effects.laneFlick.spawn(
+            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+            nativeLaneEffectLifetime,
+            false,
+          );
+        }
       }
     } else if (this.import.operateType === 20 || this.import.operateType === 22) {
-      particle.effects.laneSlide.spawn(layout, nativeLaneEffectLifetime, false);
+      for (let lane = laneStart; lane <= laneEnd; lane += 1)
+        particle.effects.laneSlide.spawn(
+          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
+          nativeLaneEffectLifetime,
+          false,
+        );
     }
   }
 }

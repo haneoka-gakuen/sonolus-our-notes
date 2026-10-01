@@ -5,6 +5,7 @@ import {
   getNativeArrowAnimationLayout,
 } from "../../../../../../../../shared/src/engine/data/arrowSprites.js";
 import {
+  getNativeArrowAnimation,
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
 } from "../../../../../../../../shared/src/engine/data/nativeArrowAnimation.js";
@@ -80,29 +81,6 @@ export abstract class FlickNote extends FlatNote {
     this.flickLatchedTime = -9999;
   }
 
-  renderBody() {
-    if (
-      this.flickImport.direction === FlickDirection.Left &&
-      skin.sprites.flickLeftNoteLeft.exists &&
-      skin.sprites.flickLeftNoteMiddle.exists &&
-      skin.sprites.flickLeftNoteRight.exists
-    ) {
-      skin.sprites.flickLeftNoteLeft.draw(this.spriteLayouts.left.mul(this.y), [this.z], 1);
-      skin.sprites.flickLeftNoteMiddle.draw(this.spriteLayouts.middle.mul(this.y), [this.z], 1);
-      skin.sprites.flickLeftNoteRight.draw(this.spriteLayouts.right.mul(this.y), [this.z], 1);
-    } else if (
-      this.flickImport.direction === FlickDirection.Right &&
-      skin.sprites.flickRightNoteLeft.exists &&
-      skin.sprites.flickRightNoteMiddle.exists &&
-      skin.sprites.flickRightNoteRight.exists
-    ) {
-      skin.sprites.flickRightNoteLeft.draw(this.spriteLayouts.left.mul(this.y), [this.z], 1);
-      skin.sprites.flickRightNoteMiddle.draw(this.spriteLayouts.middle.mul(this.y), [this.z], 1);
-      skin.sprites.flickRightNoteRight.draw(this.spriteLayouts.right.mul(this.y), [this.z], 1);
-    } else {
-      super.renderBody();
-    }
-  }
 
   scheduleSFX() {
     if (this.flickImport.direction !== FlickDirection.Up && effect.clips.flickSide.exists) {
@@ -179,7 +157,19 @@ export abstract class FlickNote extends FlatNote {
         1 - Math.ease("In", "Cubic", s),
       );
     } else {
-      skin.sprites.draw(this.arrow.sprite, this.arrow.layout.mul(this.y), [this.arrow.z], 1);
+      const nativeSkin = getNativeArrowAnimationSkin(
+        skin.sprites.nativeArrowAnimationSkin001.exists,
+        skin.sprites.nativeArrowAnimationSkin002.exists,
+        skin.sprites.nativeArrowAnimationSkin003.exists,
+      );
+      if (nativeSkin === NativeArrowAnimationSkin.None) {
+        skin.sprites.draw(this.arrow.sprite, this.arrow.layout.mul(this.y), [this.arrow.z], 1);
+      } else {
+        const pose = getNativeArrowAnimation(nativeSkin, this.flickImport.direction, 0);
+        skin.sprites.draw(this.arrow.sprite,
+          getNativeArrowAnimationLayout(this.arrow.layout, this.flickImport.direction, this.import.lane, 1,
+            pose.x, pose.y, pose.scaleX, pose.scaleY).mul(this.y), [this.arrow.z], pose.alpha);
+      }
     }
   }
 

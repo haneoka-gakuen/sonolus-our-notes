@@ -1,14 +1,16 @@
+import { nativeNoteEffectDuration } from '../../../../../../shared/src/engine/data/nativeEffects.js'
 import { effect } from '../../effect.js'
+import { playTutorialSound } from '../../sound.js'
 import { particle, playNoteEffect } from '../../particle.js'
 
 export const traceNoteHit = {
     enter() {
         if (effect.clips.normalTrace.exists) {
-            effect.clips.normalTrace.play(0)
+            playTutorialSound(effect.clips.normalTrace)
         } else {
-            effect.clips.normalPerfect.play(0)
+            playTutorialSound(effect.clips.normalPerfect)
         }
 
-        playNoteEffect(particle.effects.connectNote, 7 / 12)
+        playNoteEffect(particle.effects.connectNote, nativeNoteEffectDuration(0, 60, 5))
     },
 }

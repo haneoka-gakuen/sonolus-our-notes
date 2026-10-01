@@ -1,6 +1,8 @@
+import { nativeNoteEffectDuration } from '../../../../../../shared/src/engine/data/nativeEffects.js'
 import { connector } from '../../components/connector.js'
 import { slide } from '../../components/slide.js'
 import { effect } from '../../effect.js'
+import { playTutorialSound, startHeldSound, stopHeldSound } from '../../sound.js'
 import { drawHand } from '../../instruction.js'
 import {
     particle,
@@ -9,7 +11,6 @@ import {
     destroyHoldEffect, spawnHoldEffect,
 } from '../../particle.js'
 
-let sfxInstanceId = tutorialMemory(LoopedEffectClipInstanceId)
 const effectInstanceIds = tutorialMemory({
     p0: ParticleEffectInstanceId,
     p1: ParticleEffectInstanceId,
@@ -22,12 +23,12 @@ export const slideStartNoteHit = {
         slide.show()
         connector.showActive()
 
-        effect.clips.normalPerfect.play(0)
+        playTutorialSound(effect.clips.normalPerfect)
 
-        playNoteEffect(particle.effects.slideNote, 7 / 12)
+        playNoteEffect(particle.effects.slideNote, nativeNoteEffectDuration(0, 20, 5))
         playLaneEffect(particle.effects.laneSlide)
 
-        sfxInstanceId = effect.clips.normalHold.loop()
+        startHeldSound()
         {
         const ids = spawnHoldEffect()
         effectInstanceIds.p0 = ids.p0
@@ -45,7 +46,7 @@ export const slideStartNoteHit = {
         slide.clear()
         connector.clear()
 
-        effect.clips.stopLoop(sfxInstanceId)
+        stopHeldSound()
         destroyHoldEffect(effectInstanceIds)
     },
 }

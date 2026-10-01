@@ -13,6 +13,7 @@ import {
 import { perspectiveLayout } from "../../../../../shared/src/engine/data/utils.js";
 import { options } from "../../configuration/options.js";
 import { effect, sfxDistance } from "../effect.js";
+import { scheduleHeldSound } from "../sound.js";
 import { layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 
@@ -64,13 +65,7 @@ export class Stage extends Archetype {
         end = nextEnd;
       }
 
-      const id = effect.clips.normalHold.scheduleLoop(start);
-      effect.clips.scheduleStopLoop(id, end);
-
-      if (effect.clips.holdSecondary.exists) {
-        const secondaryId = effect.clips.holdSecondary.scheduleLoop(start);
-        effect.clips.scheduleStopLoop(secondaryId, end);
-      }
+      scheduleHeldSound(start, end);
 
       previousEnd = end;
       hasPrevious = true;

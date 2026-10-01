@@ -1,6 +1,6 @@
 import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { hash } from "@sonolus/core";
+import { createHash } from "node:crypto";
 
 /** Optional local-preview audio supplied by the host. */
 export function configureDevBgm(sonolus: unknown, devRoot: string): void {
@@ -11,5 +11,5 @@ export function configureDevBgm(sonolus: unknown, devRoot: string): void {
   copyFileSync(resolve(source), output);
   const level = (sonolus as { level?: { items?: Array<{ bgm?: { hash: string; url: string } }> } }).level?.items?.[0];
   if (!level) throw new Error("No preview level is available for BGM setup");
-  level.bgm = { hash: hash(readFileSync(output)), url: "/bgm.mp3" };
+  level.bgm = { hash: createHash("sha1").update(readFileSync(output)).digest("hex"), url: "/bgm.mp3" };
 }

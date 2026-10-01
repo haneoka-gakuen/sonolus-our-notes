@@ -8,6 +8,7 @@ export abstract class Note extends Archetype {
         lane: { name: 'lane', type: Number },
         size: { name: 'size', type: Number },
         operateType: { name: 'operateType', type: Number },
+        originalDirection: { name: 'originalDirection', type: Number },
     })
 
     preprocess() {
