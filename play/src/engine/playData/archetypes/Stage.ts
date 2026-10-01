@@ -228,24 +228,19 @@ export class Stage extends Archetype {
   }
 
   playEmptyLaneEffects(l: number) {
-    // SetInVainLane marks the tapped lane and its pair neighbour (i ^ 1);
-    // each is its own width-1 fill. LiveLaneEffectView replays with
-    // stop+clear+play each frame, so the held lane shows one restart
-    // cycle, never a stack of overlapping fades.
-    const lanes = [l, l % 2 === 0 ? l + 1 : l - 1];
-    for (const lane of lanes) {
-      if (lane < -6 || lane > 5) continue;
+    // xToL already quantizes the twelve half-road slots. Restart only the
+    // selected slot so an empty touch cannot illuminate its neighbour.
+    if (l < -6 || l > 5) return;
 
-      const existing = this.inVainInstances.indexOf(lane);
-      if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing));
+    const existing = this.inVainInstances.indexOf(l);
+    if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing));
 
-      const instance = particle.effects.laneInVain.spawn(
-        groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-        nativeLaneEffectLifetime,
-        false,
-      );
-      this.inVainInstances.set(lane, instance);
-    }
+    const instance = particle.effects.laneInVain.spawn(
+      groundEffectLayout({ lane: l + 0.5, size: 0.5 }),
+      nativeLaneEffectLifetime,
+      false,
+    );
+    this.inVainInstances.set(l, instance);
   }
 
   inVainInstances = levelMemory(Dictionary(12, Number, ParticleEffectInstanceId));
