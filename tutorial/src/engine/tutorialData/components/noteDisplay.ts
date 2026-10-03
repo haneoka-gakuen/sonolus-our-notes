@@ -2,7 +2,7 @@ import { getNativeTutorialNoteRects } from '../../../../../shared/src/engine/dat
 import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { approach } from '../../../../../shared/src/engine/data/note.js'
 import { getNativeNoteKind } from '../../../../../shared/src/engine/data/nativeNoteGeometry.js'
-import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
+import { nativeNoteLayout } from '../../../../../shared/src/engine/data/nativeNoteLayout.js'
 import { segment } from '../segment.js'
 import { layer, skin } from '../skin.js'
 
@@ -74,7 +74,7 @@ export const noteDisplay = {
         if (mode === Mode.Overlay) {
             skin.sprites.draw(id, new Rect(rect).toQuad().translate(0, -1).scale(1.5, 3).translate(0, 0.5),
                 [z], Math.unlerpClamped(1, 0.75, segment.time))
-        } else skin.sprites.draw(id, perspectiveLayout(rect).mul(mode === Mode.Fall ? approach(0, 2, segment.time) : 1), [z], 1)
+        } else skin.sprites.draw(id, nativeNoteLayout(rect).mul(mode === Mode.Fall ? approach(0, 2, segment.time) : 1), [z], 1)
     },
 
     showOverlay(type: keyof typeof noteSprites) {

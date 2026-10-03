@@ -1,7 +1,7 @@
 import { getNativeNoteCapId } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
 import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js';
 import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS, nativeEffectWidthBucket } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
-import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
+import { nativeNoteLayout } from '../../../../../../../shared/src/engine/data/nativeNoteLayout.js';
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
@@ -28,6 +28,12 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   });
 
   slideZ = this.entityMemory(Number);
+
+  // Stage preprocessing links only held connectors for replay audio scans.
+  heldAudioLinks = this.defineSharedMemory({
+    next: Number, start: Number, end: Number, lineEnd: Number,
+    streamId: Number,
+  });
 
   // Resource selection and engine options are fixed for this entity's run.
   // Dynamic lane/width and the width-bucket restart remain per-frame.
@@ -127,7 +133,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   drawSlidePart(id: SkinSpriteId, rect: RectLike) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(rect), [this.slideZ], 1);
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(rect), [this.slideZ], 1);
   }
 
   bakedCircularEffectId = this.entityMemory(Number);

@@ -1,3 +1,4 @@
+import { nativeLaneEffectLayout } from '../../../../shared/src/engine/data/nativeLaneEffectLayout.js'
 import { nativeEffectSkew } from '../../../../shared/src/engine/data/lane.js'
 import { options } from '../configuration/options.js'
 import {
@@ -94,17 +95,8 @@ export const linearEffectLayout = ({
 }
 
 /** Baked ground-plane light; lane-centre perspective contracts toward the horizon. */
-export const groundEffectLayout = ({ lane, size }: { lane: number; size: number }) => {
-    const h = scaledScreen.wToH
-    const top = 1 - 2 * h
-    // A ground strip converges toward the vanishing line (y=0) on BOTH
-    // edges: on-screen x = (lane +/- size) * y under the camera's ground
-    // projection, so the top corners scale the strip width by `top` too,
-    // not just its centre.
-    return { x1: lane - size, x2: (lane - size) * top,
-        x3: (lane + size) * top, x4: lane + size,
-        y1: 1, y2: top, y3: top, y4: 1 }
-}
+export const groundEffectLayout = ({ lane, size }: { lane: number; size: number }) =>
+    nativeLaneEffectLayout({ lane, size, wToH: scaledScreen.wToH })
 
 /**
  * Spawn quad of plane layer `plane`: the linearEffectLayout rect in that

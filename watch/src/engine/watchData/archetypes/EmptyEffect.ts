@@ -1,9 +1,7 @@
 import {
-    lane,
     nativeLaneEffectLifetime,
 } from '../../../../../shared/src/engine/data/lane.js'
-import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
-import { particle } from '../particle.js'
+import { groundEffectLayout, particle } from '../particle.js'
 
 export class EmptyEffect extends SpawnableArchetype({
     l: Number,
@@ -51,12 +49,7 @@ export class EmptyEffect extends SpawnableArchetype({
 
     globalInitialize() {
         this.layout.copyFrom(
-            perspectiveLayout({
-                l: this.spawnData.l,
-                r: this.spawnData.l + 1,
-                b: lane.b,
-                t: lane.t,
-            }),
+            new Quad(groundEffectLayout({ lane: this.spawnData.l + 0.5, size: 0.5 })),
         )
     }
 }

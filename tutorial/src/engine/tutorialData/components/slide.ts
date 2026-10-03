@@ -1,6 +1,6 @@
 import { getNativeTutorialNoteRects } from '../../../../../shared/src/engine/data/nativeTutorialGeometry.generated.js'
 import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
-import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
+import { nativeNoteLayout } from '../../../../../shared/src/engine/data/nativeNoteLayout.js'
 import { layer, skin } from '../skin.js'
 
 const sprites = {
@@ -39,11 +39,11 @@ export const slide = {
         ids.mainLeft = main.left
         ids.middle = main.middle
         ids.mainRight = main.right
-        perspectiveLayout(rects.left).copyTo(layouts.left)
-        perspectiveLayout(rects.mainLeft).copyTo(layouts.mainLeft)
-        perspectiveLayout(rects.middle).copyTo(layouts.middle)
-        perspectiveLayout(rects.mainRight).copyTo(layouts.mainRight)
-        perspectiveLayout(rects.right).copyTo(layouts.right)
+        nativeNoteLayout(rects.left).copyTo(layouts.left)
+        nativeNoteLayout(rects.mainLeft).copyTo(layouts.mainLeft)
+        nativeNoteLayout(rects.middle).copyTo(layouts.middle)
+        nativeNoteLayout(rects.mainRight).copyTo(layouts.mainRight)
+        nativeNoteLayout(rects.right).copyTo(layouts.right)
         mode = true
     },
 

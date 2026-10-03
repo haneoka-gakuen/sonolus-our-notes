@@ -18,6 +18,66 @@ import { layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 
 export class Stage extends Archetype {
+  heldConnectorHead = this.entityMemory(Number);
+
+  indexHeldConnectors() {
+    this.heldConnectorHead = -1;
+    for (const info of entityInfos) {
+      if (info.archetype !== archetypes.NormalActiveSlideConnector.index &&
+          info.archetype !== archetypes.CriticalActiveSlideConnector.index) continue;
+      // Both variants inherit the same SlideConnector imports and audio cache.
+      const connector = archetypes.NormalActiveSlideConnector.import.get(info.index);
+      if (replay.isReplay && connector.startRef !== connector.headRef) continue;
+      const startNotes = archetypes.NormalActiveSlideConnector.slideStartNote.import;
+      const cached = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(info.index);
+      cached.start = bpmChanges.at(startNotes.get(connector.headRef).beat).time;
+      cached.end = bpmChanges.at(startNotes.get(connector.tailRef).beat).time;
+      cached.lineEnd = bpmChanges.at(startNotes.get(connector.endRef).beat).time;
+      cached.streamId = connector.startRef;
+      if (replay.isReplay) {
+        cached.start = -999999;
+        if (!this.readNextHeldInterval(info.index)) continue;
+      } else if (cached.end <= cached.start) continue;
+      this.insertHeldConnector(info.index);
+    }
+  }
+
+  readNextHeldInterval(index: number) {
+    const cached = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(index);
+    let key = cached.start;
+    while (true) {
+      const next = streams.getNextKey(cached.streamId, key);
+      if (next === key) return false;
+      const end = Math.min(streams.getValue(cached.streamId, next), cached.lineEnd);
+      if (end > next) {
+        cached.start = next;
+        cached.end = end;
+        return true;
+      }
+      key = next;
+    }
+  }
+
+  insertHeldConnector(index: number) {
+    const cached = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(index);
+    if (this.heldConnectorHead < 0 || cached.start <
+        archetypes.NormalActiveSlideConnector.heldAudioLinks.get(this.heldConnectorHead).start) {
+      cached.next = this.heldConnectorHead;
+      this.heldConnectorHead = index;
+      return;
+    }
+    let current = this.heldConnectorHead;
+    while (true) {
+      const next = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(current).next;
+      if (next < 0 || cached.start < archetypes.NormalActiveSlideConnector.heldAudioLinks.get(next).start) {
+        cached.next = next;
+        archetypes.NormalActiveSlideConnector.heldAudioLinks.get(current).next = index;
+        return;
+      }
+      current = next;
+    }
+  }
+
   spawnTime() {
     return -999999;
   }
@@ -27,7 +87,10 @@ export class Stage extends Archetype {
   }
 
   preprocess() {
-    if (options.sfxEnabled && effect.clips.normalHold.exists) this.scheduleHeldSFX();
+    if (options.sfxEnabled && effect.clips.normalHold.exists) {
+      this.indexHeldConnectors();
+      this.scheduleHeldSFX();
+    }
 
     if (options.sfxEnabled) {
       let t = -999999;
@@ -51,101 +114,26 @@ export class Stage extends Archetype {
   }
 
   scheduleHeldSFX() {
-    let hasPrevious = false;
-    let previousEnd = 0;
+    // Merge the sorted next intervals. Each replay activation is read once,
+    // and only a line whose interval was consumed needs another stream seek.
+    while (this.heldConnectorHead >= 0) {
+      let index = this.heldConnectorHead;
+      const first = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(index);
+      const start = first.start;
+      let end = first.end;
+      this.heldConnectorHead = first.next;
+      if (replay.isReplay && this.readNextHeldInterval(index)) this.insertHeldConnector(index);
 
-    while (true) {
-      const start = this.scanHeldIntervals(hasPrevious ? previousEnd : -999999, 0, false);
-      if (start === 999999) return;
-
-      let end = start;
-      while (true) {
-        const nextEnd = this.scanHeldIntervals(0, end, true);
-        if (nextEnd === end) break;
-        end = nextEnd;
+      while (this.heldConnectorHead >= 0) {
+        index = this.heldConnectorHead;
+        const next = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(index);
+        if (next.start > end) break;
+        end = Math.max(end, next.end);
+        this.heldConnectorHead = next.next;
+        if (replay.isReplay && this.readNextHeldInterval(index)) this.insertHeldConnector(index);
       }
-
       scheduleHeldSound(start, end);
-
-      previousEnd = end;
-      hasPrevious = true;
     }
-  }
-
-  scanHeldIntervals(previousEnd: number, currentEnd: number, extending: boolean) {
-    let value = extending ? currentEnd : 999999;
-
-    for (const entityInfo of entityInfos) {
-      let intervalStart = 0;
-      let intervalEnd = 0;
-      let startRef = 0;
-      let headRef = 0;
-      let endRef = 0;
-
-      if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
-        const connectorImport = archetypes.NormalActiveSlideConnector.import.get(entityInfo.index);
-        const headImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-        const tailImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-        intervalStart = bpmChanges.at(headImport.beat).time;
-        intervalEnd = bpmChanges.at(tailImport.beat).time;
-        startRef = connectorImport.startRef;
-        headRef = connectorImport.headRef;
-        endRef = connectorImport.endRef;
-      } else if (entityInfo.archetype === archetypes.CriticalActiveSlideConnector.index) {
-        const connectorImport = archetypes.CriticalActiveSlideConnector.import.get(entityInfo.index);
-        const headImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-        const tailImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-        intervalStart = bpmChanges.at(headImport.beat).time;
-        intervalEnd = bpmChanges.at(tailImport.beat).time;
-        startRef = connectorImport.startRef;
-        headRef = connectorImport.headRef;
-        endRef = connectorImport.endRef;
-      } else {
-        continue;
-      }
-
-      if (replay.isReplay) {
-        if (startRef !== headRef) continue;
-
-        let lineEndTime = 0;
-        if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
-          lineEndTime = bpmChanges.at(
-            archetypes.NormalActiveSlideConnector.slideStartNote.import.get(endRef).beat,
-          ).time;
-        } else {
-          lineEndTime = bpmChanges.at(
-            archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(endRef).beat,
-          ).time;
-        }
-        let key = -999999;
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        while (true) {
-          const streamStart = streams.getNextKey(startRef, key);
-          if (streamStart === key) break;
-
-          const streamEnd = streams.getValue(startRef, streamStart);
-          intervalStart = streamStart;
-          intervalEnd = Math.min(streamEnd, lineEndTime);
-          if (intervalEnd > intervalStart) {
-            if (extending) {
-              if (intervalStart <= currentEnd && intervalEnd > value) value = intervalEnd;
-            } else if (intervalStart > previousEnd && intervalStart < value) {
-              value = intervalStart;
-            }
-          }
-
-          key = streamStart;
-        }
-      } else if (intervalEnd > intervalStart) {
-        if (extending) {
-          if (intervalStart <= currentEnd && intervalEnd > value) value = intervalEnd;
-        } else if (intervalStart > previousEnd && intervalStart < value) {
-          value = intervalStart;
-        }
-      }
-    }
-
-    return value;
   }
 
   updateSequential() {

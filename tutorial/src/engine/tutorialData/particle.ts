@@ -1,3 +1,4 @@
+import { nativeLaneEffectLayout } from '../../../../shared/src/engine/data/nativeLaneEffectLayout.js'
 import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS, nativeEffectPlaneAlpha } from '../../../../shared/src/engine/data/nativeEffects.js'
 import { nativeLaneEffectLifetime } from '../../../../shared/src/engine/data/lane.js'
 import { scaledScreen } from './scaledScreen.js'
@@ -32,16 +33,6 @@ export const particle = defineParticle({
     },
 })
 
-const noteEffectLayout = () => {
-    const l = -2
-    const r = 2
-
-    const b = 1
-    const t = 1 - 2 * scaledScreen.wToH
-
-    return new Rect({ l, r, b, t })
-}
-
 export const nativeNoteEffectLayout = (plane: number) => {
     const b = 1
     const t = 1 - 2 * scaledScreen.wToH
@@ -62,12 +53,12 @@ export const playNoteEffect = (effect: ParticleEffect, duration: number) => {
         )
 }
 
-export const playLaneEffect = (effect: ParticleEffect) =>
-    effect.spawn(
-        noteEffectLayout(),
-        nativeLaneEffectLifetime,
-        false,
-    )
+export const playLaneEffect = (effect: ParticleEffect) => {
+    // The width-eight teaching note spans four physical stage lanes.
+    for (let lane = -2; lane < 2; lane++)
+        effect.spawn(nativeLaneEffectLayout({ lane: lane + 0.5, size: 0.5, wToH: scaledScreen.wToH }),
+            nativeLaneEffectLifetime, false)
+}
 
 /** Hold uses the same four projected planes and the shared particle period. */
 export const spawnHoldEffect = (): HoldEffectInstances => {

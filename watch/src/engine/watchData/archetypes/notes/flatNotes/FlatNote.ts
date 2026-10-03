@@ -3,7 +3,7 @@ import { nativeNoteEffectDuration } from "../../../../../../../shared/src/engine
 import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteParts, getNativeNoteRects } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
 import { lane, nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { approach } from "../../../../../../../shared/src/engine/data/note.js";
-import { perspectiveLayout } from "../../../../../../../shared/src/engine/data/utils.js";
+import { nativeNoteLayout } from '../../../../../../../shared/src/engine/data/nativeNoteLayout.js';
 import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { options } from "../../../../configuration/options.js";
 import { sfxDistance } from "../../../effect.js";
@@ -289,7 +289,7 @@ export abstract class FlatNote extends Note {
   }
 
   drawBodyPart(id: SkinSpriteId, layout: RectLike) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(layout).mul(this.y), [this.z], 1);
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(this.y), [this.z], 1);
   }
 
   get nativeKind() {
@@ -308,7 +308,7 @@ export abstract class FlatNote extends Note {
   }
 
   renderDecoration() {
-    const layout = perspectiveLayout(this.nativeMarkRect).mul(this.y);
+    const layout = nativeNoteLayout(this.nativeMarkRect).mul(this.y);
     const z = getZ(layer.note.body + 0.5, this.targetTime, this.import.lane);
     const direction = options.mirror
       ? this.import.originalDirection === 1
