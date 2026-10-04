@@ -1,4 +1,5 @@
 import { options } from '../../configuration/options.js'
+import { laneBase, nativeStage } from '../../../../../shared/src/engine/data/lane.js'
 import { chart } from '../chart.js'
 import { panel } from '../panel.js'
 import { print } from '../print.js'
@@ -23,22 +24,15 @@ export class Stage extends Archetype {
     }
 
     renderPanels() {
-        if (
-            !skin.sprites.previewStage.exists ||
-            !skin.sprites.previewBorder.exists ||
-            !skin.sprites.previewDivider.exists
-        )
-            return
-
         for (let i = 0; i < panel.count; i++) {
             const x = i * panel.w
 
             const b = 0
             const t = panel.h
 
-            // Preview canvas is orthographic. These source-colour projections
-            // avoid stretching lane_base's alpha edge into rectangular teeth.
-            skin.sprites.previewStage.draw(
+            // Keep the chart coordinates orthographic. The backdrop uses the
+            // actual native lane material; borders and dividers stay straight.
+            if (skin.sprites.previewStage.exists) skin.sprites.previewStage.draw(
                 new Rect({
                     l: x - 6,
                     r: x + 6,
@@ -46,42 +40,46 @@ export class Stage extends Archetype {
                     t,
                 }),
                 [layer.stage],
-                1,
+                laneBase.materialOpacity * options.laneOpacity,
             )
 
+            const dividerHalfWidth = (0.15 / 2 / nativeStage.laneWidth) * 12
             for (let j = 1; j < 6; j++) {
                 const divider = x - 6 + j * 2
+                if (!skin.sprites.previewDivider.exists) continue
                 skin.sprites.previewDivider.draw(
                     new Rect({
-                        l: divider - 0.015,
-                        r: divider + 0.015,
+                        l: divider - dividerHalfWidth,
+                        r: divider + dividerHalfWidth,
                         b,
                         t,
                     }),
                     [layer.stage + 1],
-                    1,
+                    options.guidelineOpacity,
                 )
             }
 
+            if (!skin.sprites.previewBorder.exists) continue
+            const borderWidth = (nativeStage.outsideLineWidth / nativeStage.laneWidth) * 12
             skin.sprites.previewBorder.draw(
                 new Rect({
-                    l: x - 6.08,
+                    l: x - 6 - borderWidth,
                     r: x - 6,
                     b,
                     t,
                 }),
                 [layer.stage + 2],
-                1,
+                options.guidelineOpacity,
             )
             skin.sprites.previewBorder.draw(
                 new Rect({
                     l: x + 6,
-                    r: x + 6.08,
+                    r: x + 6 + borderWidth,
                     b,
                     t,
                 }),
                 [layer.stage + 2],
-                1,
+                options.guidelineOpacity,
             )
         }
     }

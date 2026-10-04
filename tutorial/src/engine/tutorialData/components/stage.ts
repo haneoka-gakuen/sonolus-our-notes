@@ -1,8 +1,11 @@
 import {
+    lane,
     laneBase,
     nativeJudgmentLineHalfHeight,
     nativeStage,
+    projectLaneZ,
 } from '../../../../../shared/src/engine/data/lane.js'
+import { perspectiveLayout } from '../../../../../shared/src/engine/data/utils.js'
 import { layer, skin } from '../skin.js'
 
 const sprites = {
@@ -17,6 +20,7 @@ export const stage = {
         if (!sprites.stage.exists) return
 
         this.drawSekaiStage()
+        this.drawGuidelines()
         this.drawJudgmentLine()
     },
 
@@ -44,5 +48,55 @@ export const stage = {
             [layer.judgmentLine],
             1,
         )
+    },
+
+    drawGuidelines() {
+        // Tutorial uses the fresh-user six-lane/.4 opacity preset. Match
+        // Play's ground geometry and source textures, without reading input options.
+        if (!skin.sprites.guideline.exists) return
+        const opacity = 0.4
+        for (let index = 1; index < 24; index++) {
+            const main = index % 4 === 0
+            const space = !main && index % 2 === 0
+            if (!main && !space) continue
+            const x = index / 2 - 6
+            if (space) {
+                if (!skin.sprites.guidelineSpace.exists) continue
+                const halfWidth = (0.15 / nativeStage.laneWidth) * 6
+                const halfLength = 1.3 / 2
+                skin.sprites.guidelineSpace.draw(
+                    perspectiveLayout({
+                        l: x - halfWidth,
+                        r: x + halfWidth,
+                        b: projectLaneZ(nativeStage.judgmentZ - halfLength),
+                        t: projectLaneZ(nativeStage.judgmentZ + halfLength),
+                    }),
+                    [layer.judgmentLine],
+                    opacity * 0.5019608,
+                )
+            } else {
+                const nearHalfWidth = (0.15 / 2 / nativeStage.laneWidth) * 12
+                const farHalfWidth = (0.3 / 2 / nativeStage.laneWidth) * 12
+                skin.sprites.guideline.draw(new Quad({
+                    x1: x - nearHalfWidth,
+                    x2: (x - farHalfWidth) * lane.t,
+                    x3: (x + farHalfWidth) * lane.t,
+                    x4: x + nearHalfWidth,
+                    y1: 1, y2: lane.t, y3: lane.t, y4: 1,
+                }), [layer.judgmentLine], opacity)
+            }
+        }
+        if (!skin.sprites.outsideLine.exists) return
+        const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12
+        const outsideX = 6 + halfWidth
+        for (const x of [-outsideX, outsideX]) {
+            skin.sprites.outsideLine.draw(new Quad({
+                x1: x - halfWidth,
+                x2: (x - halfWidth) * lane.t,
+                x3: (x + halfWidth) * lane.t,
+                x4: x + halfWidth,
+                y1: 1, y2: lane.t, y3: lane.t, y4: 1,
+            }), [layer.judgmentLine], opacity)
+        }
     },
 }

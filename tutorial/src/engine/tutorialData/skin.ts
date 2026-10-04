@@ -52,6 +52,11 @@ export const skin = defineSkin({
         nativeArrowAnimationSkin001: 'Our Notes Native Flick Arrow Animation Skin 001',
         nativeArrowAnimationSkin002: 'Our Notes Native Flick Arrow Animation Skin 002',
         nativeArrowAnimationSkin003: 'Our Notes Native Flick Arrow Animation Skin 003',
+
+        // Append after every existing import to preserve note/arrow IDs.
+        guideline: 'Our Notes Guideline',
+        guidelineSpace: 'Our Notes Guideline Space',
+        outsideLine: 'Our Notes Outside Line',
     },
 })
 
