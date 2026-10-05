@@ -19,7 +19,8 @@
     "README.md",
     "patches",
     "docs/COMPILER.md",
-    "LICENSE.sonolus-compiler.txt"
+    "LICENSE.sonolus-compiler.txt",
+    "releases"
   ],
   "scripts": {
     "build": "pnpm run typecheck:tools && node ./scripts/build.ts",
@@ -27,7 +28,8 @@
     "check": "pnpm run typecheck:tools && pnpm run verify:compiler && pnpm run verify:contract",
     "verify:contract": "node ./scripts/verify-contract.ts",
     "prepack": "pnpm run check",
-    "verify:compiler": "node ./scripts/verify-compiler.ts"
+    "verify:compiler": "node ./scripts/verify-compiler.ts",
+    "build:accepted": "node ./scripts/build-accepted-release.mjs"
   },
   "dependencies": {
     "@sonolus/core": "7.15.4"

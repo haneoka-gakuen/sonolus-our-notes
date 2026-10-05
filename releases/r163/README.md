@@ -1,0 +1,7 @@
+This manifest identifies the five compiler artifacts accepted for r163. The artifact bytes stay in the external publication cache and are not tracked in Git. After committing the matching engine source, run `pnpm build:accepted --artifact-dir /path/to/accepted-cas` to install them into `dist/`. The directory contains one file per artifact, named by its SHA-1 in the manifest. `SONOLUS_ACCEPTED_ARTIFACT_DIR` can provide the same path for CI.
+
+The command verifies the committed source graph and each artifact's size, SHA-256 and Sonolus SHA-1 before replacing the distribution. Add `--check` to verify without writing. The publisher uploads these exact bytes under the same immutable Sonolus repository keys and activates the normal engine metadata after source and publication checks.
+
+The artifacts were produced through limited SDK 1.8.4 compilation and reviewed callback graph composition against the earlier engine. A full development build can produce different node ordering and hashes. This installer preserves the exact accepted bytes for publication; it does not provide a source recipe that reproduces those bytes.
+
+The Watch visual issue reported after acceptance is tracked separately. This manifest records the version authorized for publication and retains its original Watch artifact identity.
