@@ -2,6 +2,8 @@ This manifest identifies the five compiler artifacts accepted for r163. The arti
 
 The command verifies the committed source graph and each artifact's size, SHA-256 and Sonolus SHA-1 before replacing the distribution. Add `--check` to verify without writing. The publisher uploads these exact bytes under the same immutable Sonolus repository keys and activates the normal engine metadata after source and publication checks.
 
+`SONOLUS_ACCEPTED_DIST` may select an external distribution directory. Inside the checkout, only `dist/` and its children are accepted output locations. An existing output target must be a directory. Source and release control paths, checkout ancestors, symlink targets and paths overlapping the artifact input directory are rejected, including aliases through parent directories. Target validation also applies to `--check`. Git checkouts read the manifest, engine sources and licenses from one committed revision; source archives read their local files.
+
 The artifacts were produced through limited SDK 1.8.4 compilation and reviewed callback graph composition against the earlier engine. A full development build can produce different node ordering and hashes. This installer preserves the exact accepted bytes for publication; it does not provide a source recipe that reproduces those bytes.
 
 The Watch visual issue reported after acceptance is tracked separately. This manifest records the version authorized for publication and retains its original Watch artifact identity.
