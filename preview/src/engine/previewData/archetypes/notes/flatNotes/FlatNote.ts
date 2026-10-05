@@ -1,5 +1,5 @@
 import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
-import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteRects, getNativePreviewNoteRect } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js'
+import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteParts, getNativeNoteRects, getNativePreviewNoteRect } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js'
 import { options } from '../../../../configuration/options.js'
 import { scaledScreen } from '../../../scaledScreen.js'
 import { panel } from '../../../panel.js'
@@ -32,17 +32,18 @@ export abstract class FlatNote extends Note {
     get nativeRects() {
         const direction = getNativeNoteDirection(this.import.originalDirection, options.mirror)
         return getNativeNoteRects(this.import.lane, this.import.size, getNativeNoteKind(this.import.operateType, direction),
-            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists, true)
+            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
     }
 
     renderBody(rects: ReturnType<typeof getNativeNoteRects>, pos: Vec, z: number) {
         const kind = getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror))
+        const parts = getNativeNoteParts(this.import.lane, this.import.size, false)
         const main = getNativeNoteMainIds(skin.sprites, kind)
-        this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, 0, false), rects.left, pos, z)
+        this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight), rects.left, pos, z)
         this.drawBodySprite(main.left, rects.mainLeft, pos, z)
         this.drawBodySprite(main.middle, rects.middle, pos, z)
         this.drawBodySprite(main.right, rects.mainRight, pos, z)
-        this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, 0, true), rects.right, pos, z)
+        this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight), rects.right, pos, z)
     }
 
     drawBodySprite(id: SkinSpriteId, rect: RectLike, pos: Vec, z: number) {

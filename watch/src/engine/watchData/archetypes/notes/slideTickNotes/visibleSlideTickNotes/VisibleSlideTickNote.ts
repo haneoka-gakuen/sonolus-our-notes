@@ -1,6 +1,6 @@
 import { nativeNoteEffectDuration } from '../../../../../../../../shared/src/engine/data/nativeEffects.js'
 import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
-import { perspectiveLayout } from '../../../../../../../../shared/src/engine/data/utils.js'
+import { nativeNoteLayout } from '../../../../../../../../shared/src/engine/data/nativeNoteLayout.js'
 import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../../shared/src/engine/data/nativeNoteGeometry.js'
 import { approach } from '../../../../../../../../shared/src/engine/data/note.js'
 import { options } from '../../../../../configuration/options.js'
@@ -135,7 +135,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     }
 
     drawBody(id: SkinSpriteId, layout: RectLike, y: number) {
-        if (skin.sprites.exists(id)) skin.sprites.draw(id, perspectiveLayout(layout).mul(y), [this.z - 1], 1)
+        if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(y), [this.z - 1], 1)
     }
 
     despawnTerminate() {

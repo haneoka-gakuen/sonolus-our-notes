@@ -193,4 +193,11 @@ export const optionsDefinition = {
         type: 'toggle',
         def: 1,
     },
+    // Append to preserve the indices of saved options and replay options.
+    matchFlickDirection: {
+        name: 'Match Flick Direction',
+        scope: 'Our Notes',
+        type: 'toggle',
+        def: 0,
+    },
 } satisfies Record<string, EngineConfigurationOption>

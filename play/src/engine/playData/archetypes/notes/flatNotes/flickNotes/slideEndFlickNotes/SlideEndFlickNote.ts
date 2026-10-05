@@ -60,6 +60,8 @@ export abstract class SlideEndFlickNote extends FlickNote {
     }
 
     updateParallel() {
+        if (this.despawn) return
+
         // touch() only fires on touch events; complete a latched swipe once
         // the note time arrives on an otherwise quiet frame. The slide-end
         // flick accepts its swipe from note time onward (or on release).
@@ -116,12 +118,12 @@ export abstract class SlideEndFlickNote extends FlickNote {
             }),
         })
 
-        const latched = scanFlickLatch( hitbox.l, hitbox.r)
+        const latched = scanFlickLatch(hitbox.l, hitbox.r, this.flickImport.direction)
         if (latched !== -9999) this.flickLatchedTime = latched
     }
 
     lateLatch() {
-        const latched = scanFlickLatch( this.fullHitbox.l, this.fullHitbox.r)
+        const latched = scanFlickLatch(this.fullHitbox.l, this.fullHitbox.r, this.flickImport.direction)
         if (latched !== -9999) this.flickLatchedTime = latched
     }
 }

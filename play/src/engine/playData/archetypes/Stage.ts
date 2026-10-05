@@ -1,3 +1,4 @@
+import { nativeLaneLineLayout } from '../../../../../shared/src/engine/data/nativeLaneLines.js'
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -374,16 +375,7 @@ export class Stage extends Archetype {
     const nearHalfWidth = (nearWidth / 2 / nativeStage.laneWidth) * 12;
     const farHalfWidth = (farWidth / 2 / nativeStage.laneWidth) * 12;
     skin.sprites.guideline.draw(
-      new Quad({
-        x1: x - nearHalfWidth,
-        x2: (x - farHalfWidth) * lane.t,
-        x3: (x + farHalfWidth) * lane.t,
-        x4: x + nearHalfWidth,
-        y1: 1,
-        y2: lane.t,
-        y3: lane.t,
-        y4: 1,
-      }),
+      nativeLaneLineLayout(x, nearHalfWidth, farHalfWidth, options.lockStageAspectRatio),
       [layer.guideline],
       alpha,
     );
@@ -394,16 +386,7 @@ export class Stage extends Archetype {
 
     const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
     skin.sprites.outsideLine.draw(
-      new Quad({
-        x1: x - halfWidth,
-        x2: (x - halfWidth) * lane.t,
-        x3: (x + halfWidth) * lane.t,
-        x4: x + halfWidth,
-        y1: 1,
-        y2: lane.t,
-        y3: lane.t,
-        y4: 1,
-      }),
+      nativeLaneLineLayout(x, halfWidth, halfWidth, options.lockStageAspectRatio),
       [layer.guideline],
       alpha,
     );

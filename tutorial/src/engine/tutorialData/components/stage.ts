@@ -1,5 +1,5 @@
+import { nativeLaneLineLayout } from '../../../../../shared/src/engine/data/nativeLaneLines.js'
 import {
-    lane,
     laneBase,
     nativeJudgmentLineHalfHeight,
     nativeStage,
@@ -77,26 +77,14 @@ export const stage = {
             } else {
                 const nearHalfWidth = (0.15 / 2 / nativeStage.laneWidth) * 12
                 const farHalfWidth = (0.3 / 2 / nativeStage.laneWidth) * 12
-                skin.sprites.guideline.draw(new Quad({
-                    x1: x - nearHalfWidth,
-                    x2: (x - farHalfWidth) * lane.t,
-                    x3: (x + farHalfWidth) * lane.t,
-                    x4: x + nearHalfWidth,
-                    y1: 1, y2: lane.t, y3: lane.t, y4: 1,
-                }), [layer.judgmentLine], opacity)
+                skin.sprites.guideline.draw(nativeLaneLineLayout(x, nearHalfWidth, farHalfWidth, true), [layer.judgmentLine], opacity)
             }
         }
         if (!skin.sprites.outsideLine.exists) return
         const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12
         const outsideX = 6 + halfWidth
         for (const x of [-outsideX, outsideX]) {
-            skin.sprites.outsideLine.draw(new Quad({
-                x1: x - halfWidth,
-                x2: (x - halfWidth) * lane.t,
-                x3: (x + halfWidth) * lane.t,
-                x4: x + halfWidth,
-                y1: 1, y2: lane.t, y3: lane.t, y4: 1,
-            }), [layer.judgmentLine], opacity)
+            skin.sprites.outsideLine.draw(nativeLaneLineLayout(x, halfWidth, halfWidth, true), [layer.judgmentLine], opacity)
         }
     },
 }

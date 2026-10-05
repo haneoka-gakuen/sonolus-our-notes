@@ -1,6 +1,7 @@
+import { stableHoldEffectWidthBucket } from '../../../../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js';
 import { getNativeNoteCapId } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
 import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js';
-import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS, nativeEffectWidthBucket } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
+import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
 import { nativeNoteLayout } from '../../../../../../../shared/src/engine/data/nativeNoteLayout.js';
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
@@ -117,7 +118,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   spawnCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
     const size = (r - l) / 2;
-    const id = ((this.resources.circularProfileBase as unknown as number) + nativeEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
+    const id = ((this.resources.circularProfileBase as unknown as number) + stableHoldEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
     this.spawnCircularPlanes(id);
   }
 
@@ -136,7 +137,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     const lane = (l + r) / 2;
     const size = (r - l) / 2;
 
-    const nextEffectId = ((this.resources.circularProfileBase as unknown as number) + nativeEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
+    const nextEffectId = ((this.resources.circularProfileBase as unknown as number) + stableHoldEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
     if (this.bakedCircularEffectId !== nextEffectId) {
       this.destroyCircularEffect();
       this.spawnCircularPlanes(nextEffectId);
