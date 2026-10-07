@@ -32,12 +32,12 @@ export abstract class FlatNote extends Note {
     get nativeRects() {
         const direction = getNativeNoteDirection(this.import.originalDirection, options.mirror)
         return getNativeNoteRects(this.import.lane, this.import.size, getNativeNoteKind(this.import.operateType, direction),
-            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+            skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists, true)
     }
 
     renderBody(rects: ReturnType<typeof getNativeNoteRects>, pos: Vec, z: number) {
         const kind = getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror))
-        const parts = getNativeNoteParts(this.import.lane, this.import.size, false)
+        const parts = getNativeNoteParts(this.import.lane, this.import.size, true)
         const main = getNativeNoteMainIds(skin.sprites, kind)
         this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight), rects.left, pos, z)
         this.drawBodySprite(main.left, rects.mainLeft, pos, z)
