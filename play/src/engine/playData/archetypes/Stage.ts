@@ -13,6 +13,9 @@ import {
   projectLaneZ,
 } from "../../../../../shared/src/engine/data/lane.js";
 import { options } from "../../configuration/options.js";
+import { approach } from "../../../../../shared/src/engine/data/note.js";
+import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
+import { chartExtent } from "../chartExtent.js";
 import { effect, sfxDistance } from "../effect.js";
 import { updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
 import { getHitbox, lane } from "../lane.js";
@@ -254,10 +257,52 @@ export class Stage extends Archetype {
     );
   }
 
+  // LiveAllBarLineView: one line across the lane per bar while the bar is
+  // inside the approach window. Level data carries BPM changes only, so bars
+  // are every four beats (the preview's measure numbering uses the same rule)
+  // and end at the last note. A monotonic cursor keeps this to a handful of
+  // lookups per frame; it also walks back after a replay seek.
+  barCursor = this.entityMemory(Number);
+
+  drawBarLines() {
+    if (!options.measureLineDisplay || !skin.sprites.simLine.exists) return;
+
+    for (let i = 0; i < 64; i++) {
+      if (this.barCursor < 4) break;
+      if (this.barScaledTime(this.barCursor - 4) <= time.scaled) break;
+      this.barCursor -= 4;
+    }
+    for (let i = 0; i < 64; i++) {
+      if (this.barScaledTime(this.barCursor) > time.scaled) break;
+      this.barCursor += 4;
+    }
+
+    for (let i = 0; i < 16; i++) {
+      const beat = this.barCursor + i * 4;
+      if (beat > chartExtent.lastBeat) break;
+      const scaledTime = this.barScaledTime(beat);
+      if (scaledTime > time.scaled + note.duration) break;
+      if (note.isCovered(scaledTime)) continue;
+      if (options.hidden > 0 && scaledTime - time.scaled < note.duration * options.hidden) continue;
+
+      const y = approach(scaledTime - note.duration, scaledTime, time.scaled);
+      skin.sprites.simLine.draw(
+        new Rect({ l: -6 * y, r: 6 * y, b: y + simLine.h, t: y - simLine.h }),
+        [layer.barLine],
+        0.5,
+      );
+    }
+  }
+
+  barScaledTime(beat: number) {
+    return timeScaleChanges.at(bpmChanges.at(beat).time).scaledTime;
+  }
+
   drawLaneDetails() {
     this.drawGuidelines();
     this.drawTapArea();
     this.drawJudgmentLine();
+    this.drawBarLines();
   }
 
   drawTapArea() {
@@ -321,8 +366,10 @@ export class Stage extends Archetype {
         b: 1 + nativeJudgmentLineHalfHeight,
         t: 1 - nativeJudgmentLineHalfHeight,
       }),
-      [layer.guideline],
-      options.guidelineOpacity,
+      // The native judgment LineRenderer is opaque and sits above the tap
+      // area; drawing it under the tap area at guideline opacity hid it.
+      [layer.judgmentLine],
+      1,
     );
   }
 

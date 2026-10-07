@@ -68,6 +68,7 @@ export class SimLine extends Archetype {
         if (this.despawn) return
 
         if (options.hidden > 0 && time.scaled > this.hiddenTime) return
+        if (note.isCovered(this.visualTime.max)) return
 
         this.render()
     }

@@ -49,10 +49,23 @@ const slideEnd = {
     input: ms(84, 208),
 }
 
-// Types 2/15 have only Perfect and Miss rows. Keep public intermediate
-// buckets inside the native Perfect row so they cannot manufacture a
-// Great/Good/Bad result that the native table does not contain.
-const slideStart = {
+// SlideBegin (type 10) uses the same symmetric rows as Normal (type 1):
+// Perfect 50, Great 83, Good 100, Bad 125, Miss 130 on BOTH sides.
+const slideBegin = {
+    perfect: ms(50),
+    great: ms(83),
+    good: ms(100),
+    bad: ms(125),
+    miss: ms(130),
+    input: ms(130),
+}
+
+// EasyNormal (type 2) and SlideBeginEasy (type 15) - the `crit` Normal and
+// SlideBegin notes (NoteJudgementTypeMap.ConvertJudgementType(op, isCritical))
+// have only Perfect and Miss rows. Keep public intermediate buckets inside the
+// native Perfect row so they cannot manufacture a Great/Good/Bad result that
+// the native table does not contain.
+const easy = {
     perfect: ms(67),
     great: ms(67),
     good: ms(67),
@@ -73,12 +86,14 @@ const trace = {
 }
 
 export const windows = {
-    tapNote: { normal, critical: normal },
+    // NoteJudgementTypeMap.ConvertJudgementType: Normal -> 1, critical
+    // Normal -> EasyNormal (2); SlideBegin -> 10, critical SlideBegin -> 15.
+    tapNote: { normal, critical: easy },
     flickNote: { normal: flick, critical: flick },
     traceNote: { normal: trace, critical: trace },
     traceFlickNote: { normal: flick, critical: flick },
     slideTraceNote: { normal: trace, critical: trace },
-    slideStartNote: { normal: slideStart, critical: slideStart },
+    slideStartNote: { normal: slideBegin, critical: easy },
     slideEndNote: { normal: slideEnd, critical: slideEnd },
     slideEndTraceNote: { normal: trace, critical: trace },
     slideEndFlickNote: { normal: flick, critical: flick },

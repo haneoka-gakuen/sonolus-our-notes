@@ -1,5 +1,6 @@
 import { EngineArchetypeDataName } from '@sonolus/core'
 import { options } from '../../../configuration/options.js'
+import { chartExtent } from '../../chartExtent.js'
 
 export abstract class Note extends Archetype {
     hasInput = true
@@ -42,6 +43,7 @@ export abstract class Note extends Archetype {
         this.sharedMemory.exportStartTime = -1000
 
         this.targetTime = bpmChanges.at(this.import.beat).time
+        chartExtent.lastBeat = Math.max(chartExtent.lastBeat, this.import.beat)
 
         if (options.mirror) this.import.lane *= -1
     }

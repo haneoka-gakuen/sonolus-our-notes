@@ -19,13 +19,19 @@ export function isFlickTouch(touch: Touch): boolean {
     return touch.vr >= minFlickVR
 }
 
-/** Optional screen-space cone; this is an extension to native free-direction input. */
+/**
+ * Optional "Match Flick Direction" standard option (off by default: native Our
+ * Notes flicks accept any direction). Mirrors the half-plane rule of the GBP
+ * engines (Burrito's DirectionalFlickNote: `dx * direction >= 0`): a left
+ * arrow accepts any swipe whose horizontal component is not rightward (6
+ * through 9 to 12 o'clock), a right arrow the mirrored half-plane. Up-arrow
+ * flicks stay omnidirectional. Positive screen X points right; the imported
+ * direction is already mirrored.
+ */
 export function matchesFlickDirection(x: number, y: number, direction: FlickDirection): boolean {
-    // Positive screen Y points up. The imported arrow direction is already mirrored.
-    // Inclusive 45-degree boundaries tolerate diagonal swipes; zero vectors fail.
-    if (direction === FlickDirection.Left) return x < 0 && -x >= Math.abs(y)
-    if (direction === FlickDirection.Right) return x > 0 && x >= Math.abs(y)
-    return y > 0 && y >= Math.abs(x)
+    if (direction === FlickDirection.Up) return true
+    if (x === 0 && y === 0) return false
+    return x * direction >= 0
 }
 
 export function isMatchingFlickTouch(touch: Touch, direction: FlickDirection): boolean {

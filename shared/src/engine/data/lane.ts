@@ -47,8 +47,8 @@ export const projectLaneZ = (z: number) =>
 //   judgmentY = cameraY(judgmentZ) / cameraDepth(judgmentZ) / tan(verticalFov / 2)
 //   judgmentHalfX = (laneWidth / 2) / cameraDepth(judgmentZ)
 //                   / tan(verticalFov / 2) / (16 / 9)
-const horizonY = 1.115119873136453
-const judgmentY = -0.5815420740473228
+export const horizonY = 1.115119873136453
+export const judgmentY = -0.5815420740473228
 const judgmentHalfX = 0.7932747292495311
 
 // For a vertical plane at judgmentZ, eliminating world Y from the camera

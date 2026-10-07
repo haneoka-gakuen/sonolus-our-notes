@@ -187,6 +187,9 @@ export const layer = {
 
     simLine: 90,
 
+    // JudgePositionDisplay draws over the lane tap area.
+    judgmentLine: 3,
+    barLine: 4,
     tapArea: 2,
     guideline: 1,
     stage: 0,

@@ -194,8 +194,33 @@ export const optionsDefinition = {
         def: 1,
     },
     // Append to preserve the indices of saved options and replay options.
+    // Standard (round-star) option: enabling it is a gameplay modification
+    // that Sonolus reports on the result screen. Off keeps the native
+    // omnidirectional flicks ("矢印の方向以外にフリックしても判定されます").
     matchFlickDirection: {
         name: 'Match Flick Direction',
+        scope: 'Our Notes',
+        standard: true,
+        advanced: true,
+        type: 'toggle',
+        def: 0,
+    },
+    // Official "Notes Start Position" (ノーツ開始位置): a lane cover that hides
+    // notes above an adjustable screen height. MasterOptionDefault: 0.
+    laneCover: {
+        name: 'Lane Cover',
+        scope: 'Our Notes',
+        type: 'slider',
+        def: 0,
+        min: 0,
+        max: 1,
+        step: 0.01,
+        unit: Text.PercentageUnit,
+    },
+    // Official "Bar Line Display" (小節線表示, OptionItemType 109, default
+    // FALSE): a line across the lane at every bar.
+    measureLineDisplay: {
+        name: 'Bar Lines',
         scope: 'Our Notes',
         type: 'toggle',
         def: 0,

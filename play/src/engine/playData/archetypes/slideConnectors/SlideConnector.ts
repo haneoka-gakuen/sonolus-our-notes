@@ -201,8 +201,12 @@ export abstract class SlideConnector extends Archetype {
 
     const visibleTime = {
       min: Math.max(this.head.scaledTime, time.scaled + hiddenDuration),
-      max: Math.min(this.tail.scaledTime, time.scaled + note.duration),
+      max: Math.min(
+        this.tail.scaledTime,
+        time.scaled + (options.laneCover > 0 ? note.coverDuration : note.duration),
+      ),
     };
+    if (visibleTime.max <= visibleTime.min) return;
 
     if (!this.sprites.missed.exists || !this.sprites.normal.exists || !this.sprites.pressed.exists) return;
 

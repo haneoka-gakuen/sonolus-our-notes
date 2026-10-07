@@ -55,6 +55,7 @@ export class SimLine extends Archetype {
 
     updateParallel() {
         if (options.hidden > 0 && time.scaled > this.hiddenTime) return
+        if (note.isCovered(this.visualTime.max)) return
 
         this.render()
     }
