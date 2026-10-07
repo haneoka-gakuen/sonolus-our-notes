@@ -1,3 +1,4 @@
+import { spawnHitFx } from '../../../../hitFx.js'
 import { nativeNoteEffectDuration } from '../../../../../../../../shared/src/engine/data/nativeEffects.js'
 import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js'
 import { nativeNoteLayout } from '../../../../../../../../shared/src/engine/data/nativeNoteLayout.js'
@@ -6,7 +7,7 @@ import { approach } from '../../../../../../../../shared/src/engine/data/note.js
 import { options } from '../../../../../configuration/options.js'
 import { sfxDistance } from '../../../../effect.js'
 import { note } from '../../../../note.js'
-import { sizedEffectId, spawnNativeEffect } from '../../../../particle.js'
+
 import { getZ, layer, skin } from '../../../../skin.js'
 import { SlideTickNote } from '../SlideTickNote.js'
 
@@ -146,6 +147,6 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     }
 
     playNoteEffect() {
-        spawnNativeEffect(sizedEffectId(this.effect.id, this.import.size), this.import.lane, this.import.size, nativeNoteEffectDuration(options.noteEffectProfile, 21, 5))
+        spawnHitFx(3, 5, this.import.lane, this.import.size)
     }
 }

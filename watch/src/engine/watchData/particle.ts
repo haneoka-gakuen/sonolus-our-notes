@@ -1,10 +1,11 @@
 import { nativeLaneEffectLayout } from '../../../../shared/src/engine/data/nativeLaneEffectLayout.js'
 import { nativeEffectSkew } from '../../../../shared/src/engine/data/lane.js'
 import { options } from '../configuration/options.js'
+import { nativeHitFxNames } from '../../../../shared/src/engine/data/nativeHitFxNames.generated.js'
 import {
+    NATIVE_EFFECT_BASES,
     NATIVE_EFFECT_PLANE_COUNT,
     nativeEffectPlaneAlpha,
-    nativeEffectTable,
     nativeEffectVariant,
 } from '../../../../shared/src/engine/data/nativeEffects.js'
 import { scaledScreen } from './scaledScreen.js'
@@ -12,6 +13,7 @@ import { scaledScreen } from './scaledScreen.js'
 // Legacy PJS slots are still probed through `.exists` guards. They name no
 // authored effect, so the guards keep them from spawning anything.
 const unused = 'Our Notes Unused'
+const legacyEffectSlots = () => Object.fromEntries(Object.keys(NATIVE_EFFECT_BASES).map((key) => [key, unused])) as Record<keyof typeof NATIVE_EFFECT_BASES, string>
 
 export const particle = defineParticle({
     effects: {
@@ -23,7 +25,10 @@ export const particle = defineParticle({
         laneFlickRight: 'Our Notes Lane Flick Right',
 
         // Base slot + profile/width variants; resolve with sizedEffectId.
-        ...nativeEffectTable(),
+        // effect001 hit effects, one effect per part (see hitFx.generated.ts).
+        ...nativeHitFxNames,
+        // Legacy per-plane slots: still referenced by archetype tables, no longer authored.
+        ...legacyEffectSlots(),
 
         // Our Notes Critical changes judgment windows only; it has no
         // separate visual. These resolve to the ordinary variants' blocks.

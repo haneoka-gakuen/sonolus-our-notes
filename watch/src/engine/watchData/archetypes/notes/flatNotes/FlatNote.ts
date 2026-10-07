@@ -9,6 +9,7 @@ import { options } from "../../../../configuration/options.js";
 import { sfxDistance } from "../../../effect.js";
 import { note } from "../../../note.js";
 import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnNativeEffect } from "../../../particle.js";
+import { spawnHitFx } from "../../../hitFx.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
 
@@ -369,12 +370,25 @@ export abstract class FlatNote extends Note {
   }
 
   playCircularNoteEffect() {
-    spawnNativeEffect(
-      sizedEffectId(this.nativeNoteEffectId, this.import.size),
-      this.import.lane,
-      this.import.size,
-      this.noteEffectDuration,
-    );
+    spawnHitFx(this.hitFxKind, this.nativeJudgment, this.import.lane, this.import.size);
+  }
+
+  /** Hit effect prefab: 0 normal, 1 just (a Just on a tap), 2 slide, 3 connect, 4/5/6 flick up/left/right. */
+  get hitFxKind() {
+    const type = this.import.operateType;
+    if (type === 40 || type === 41 || type === 42 || type === 102) {
+      const direction = options.mirror
+        ? this.import.originalDirection === 1
+          ? 2
+          : this.import.originalDirection === 2
+            ? 1
+            : 0
+        : this.import.originalDirection;
+      return direction === 1 ? 5 : direction === 2 ? 6 : 4;
+    }
+    if (type === 20 || type === 22) return 2;
+    if (type === 21 || type === 60 || type === 61 || type === 62 || type === 63 || type === 104 || type === 105) return 3;
+    return this.nativeJudgment === 6 ? 1 : 0;
   }
 
   playLaneEffects() {

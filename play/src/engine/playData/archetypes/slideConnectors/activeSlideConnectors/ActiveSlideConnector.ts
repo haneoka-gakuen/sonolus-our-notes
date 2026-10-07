@@ -8,6 +8,7 @@ import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
+import { LOOP_FX_PARTS, moveLoopFx, spawnLoopFx } from "../../../hitFx.js";
 
 export abstract class ActiveSlideConnector extends SlideConnector {
   override nativeLine = true;
@@ -49,7 +50,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     super.initialize();
 
     this.slideZ = getZ(layer.note.slide, this.head.time, this.headImport.lane);
-    this.resources.circularEnabled = options.noteEffectEnabled && this.effects.circular.exists;
+    this.resources.circularEnabled = options.noteEffectEnabled;
     this.resources.linearEnabled = options.noteEffectEnabled && this.effects.linear.exists;
     this.resources.circularProfileBase = sizedEffectId(this.effects.circular.id, 0);
     this.resources.slideAvailable = this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
@@ -110,48 +111,22 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     return !this.resources.slideAvailable;
   }
 
-  bakedCircularEffectId = this.entityMemory(Number);
-  // One instance per plane layer (NATIVE_EFFECT_PLANES); index 0 lives in
-  // effectInstanceIds.circular so the existing spawn/destroy checks hold.
-  circularPlaneInstanceIds = this.entityMemory(Tuple(NATIVE_EFFECT_PLANE_COUNT - 1, ParticleEffectInstanceId));
+  // effect001 hold loop: one looping instance per part, re-projected every frame.
+  loopFx = this.entityMemory(Tuple(LOOP_FX_PARTS, ParticleEffectInstanceId));
 
   spawnCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
-    const size = (r - l) / 2;
-    const id = ((this.resources.circularProfileBase as unknown as number) + stableHoldEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
-    this.spawnCircularPlanes(id);
-  }
-
-  spawnCircularPlanes(id: ParticleEffectId) {
-    this.bakedCircularEffectId = id;
-    this.effectInstanceIds.circular = particle.effects.spawn(id, new Quad(), NATIVE_PARTICLE_TIMINGS.loopParticle, true);
-    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
-      this.circularPlaneInstanceIds.set(
-        plane - 1,
-        particle.effects.spawn(((id as unknown as number) + plane) as unknown as ParticleEffectId, new Quad(), NATIVE_PARTICLE_TIMINGS.loopParticle, true),
-      );
+    for (let i = 0; i < LOOP_FX_PARTS; i++) this.loopFx.set(i, spawnLoopFx(i, (l + r) / 2, (r - l) / 2));
+    this.effectInstanceIds.circular = this.loopFx.get(0);
   }
 
   updateCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
-    const lane = (l + r) / 2;
-    const size = (r - l) / 2;
-
-    const nextEffectId = ((this.resources.circularProfileBase as unknown as number) + stableHoldEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT) as ParticleEffectId;
-    if (this.bakedCircularEffectId !== nextEffectId) {
-      this.destroyCircularEffect();
-      this.spawnCircularPlanes(nextEffectId);
-    }
-
-    particle.effects.move(this.effectInstanceIds.circular, nativeEffectPlaneLayout({ plane: 0, lane, size }));
-    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
-      particle.effects.move(this.circularPlaneInstanceIds.get(plane - 1), nativeEffectPlaneLayout({ plane, lane, size }));
+    for (let i = 0; i < LOOP_FX_PARTS; i++) moveLoopFx(this.loopFx.get(i), (l + r) / 2, (r - l) / 2);
   }
 
   destroyCircularEffect() {
-    particle.effects.destroy(this.effectInstanceIds.circular);
-    for (let plane = 1; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
-      particle.effects.destroy(this.circularPlaneInstanceIds.get(plane - 1));
+    for (let i = 0; i < LOOP_FX_PARTS; i++) particle.effects.destroy(this.loopFx.get(i));
     this.effectInstanceIds.circular = 0;
   }
 
