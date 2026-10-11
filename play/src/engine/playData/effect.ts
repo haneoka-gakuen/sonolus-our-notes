@@ -1,1 +1,1 @@
-export { effect, sfxDistance } from './sound.js'
+export { effect, sfxDistance } from "./sound.js";

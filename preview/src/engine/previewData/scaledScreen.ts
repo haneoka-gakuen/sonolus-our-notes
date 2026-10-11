@@ -1,7 +1,7 @@
-import { panel } from './panel.js'
+import { panel } from "./panel.js";
 
 export const scaledScreen = {
-    get wToH() {
-        return panel.h / 40
-    },
-}
+  get wToH() {
+    return panel.h / 40;
+  },
+};

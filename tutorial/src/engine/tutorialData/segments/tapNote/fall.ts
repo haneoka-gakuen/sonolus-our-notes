@@ -1,11 +1,11 @@
-import { noteDisplay } from '../../components/noteDisplay.js'
+import { noteDisplay } from "../../components/noteDisplay.js";
 
 export const tapNoteFall = {
-    enter() {
-        noteDisplay.showFall('normal')
-    },
+  enter() {
+    noteDisplay.showFall("normal");
+  },
 
-    exit() {
-        noteDisplay.clear()
-    },
-}
+  exit() {
+    noteDisplay.clear();
+  },
+};

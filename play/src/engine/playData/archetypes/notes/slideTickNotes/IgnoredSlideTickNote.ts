@@ -1,15 +1,15 @@
-import { Note } from '../Note.js'
+import { Note } from "../Note.js";
 
 export class IgnoredSlideTickNote extends Note {
-    hasInput = false
+  hasInput = false;
 
-    leniency = 0
+  leniency = 0;
 
-    spawnOrder() {
-        return 999999
-    }
+  spawnOrder() {
+    return 999999;
+  }
 
-    shouldSpawn() {
-        return false
-    }
+  shouldSpawn() {
+    return false;
+  }
 }

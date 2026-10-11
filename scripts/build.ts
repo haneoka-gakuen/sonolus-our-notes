@@ -93,9 +93,10 @@ async function buildAll(): Promise<void> {
   }
 
   // Every facet shares one configuration; validate before replacing dist/.
-  const configuration = (name: string) => JSON.parse(gunzipSync(readFileSync(
-    resolve(stagingRoot, name, "dist", "EngineConfiguration"),
-  )).toString("utf8")) as unknown;
+  const configuration = (name: string) =>
+    JSON.parse(
+      gunzipSync(readFileSync(resolve(stagingRoot, name, "dist", "EngineConfiguration"))).toString("utf8"),
+    ) as unknown;
   const firstConfiguration = configuration(FACETS[0].name);
   for (const { name } of FACETS) {
     if (!isDeepStrictEqual(firstConfiguration, configuration(name)))

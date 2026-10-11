@@ -1,4 +1,4 @@
-import { nativeLaneLineLayout } from '../../../../../shared/src/engine/data/nativeLaneLines.js'
+import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -27,8 +27,11 @@ export class Stage extends Archetype {
   indexHeldConnectors() {
     this.heldConnectorHead = -1;
     for (const info of entityInfos) {
-      if (info.archetype !== archetypes.NormalActiveSlideConnector.index &&
-          info.archetype !== archetypes.CriticalActiveSlideConnector.index) continue;
+      if (
+        info.archetype !== archetypes.NormalActiveSlideConnector.index &&
+        info.archetype !== archetypes.CriticalActiveSlideConnector.index
+      )
+        continue;
       // Both variants inherit the same SlideConnector imports and audio cache.
       const connector = archetypes.NormalActiveSlideConnector.import.get(info.index);
       if (replay.isReplay && connector.startRef !== connector.headRef) continue;
@@ -64,8 +67,10 @@ export class Stage extends Archetype {
 
   insertHeldConnector(index: number) {
     const cached = archetypes.NormalActiveSlideConnector.heldAudioLinks.get(index);
-    if (this.heldConnectorHead < 0 || cached.start <
-        archetypes.NormalActiveSlideConnector.heldAudioLinks.get(this.heldConnectorHead).start) {
+    if (
+      this.heldConnectorHead < 0 ||
+      cached.start < archetypes.NormalActiveSlideConnector.heldAudioLinks.get(this.heldConnectorHead).start
+    ) {
       cached.next = this.heldConnectorHead;
       this.heldConnectorHead = index;
       return;

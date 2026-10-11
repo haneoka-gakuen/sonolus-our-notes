@@ -1,8 +1,14 @@
-import { stableHoldEffectWidthBucket } from '../../../../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js';
-import { getNativeNoteCapId } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
-import { getNativeNoteParts, getNativeNoteRects } from '../../../../../../../shared/src/engine/data/nativeNoteGeometry.js';
-import { NATIVE_EFFECT_PLANE_COUNT, NATIVE_PARTICLE_TIMINGS } from '../../../../../../../shared/src/engine/data/nativeEffects.js';
-import { nativeNoteLayout } from '../../../../../../../shared/src/engine/data/nativeNoteLayout.js';
+import { stableHoldEffectWidthBucket } from "../../../../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js";
+import { getNativeNoteCapId } from "../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
+import {
+  getNativeNoteParts,
+  getNativeNoteRects,
+} from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
+import {
+  NATIVE_EFFECT_PLANE_COUNT,
+  NATIVE_PARTICLE_TIMINGS,
+} from "../../../../../../../shared/src/engine/data/nativeEffects.js";
+import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/nativeNoteLayout.js";
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
@@ -53,7 +59,8 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     this.resources.circularEnabled = options.noteEffectEnabled;
     this.resources.linearEnabled = options.noteEffectEnabled && this.effects.linear.exists;
     this.resources.circularProfileBase = sizedEffectId(this.effects.circular.id, 0);
-    this.resources.slideAvailable = this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
+    this.resources.slideAvailable =
+      this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
     this.resources.skin002 = skin.sprites.nativeArrowAnimationSkin002.exists;
     this.resources.skin003 = skin.sprites.nativeArrowAnimationSkin003.exists;
   }
@@ -165,8 +172,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     const { l, r } = this.getEdgeBounds(time.scaled);
 
-    const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1,
-      this.resources.skin002, this.resources.skin003);
+    const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
     const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
     this.drawSlidePart(getNativeNoteCapId(skin.sprites, 1, parts.leftTilt, parts.leftRight), rects.left);
     this.drawSlidePart(skin.sprites.nativeSlideMainLeft.id, rects.mainLeft);
@@ -178,5 +184,4 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   drawSlidePart(id: SkinSpriteId, rect: RectLike) {
     if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(rect), [this.slideZ], 1);
   }
-
 }

@@ -2,41 +2,13 @@
   "schemaVersion": 1,
   "engine": "ourNotes",
   "package": "@haneoka/sonolus-our-notes",
-  "targets": [
-    "play",
-    "watch",
-    "preview",
-    "tutorial"
-  ],
+  "targets": ["play", "watch", "preview", "tutorial"],
   "nativeEffects": {
-    "profiles": [
-      "Our Notes Light",
-      "Our Notes Native",
-      "Our Notes Simple"
-    ],
-    "profileQualities": [
-      2,
-      0,
-      2
-    ],
-    "profileSkins": [
-      "effect001",
-      "effect001",
-      "effect001Simple"
-    ],
-    "widths": [
-      4,
-      6,
-      8,
-      12,
-      24
-    ],
-    "widthThresholds": [
-      5,
-      7,
-      10,
-      18
-    ],
+    "profiles": ["Our Notes Light", "Our Notes Native", "Our Notes Simple"],
+    "profileQualities": [2, 0, 2],
+    "profileSkins": ["effect001", "effect001", "effect001Simple"],
+    "widths": [4, 6, 8, 12, 24],
+    "widthThresholds": [5, 7, 10, 18],
     "planes": [
       {
         "label": "P0",
@@ -87,30 +59,10 @@
       "normalSlideConnectorCircular": "Slide Loop"
     },
     "timings": {
-      "normal": [
-        0.4166666666666667,
-        0.4166666666666667,
-        0.4166666666666667,
-        0.4166666666666667
-      ],
-      "slide": [
-        0.5833333333333334,
-        0.4166666666666667,
-        0.4166666666666667,
-        0.4166666666666667
-      ],
-      "flick": [
-        0.4166666666666667,
-        0.5,
-        0.5,
-        0.5833333333333334
-      ],
-      "simpleFlick": [
-        0.75,
-        0.5,
-        0.5,
-        0.4166666666666667
-      ],
+      "normal": [0.4166666666666667, 0.4166666666666667, 0.4166666666666667, 0.4166666666666667],
+      "slide": [0.5833333333333334, 0.4166666666666667, 0.4166666666666667, 0.4166666666666667],
+      "flick": [0.4166666666666667, 0.5, 0.5, 0.5833333333333334],
+      "simpleFlick": [0.75, 0.5, 0.5, 0.4166666666666667],
       "loopAnimation": 0.1,
       "loopParticle": 1
     }

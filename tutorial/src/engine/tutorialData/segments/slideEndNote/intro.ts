@@ -1,14 +1,14 @@
-import { connector } from '../../components/connector.js'
-import { noteDisplay } from '../../components/noteDisplay.js'
+import { connector } from "../../components/connector.js";
+import { noteDisplay } from "../../components/noteDisplay.js";
 
 export const slideEndNoteIntro = {
-    enter() {
-        noteDisplay.showOverlay('slideEnd')
-        connector.showOverlayOut()
-    },
+  enter() {
+    noteDisplay.showOverlay("slideEnd");
+    connector.showOverlayOut();
+  },
 
-    exit() {
-        noteDisplay.clear()
-        connector.clear()
-    },
-}
+  exit() {
+    noteDisplay.clear();
+    connector.clear();
+  },
+};

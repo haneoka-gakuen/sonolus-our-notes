@@ -1,43 +1,43 @@
-import { connector } from '../../components/connector.js'
-import { noteDisplay } from '../../components/noteDisplay.js'
-import { slide } from '../../components/slide.js'
-import { startHeldSound, stopHeldSound } from '../../sound.js'
-import { drawHand } from '../../instruction.js'
-import { particle, destroyHoldEffect, spawnHoldEffect } from '../../particle.js'
+import { connector } from "../../components/connector.js";
+import { noteDisplay } from "../../components/noteDisplay.js";
+import { slide } from "../../components/slide.js";
+import { startHeldSound, stopHeldSound } from "../../sound.js";
+import { drawHand } from "../../instruction.js";
+import { particle, destroyHoldEffect, spawnHoldEffect } from "../../particle.js";
 
 const effectInstanceIds = tutorialMemory({
-    p0: ParticleEffectInstanceId,
-    p1: ParticleEffectInstanceId,
-    p2: ParticleEffectInstanceId,
-    p3: ParticleEffectInstanceId,
-})
+  p0: ParticleEffectInstanceId,
+  p1: ParticleEffectInstanceId,
+  p2: ParticleEffectInstanceId,
+  p3: ParticleEffectInstanceId,
+});
 
 export const slideEndNoteFall = {
-    enter() {
-        noteDisplay.showFall('slideEnd')
-        slide.show()
-        connector.showFallOut()
+  enter() {
+    noteDisplay.showFall("slideEnd");
+    slide.show();
+    connector.showFallOut();
 
-        startHeldSound()
-        {
-        const ids = spawnHoldEffect()
-        effectInstanceIds.p0 = ids.p0
-        effectInstanceIds.p1 = ids.p1
-        effectInstanceIds.p2 = ids.p2
-        effectInstanceIds.p3 = ids.p3
+    startHeldSound();
+    {
+      const ids = spawnHoldEffect();
+      effectInstanceIds.p0 = ids.p0;
+      effectInstanceIds.p1 = ids.p1;
+      effectInstanceIds.p2 = ids.p2;
+      effectInstanceIds.p3 = ids.p3;
     }
-    },
+  },
 
-    update() {
-        drawHand(Math.PI / 3, 0, 1)
-    },
+  update() {
+    drawHand(Math.PI / 3, 0, 1);
+  },
 
-    exit() {
-        noteDisplay.clear()
-        slide.clear()
-        connector.clear()
+  exit() {
+    noteDisplay.clear();
+    slide.clear();
+    connector.clear();
 
-        stopHeldSound()
-        destroyHoldEffect(effectInstanceIds)
-    },
-}
+    stopHeldSound();
+    destroyHoldEffect(effectInstanceIds);
+  },
+};

@@ -1,11 +1,11 @@
-import { noteDisplay } from '../../components/noteDisplay.js'
+import { noteDisplay } from "../../components/noteDisplay.js";
 
 export const tapNoteIntro = {
-    enter() {
-        noteDisplay.showOverlay('normal')
-    },
+  enter() {
+    noteDisplay.showOverlay("normal");
+  },
 
-    exit() {
-        noteDisplay.clear()
-    },
-}
+  exit() {
+    noteDisplay.clear();
+  },
+};

@@ -1,9 +1,9 @@
-import { FlatNote } from '../FlatNote.js'
+import { FlatNote } from "../FlatNote.js";
 
 export abstract class SlideStartNote extends FlatNote {
-    render() {
-        if (time.scaled > this.visualTime.max) return
+  render() {
+    if (time.scaled > this.visualTime.max) return;
 
-        super.render()
-    }
+    super.render();
+  }
 }

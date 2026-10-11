@@ -1,4 +1,4 @@
-import { nativeLaneLineLayout } from '../../../../../shared/src/engine/data/nativeLaneLines.js'
+import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,

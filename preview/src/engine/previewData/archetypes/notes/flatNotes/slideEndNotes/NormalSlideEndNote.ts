@@ -1,11 +1,11 @@
-import { skin } from '../../../../skin.js'
-import { SlideEndNote } from './SlideEndNote.js'
+import { skin } from "../../../../skin.js";
+import { SlideEndNote } from "./SlideEndNote.js";
 
 export class NormalSlideEndNote extends SlideEndNote {
-    sprites = {
-        left: skin.sprites.slideEndNoteLeft,
-        middle: skin.sprites.slideEndNoteMiddle,
-        right: skin.sprites.slideEndNoteRight,
-        fallback: skin.sprites.slideNoteEndFallback,
-    }
+  sprites = {
+    left: skin.sprites.slideEndNoteLeft,
+    middle: skin.sprites.slideEndNoteMiddle,
+    right: skin.sprites.slideEndNoteRight,
+    fallback: skin.sprites.slideNoteEndFallback,
+  };
 }

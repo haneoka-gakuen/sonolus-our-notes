@@ -50,15 +50,13 @@ const judgmentHalfX = 0.7932747292495311;
 const pitchSin = 0.49400949727308147;
 const pitchCos = 0.8694565064475608;
 const tanHalf = 0.5095254494944288;
-const nativeEffectSkew =
-  (pitchSin * tanHalf * (horizonY - judgmentY)) / (pitchCos + pitchSin * tanHalf * judgmentY);
+const nativeEffectSkew = (pitchSin * tanHalf * (horizonY - judgmentY)) / (pitchCos + pitchSin * tanHalf * judgmentY);
 
 /** Engine Initialization: stage-unit -> screen transform for a given aspect. */
 export function stageTransform(aspect) {
   const target = 16 / 9;
   const screen = { w: 2 * aspect, h: 2 };
-  const stage =
-    aspect >= target ? { w: target * screen.h, h: screen.h } : { w: screen.w, h: screen.w / target };
+  const stage = aspect >= target ? { w: target * screen.h, h: screen.h } : { w: screen.w, h: screen.w / target };
   const t = (stage.h / 2) * horizonY;
   const b = (stage.h / 2) * judgmentY;
   const w = (stage.w / 2) * (judgmentHalfX / 6);

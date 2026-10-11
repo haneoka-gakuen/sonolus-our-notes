@@ -453,7 +453,14 @@ window.previewSonolus = async ({
     // Layered native effects: "<name> P0".."P3", each on its own plane.
     if (sonolusPreview.byName.has(`${name} P0`)) {
       for (let plane = 0; plane < 4; plane += 1)
-        drawn += sonolusPreview.draw(ctx, `${name} P${plane}`, planeEffectLayout(tr, plane, lane, size), progress, toPixel, seed + plane * 7919);
+        drawn += sonolusPreview.draw(
+          ctx,
+          `${name} P${plane}`,
+          planeEffectLayout(tr, plane, lane, size),
+          progress,
+          toPixel,
+          seed + plane * 7919,
+        );
     } else drawn += sonolusPreview.draw(ctx, name, linearEffectLayout(tr, lane, size), progress, toPixel, seed);
   }
   for (const name of ground)

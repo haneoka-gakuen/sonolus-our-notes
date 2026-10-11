@@ -1,9 +1,9 @@
-import { skin } from '../../../skin.js'
-import { ActiveSlideConnector } from './ActiveSlideConnector.js'
+import { skin } from "../../../skin.js";
+import { ActiveSlideConnector } from "./ActiveSlideConnector.js";
 
 export class CriticalActiveSlideConnector extends ActiveSlideConnector {
-    sprites = {
-        normal: skin.sprites.normalActiveSlideConnectorNormal,
-        fallback: skin.sprites.normalActiveSlideConnectorFallback,
-    }
+  sprites = {
+    normal: skin.sprites.normalActiveSlideConnectorNormal,
+    fallback: skin.sprites.normalActiveSlideConnectorFallback,
+  };
 }

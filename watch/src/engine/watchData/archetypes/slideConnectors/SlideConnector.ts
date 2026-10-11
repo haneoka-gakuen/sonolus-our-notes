@@ -1,4 +1,7 @@
-import { getNativeSlideSpriteId, NATIVE_SLIDE_GRADIENT_CELLS } from '../../../../../../shared/src/engine/data/nativeSlideSkin.js';
+import {
+  getNativeSlideSpriteId,
+  NATIVE_SLIDE_GRADIENT_CELLS,
+} from "../../../../../../shared/src/engine/data/nativeSlideSkin.js";
 import { EaseType, ease } from "../../../../../../shared/src/engine/data/EaseType.js";
 import { approach } from "../../../../../../shared/src/engine/data/note.js";
 import { options } from "../../../configuration/options.js";
@@ -164,10 +167,7 @@ export abstract class SlideConnector extends Archetype {
 
     const visibleTime = {
       min: Math.max(this.head.scaledTime, time.scaled + hiddenDuration),
-      max: Math.min(
-        this.tail.scaledTime,
-        time.scaled + (options.laneCover > 0 ? note.coverDuration : note.duration),
-      ),
+      max: Math.min(this.tail.scaledTime, time.scaled + (options.laneCover > 0 ? note.coverDuration : note.duration)),
     };
     if (visibleTime.max <= visibleTime.min) return;
 
@@ -207,7 +207,11 @@ export abstract class SlideConnector extends Archetype {
       const a = this.getAlpha(this.start.scaledTime, this.end.scaledTime, scaledTime.min) * options.connectorAlpha;
 
       if (this.nativeLine) {
-        const progress = Math.unlerpClamped(this.start.scaledTime, this.end.scaledTime, (scaledTime.min + scaledTime.max) / 2);
+        const progress = Math.unlerpClamped(
+          this.start.scaledTime,
+          this.end.scaledTime,
+          (scaledTime.min + scaledTime.max) / 2,
+        );
         const id = getNativeSlideSpriteId(skin.sprites, progress, this.visual);
         if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [this.z], a);
       } else if (this.visual === VisualType.Activated) {
@@ -227,7 +231,16 @@ export abstract class SlideConnector extends Archetype {
     const edgeTravel = Math.abs(this.tail.l - this.head.l) + Math.abs(this.tail.r - this.head.r);
     const curveCost = (this.import.easeL === EaseType.Linear ? 0 : 4) + (this.import.easeR === EaseType.Linear ? 0 : 4);
 
-    return Math.clamp(Math.ceil(Math.max(this.nativeLine ? visibleSpan * NATIVE_SLIDE_GRADIENT_CELLS : 2, 2 + visibleSpan * (edgeTravel * 2 + curveCost))), 2, 24);
+    return Math.clamp(
+      Math.ceil(
+        Math.max(
+          this.nativeLine ? visibleSpan * NATIVE_SLIDE_GRADIENT_CELLS : 2,
+          2 + visibleSpan * (edgeTravel * 2 + curveCost),
+        ),
+      ),
+      2,
+      24,
+    );
   }
 
   getAlpha(_a: number, _b: number, _x: number) {

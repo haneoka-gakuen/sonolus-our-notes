@@ -1,14 +1,29 @@
-import { getNativeNoteCapId, getNativeNoteMainIds } from '../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js';
+import {
+  getNativeNoteCapId,
+  getNativeNoteMainIds,
+} from "../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
 import { nativeNoteEffectDuration } from "../../../../../../../shared/src/engine/data/nativeEffects.js";
-import { getNativeNoteDirection, getNativeNoteKind, getNativeNoteMarkRect, getNativeNoteParts, getNativeNoteRects } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
+import {
+  getNativeNoteDirection,
+  getNativeNoteKind,
+  getNativeNoteMarkRect,
+  getNativeNoteParts,
+  getNativeNoteRects,
+} from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
 import { lane, nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { approach } from "../../../../../../../shared/src/engine/data/note.js";
-import { nativeNoteLayout } from '../../../../../../../shared/src/engine/data/nativeNoteLayout.js';
+import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/nativeNoteLayout.js";
 import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { options } from "../../../../configuration/options.js";
 import { sfxDistance } from "../../../effect.js";
 import { note } from "../../../note.js";
-import { groundEffectLayout, linearEffectLayout, particle, sizedEffectId, spawnNativeEffect } from "../../../particle.js";
+import {
+  groundEffectLayout,
+  linearEffectLayout,
+  particle,
+  sizedEffectId,
+  spawnNativeEffect,
+} from "../../../particle.js";
 import { spawnHitFx } from "../../../hitFx.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
@@ -57,7 +72,12 @@ export abstract class FlatNote extends Note {
     mainRight: Rect,
     right: Rect,
   });
-  bodyIds = this.entityMemory({ left: SkinSpriteId, mainLeft: SkinSpriteId, mainRight: SkinSpriteId, right: SkinSpriteId });
+  bodyIds = this.entityMemory({
+    left: SkinSpriteId,
+    mainLeft: SkinSpriteId,
+    mainRight: SkinSpriteId,
+    right: SkinSpriteId,
+  });
   z = this.entityMemory(Number);
 
   y = this.entityMemory(Number);
@@ -295,18 +315,29 @@ export abstract class FlatNote extends Note {
   }
 
   get nativeKind() {
-    return getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror));
+    return getNativeNoteKind(
+      this.import.operateType,
+      getNativeNoteDirection(this.import.originalDirection, options.mirror),
+    );
   }
 
   get nativeRects() {
-    return getNativeNoteRects(this.import.lane, this.import.size, this.nativeKind,
-      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists);
+    return getNativeNoteRects(
+      this.import.lane,
+      this.import.size,
+      this.nativeKind,
+      skin.sprites.nativeArrowAnimationSkin002.exists,
+      skin.sprites.nativeArrowAnimationSkin003.exists,
+    );
   }
 
   get nativeMarkRect() {
-    return getNativeNoteMarkRect(this.import.lane,
+    return getNativeNoteMarkRect(
+      this.import.lane,
       getNativeNoteKind(this.import.operateType, getNativeNoteDirection(this.import.originalDirection, options.mirror)),
-      skin.sprites.nativeArrowAnimationSkin002.exists, skin.sprites.nativeArrowAnimationSkin003.exists)
+      skin.sprites.nativeArrowAnimationSkin002.exists,
+      skin.sprites.nativeArrowAnimationSkin003.exists,
+    );
   }
 
   renderDecoration() {
@@ -387,7 +418,8 @@ export abstract class FlatNote extends Note {
       return direction === 1 ? 5 : direction === 2 ? 6 : 4;
     }
     if (type === 20 || type === 22) return 2;
-    if (type === 21 || type === 60 || type === 61 || type === 62 || type === 63 || type === 104 || type === 105) return 3;
+    if (type === 21 || type === 60 || type === 61 || type === 62 || type === 63 || type === 104 || type === 105)
+      return 3;
     return this.nativeJudgment === 6 ? 1 : 0;
   }
 

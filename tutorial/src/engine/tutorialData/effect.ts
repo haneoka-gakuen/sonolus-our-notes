@@ -1,1 +1,1 @@
-export { effect } from './sound.js'
+export { effect } from "./sound.js";

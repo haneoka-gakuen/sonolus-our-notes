@@ -1,55 +1,55 @@
-import { getZ, layer } from '../../../../../skin.js'
-import { FlickNote } from '../FlickNote.js'
+import { getZ, layer } from "../../../../../skin.js";
+import { FlickNote } from "../FlickNote.js";
 
 export abstract class TraceFlickNote extends FlickNote {
-    abstract sprites: {
-        left: SkinSprite
-        middle: SkinSprite
-        right: SkinSprite
-        diamond: SkinSprite
-        fallback: SkinSprite
+  abstract sprites: {
+    left: SkinSprite;
+    middle: SkinSprite;
+    right: SkinSprite;
+    diamond: SkinSprite;
+    fallback: SkinSprite;
+  };
+
+  diamondLayout = this.entityMemory(Rect);
+
+  diamondZ = this.entityMemory(Number);
+
+  get useFallbackSprites() {
+    return (
+      !this.sprites.left.exists ||
+      !this.sprites.middle.exists ||
+      !this.sprites.right.exists ||
+      !this.sprites.diamond.exists
+    );
+  }
+
+  globalInitialize() {
+    super.globalInitialize();
+
+    if (!this.useFallbackSprites) {
+      new Rect(this.nativeMarkRect).copyTo(this.diamondLayout);
+
+      this.diamondZ = getZ(layer.note.tick, this.targetTime, this.import.lane);
     }
+  }
 
-    diamondLayout = this.entityMemory(Rect)
+  render() {
+    super.render();
 
-    diamondZ = this.entityMemory(Number)
-
-    get useFallbackSprites() {
-        return (
-            !this.sprites.left.exists ||
-            !this.sprites.middle.exists ||
-            !this.sprites.right.exists ||
-            !this.sprites.diamond.exists
-        )
+    if (!this.useFallbackSprites) {
+      this.sprites.diamond.draw(this.diamondLayout.mul(this.y), [this.diamondZ], 1);
     }
+  }
 
-    globalInitialize() {
-        super.globalInitialize()
+  playNoteEffects() {
+    super.playNoteEffects();
+  }
 
-        if (!this.useFallbackSprites) {
-            new Rect(this.nativeMarkRect).copyTo(this.diamondLayout)
+  playLaneEffects() {
+    // removed
+  }
 
-            this.diamondZ = getZ(layer.note.tick, this.targetTime, this.import.lane)
-        }
-    }
-
-    render() {
-        super.render()
-
-        if (!this.useFallbackSprites) {
-            this.sprites.diamond.draw(this.diamondLayout.mul(this.y), [this.diamondZ], 1)
-        }
-    }
-
-    playNoteEffects() {
-        super.playNoteEffects()
-    }
-
-    playLaneEffects() {
-        // removed
-    }
-
-    spawnSlotEffects() {
-        // removed
-    }
+  spawnSlotEffects() {
+    // removed
+  }
 }

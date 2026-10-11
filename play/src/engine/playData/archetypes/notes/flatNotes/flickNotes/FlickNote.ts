@@ -47,7 +47,7 @@ export abstract class FlickNote extends FlatNote {
   // window is remembered (with its time) and the note judges later - while
   // the finger is still pressed once the note time is reached, or on release.
   // -9999 means "not latched".
-  flickLatchedTime = this.entityMemory(Number)
+  flickLatchedTime = this.entityMemory(Number);
 
   preprocess() {
     super.preprocess();
@@ -67,7 +67,9 @@ export abstract class FlickNote extends FlatNote {
     this.arrow.sprite = getArrowSpriteId(this.arrowSprites, this.import.size, this.flickImport.direction, nativeSkin);
 
     if (skin.sprites.exists(this.arrow.sprite)) {
-      getArrowLayout(this.import.size, this.flickImport.direction, this.import.lane, 1, nativeSkin).copyTo(this.arrow.layout);
+      getArrowLayout(this.import.size, this.flickImport.direction, this.import.lane, 1, nativeSkin).copyTo(
+        this.arrow.layout,
+      );
     }
 
     if (options.markerAnimation)
@@ -80,7 +82,6 @@ export abstract class FlickNote extends FlatNote {
 
     this.flickLatchedTime = -9999;
   }
-
 
   scheduleSFX() {
     if (this.flickImport.direction !== FlickDirection.Up && effect.clips.flickSide.exists) {
@@ -166,9 +167,21 @@ export abstract class FlickNote extends FlatNote {
         skin.sprites.draw(this.arrow.sprite, this.arrow.layout.mul(this.y), [this.arrow.z], 1);
       } else {
         const pose = getNativeArrowAnimation(nativeSkin, this.flickImport.direction, 0);
-        skin.sprites.draw(this.arrow.sprite,
-          getNativeArrowAnimationLayout(this.arrow.layout, this.flickImport.direction, this.import.lane, 1,
-            pose.x, pose.y, pose.scaleX, pose.scaleY).mul(this.y), [this.arrow.z], pose.alpha);
+        skin.sprites.draw(
+          this.arrow.sprite,
+          getNativeArrowAnimationLayout(
+            this.arrow.layout,
+            this.flickImport.direction,
+            this.import.lane,
+            1,
+            pose.x,
+            pose.y,
+            pose.scaleX,
+            pose.scaleY,
+          ).mul(this.y),
+          [this.arrow.z],
+          pose.alpha,
+        );
       }
     }
   }

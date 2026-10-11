@@ -1,20 +1,20 @@
-import { EngineArchetypeDataName } from '@sonolus/core'
-import { options } from '../../../configuration/options.js'
-import { chart } from '../../chart.js'
+import { EngineArchetypeDataName } from "@sonolus/core";
+import { options } from "../../../configuration/options.js";
+import { chart } from "../../chart.js";
 
 export abstract class Note extends Archetype {
-    import = this.defineImport({
-        beat: { name: EngineArchetypeDataName.Beat, type: Number },
-        lane: { name: 'lane', type: Number },
-        size: { name: 'size', type: Number },
-        operateType: { name: 'operateType', type: Number },
-        originalDirection: { name: 'originalDirection', type: Number },
-    })
+  import = this.defineImport({
+    beat: { name: EngineArchetypeDataName.Beat, type: Number },
+    lane: { name: "lane", type: Number },
+    size: { name: "size", type: Number },
+    operateType: { name: "operateType", type: Number },
+    originalDirection: { name: "originalDirection", type: Number },
+  });
 
-    preprocess() {
-        chart.beats = Math.max(chart.beats, this.import.beat)
-        chart.duration = Math.max(chart.duration, bpmChanges.at(this.import.beat).time)
+  preprocess() {
+    chart.beats = Math.max(chart.beats, this.import.beat);
+    chart.duration = Math.max(chart.duration, bpmChanges.at(this.import.beat).time);
 
-        if (options.mirror) this.import.lane *= -1
-    }
+    if (options.mirror) this.import.lane *= -1;
+  }
 }

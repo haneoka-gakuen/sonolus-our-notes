@@ -1,9 +1,9 @@
-import { archetypes } from './archetypes/index.js'
-import { skin } from './skin.js'
+import { archetypes } from "./archetypes/index.js";
+import { skin } from "./skin.js";
 
 export const previewData = {
-    skin,
-    archetypes,
+  skin,
+  archetypes,
 
-    globalResolver: (name: string) => eval(name) as unknown,
-}
+  globalResolver: (name: string) => eval(name) as unknown,
+};

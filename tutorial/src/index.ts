@@ -1,7 +1,7 @@
-import '@sonolus/sonolus.js/tutorial'
+import "@sonolus/sonolus.js/tutorial";
 
-import { engine } from './engine/index.js'
+import { engine } from "./engine/index.js";
 
 export default {
-    engine,
-}
+  engine,
+};
