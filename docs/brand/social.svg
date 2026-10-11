@@ -1,16 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="sonolus-our-notes">
-  <defs>
-    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".72" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFF0F5"/>
-    </linearGradient>
-  </defs>
-  <rect x=".5" y=".5" width="1199" height="629" rx="26" fill="url(#background)" stroke="#E8E8EA"/>
-  <g transform="translate(110 165) scale(.43)"><circle cx="348" cy="348" r="344" fill="#31356E"/><polyline points="130,300 250,400 350,300 460,410 570,290" fill="none" stroke="#9AA2D4" stroke-width="6" opacity=".38"/><circle cx="130" cy="300" r="14" fill="#D8DBF2"/><circle cx="250" cy="400" r="14" fill="#D8DBF2"/><circle cx="350" cy="300" r="14" fill="#D8DBF2"/><path d="M460 356L475.66 394.34L514 410L475.66 425.66L460 464L444.34 425.66L406 410L444.34 394.34Z" fill="#FFF7E8"/><circle cx="460" cy="410" r="14" fill="#E5487A"/><circle cx="570" cy="290" r="14" fill="#D8DBF2"/></g>
-  <g transform="translate(470 196)">
-    <text x="0" y="70" fill="#111114" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="64" font-weight="600" letter-spacing="-2">sonolus-our-notes</text>
-    <text x="2" y="150" fill="#3F3F46" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="22">Our Notes engine for Sonolus</text>
-    <line x1="2" y1="270" x2="54" y2="270" stroke="#E5487A" stroke-width="3" stroke-linecap="round"/>
-    <text x="72" y="276" fill="#71717A" font-family="Inter, Helvetica Neue, Arial, sans-serif" font-size="16" font-weight="500" letter-spacing="2.2">CASSIOPEIA</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" role="img" aria-label="sonolus-our-notes" font-family="Roboto, 'Noto Sans', sans-serif">
+  <rect width="1200" height="630" fill="#F0EDF1"/>
+  <rect x="32" y="32" width="1136" height="566" rx="28" fill="#FCF8FD"/>
+  <g transform="translate(112 195)"><svg width="240" height="240" viewBox="0 0 192 192"><circle cx="96" cy="96" r="88" fill="#31356E"/><circle cx="51.0" cy="36.8" r="2.5" fill="#79BBC8"/><circle cx="135.2" cy="40.6" r="1.9" fill="#8C85C0"/><circle cx="105.9" cy="141.0" r="2.0" fill="#C370B7"/><path transform="translate(8 8) scale(0.25287)" d="M169 370L134 417L70 419L105 464L86 529L151 513L196 550L201 488L250 449L191 427Z" fill="#FFA3C2"/><g transform="translate(82.0 46.0) scale(2.8333)"><path fill="#FFFFFF" d="M4.55 19q-1.275 0-1.975-.888T2.05 15.95l1.05-7.5q.225-1.5 1.338-2.475T7.05 5h9.9q1.5 0 2.613.975T20.9 8.45l1.05 7.5q.175 1.275-.525 2.163T19.45 19q-.525 0-.975-.187t-.825-.563L15.4 16H8.6l-2.25 2.25q-.375.375-.825.563T4.55 19m13.163-6.288Q18 12.425 18 12t-.288-.712T17 11t-.712.288T16 12t.288.713T17 13t.713-.288m-2-3Q16 9.426 16 9t-.288-.712T15 8t-.712.288T14 9t.288.713T15 10t.713-.288M7.75 11.25v1q0 .325.213.538T8.5 13t.538-.213t.212-.537v-1h1q.325 0 .538-.213T11 10.5t-.213-.537t-.537-.213h-1v-1q0-.325-.213-.537T8.5 8t-.537.213t-.213.537v1h-1q-.325 0-.537.213T6 10.5t.213.538t.537.212z"/></g></svg></g>
+  <g transform="translate(448 200)">
+    <text x="0" y="64" fill="#1B1B21" font-size="64" font-weight="500">sonolus-our-notes</text>
+    <text x="0" y="150" fill="#46464F" font-size="26">Our Notes engine for Sonolus</text>
+    <g transform="translate(0 262)">
+      <rect width="158" height="40" rx="8" fill="none" stroke="#C7C5D0" stroke-width="2"/>
+      <circle cx="20" cy="20" r="6" fill="#FFA3C2"/>
+      <text x="34" y="27" fill="#46464F" font-size="20" font-weight="500">Cassiopeia</text>
+    </g>
   </g>
 </svg>
