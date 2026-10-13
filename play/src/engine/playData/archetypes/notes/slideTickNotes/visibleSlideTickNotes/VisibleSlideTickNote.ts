@@ -51,7 +51,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
 
     this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
 
-    this.spawnTime = Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime).scaledTime);
+    this.spawnTime = Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime.min).scaledTime);
 
     if (this.shouldScheduleSFX) this.scheduleSFX();
   }

@@ -1,21 +1,23 @@
 import { options } from "../../../../configuration/options.js";
+import { windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { getHitbox, getNativeJudgmentLeniency } from "../../../lane.js";
+import { getTraceHitTime } from "../../../trace.js";
 import { disallowEmpty } from "../../InputManager.js";
 import { Note } from "../Note.js";
 
 export abstract class SlideTickNote extends Note {
   leniency = 1;
 
-  inputTime = this.entityMemory(Number);
+  inputTime = this.entityMemory(Range);
 
   preprocess() {
     super.preprocess();
 
     if (this.hasInput) this.archetypeLife.miss = -100;
 
-    this.inputTime = this.targetTime + input.offset;
+    this.inputTime.copyFrom(windows.traceNote.normal.input.add(this.targetTime).add(input.offset));
 
-    this.spawnTime = timeScaleChanges.at(this.inputTime).scaledTime;
+    this.spawnTime = timeScaleChanges.at(this.inputTime.min).scaledTime;
   }
 
   initialize() {
@@ -34,51 +36,50 @@ export abstract class SlideTickNote extends Note {
       }),
     }).copyTo(this.fullHitbox);
 
-    this.result.accuracy = 0.125;
+    this.result.accuracy = windows.traceNote.normal.input.max;
   }
 
   touch() {
-    if (time.now < this.inputTime) return;
+    if (this.despawn) return;
+    if (time.now < this.inputTime.min) return;
 
     for (const touch of touches) {
-      if (!this.fullHitbox.contains(touch.position)) continue;
+      const hitTime = getTraceHitTime(touch, this.fullHitbox, this.inputTime, this.targetTime);
+      if (hitTime === -9999) continue;
 
-      this.complete(touch);
+      this.complete(touch, hitTime);
       return;
     }
   }
 
   updateSequential() {
-    // touch() only fires on touch events; a stationary finger holding the
-    // slide still judges the tick at its own time (IsJudgementTraceNote
-    // in the Just/After states requires only Press).
-    if (time.now >= this.inputTime) {
+    if (this.despawn) return;
+    if (time.now >= this.targetTime + input.offset && time.now <= this.inputTime.max) {
       for (const touch of touches) {
         if (touch.started || touch.ended) continue;
         if (!this.fullHitbox.contains(touch.position)) continue;
 
-        this.completeByPresence();
+        this.complete(touch, this.targetTime);
         return;
       }
     }
   }
 
   updateParallel() {
-    if (time.now > this.inputTime) this.despawn = true;
+    if (time.now > this.inputTime.max) this.despawn = true;
   }
 
-  complete(touch: Touch) {
+  complete(touch: Touch, hitTime: number) {
     disallowEmpty(touch);
-    if (options.hapticsEnabled) this.result.haptic = HapticType.Medium;
+    this.result.accuracy = hitTime - this.targetTime;
+    this.result.judgment = windows.traceNote.normal.perfect.contains(this.result.accuracy)
+      ? Judgment.Perfect
+      : Judgment.Miss;
+    if (this.result.judgment === Judgment.Perfect) {
+      if (options.hapticsEnabled) this.result.haptic = HapticType.Medium;
 
-    this.completeByPresence();
-  }
-
-  completeByPresence() {
-    this.result.judgment = Judgment.Perfect;
-    this.result.accuracy = 0;
-
-    this.playHitEffects();
+      this.playHitEffects();
+    }
 
     this.despawn = true;
   }

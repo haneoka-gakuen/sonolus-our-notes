@@ -1,59 +1,50 @@
 import { nativeLaneEffectLayout } from "../../../../shared/src/engine/data/nativeLaneEffectLayout.js";
-import {
-  NATIVE_EFFECT_PLANE_COUNT,
-  NATIVE_PARTICLE_TIMINGS,
-  nativeEffectPlaneAlpha,
-} from "../../../../shared/src/engine/data/nativeEffects.js";
 import { nativeLaneEffectLifetime } from "../../../../shared/src/engine/data/lane.js";
+import { fxSpawnQuad, fxWorldWidth } from "../../../../shared/src/engine/data/nativeHitFx.js";
+import {
+  LOOP_FX_COUNT,
+  LOOP_FX_DURATION,
+  LOOP_FX_FIRST,
+  hitFxBucket,
+  hitFxCount,
+  hitFxDuration,
+  hitFxFirst,
+  nativeHitFxNames,
+} from "../../../../shared/src/engine/data/nativeHitFxNames.generated.js";
 import { scaledScreen } from "./scaledScreen.js";
 
-// The tutorial lane spans -2..2 (chart width 8) and uses the default Light profile.
 export const particle = defineParticle({
   effects: {
     laneNormal: "Our Notes Lane Normal",
     laneSlide: "Our Notes Lane Slide",
     laneFlick: "Our Notes Lane Flick",
 
-    normalNote: "Our Notes Light Normal W8 P0",
-    normalNote_P1: "Our Notes Light Normal W8 P1",
-    normalNote_P2: "Our Notes Light Normal W8 P2",
-    normalNote_P3: "Our Notes Light Normal W8 P3",
-    slideNote: "Our Notes Light Slide W8 P0",
-    slideNote_P1: "Our Notes Light Slide W8 P1",
-    slideNote_P2: "Our Notes Light Slide W8 P2",
-    slideNote_P3: "Our Notes Light Slide W8 P3",
-    flickNote: "Our Notes Light Flick W8 P0",
-    flickNote_P1: "Our Notes Light Flick W8 P1",
-    flickNote_P2: "Our Notes Light Flick W8 P2",
-    flickNote_P3: "Our Notes Light Flick W8 P3",
-    connectNote: "Our Notes Light Connect W8 P0",
-    connectNote_P1: "Our Notes Light Connect W8 P1",
-    connectNote_P2: "Our Notes Light Connect W8 P2",
-    connectNote_P3: "Our Notes Light Connect W8 P3",
-    slideLoop: "Our Notes Light Slide Loop W8 P0",
-    slideLoop_P1: "Our Notes Light Slide Loop W8 P1",
-    slideLoop_P2: "Our Notes Light Slide Loop W8 P2",
-    slideLoop_P3: "Our Notes Light Slide Loop W8 P3",
+    ...nativeHitFxNames,
+    normalNote: nativeHitFxNames.fx0,
+    slideNote: nativeHitFxNames.fx1200,
+    flickNote: nativeHitFxNames.fx2304,
+    connectNote: nativeHitFxNames.fx1752,
+    slideLoop: nativeHitFxNames.fx4272,
   },
 });
 
-export const nativeNoteEffectLayout = (plane: number) => {
-  const b = 1;
-  const t = 1 - 2 * scaledScreen.wToH;
-  const bottom = nativeEffectPlaneAlpha(plane, b);
-  const top = nativeEffectPlaneAlpha(plane, t);
-  return { x1: -2 * bottom, x2: -2 * top, x3: 2 * top, x4: 2 * bottom, y1: b, y2: t, y3: t, y4: b };
-};
+const fxId = (offset: number) =>
+  ((particle.effects.fx0.id as unknown as number) + offset) as unknown as ParticleEffectId;
 
-/** Native hit: each consecutive plane id receives its own projected quad. */
-export const playNoteEffect = (effect: ParticleEffect, duration: number) => {
-  for (let plane = 0; plane < NATIVE_EFFECT_PLANE_COUNT; plane++)
-    particle.effects.spawn(
-      ((effect.id as unknown as number) + plane) as unknown as ParticleEffectId,
-      nativeNoteEffectLayout(plane),
-      duration,
-      false,
-    );
+// Tutorial notes span chart width 8, centred on lane 0.
+export const nativeNoteEffectLayout = (_plane: number) => fxSpawnQuad(0, 2);
+
+export const playNoteEffect = (effect: ParticleEffect, _duration: number) => {
+  let kind = 0;
+  if (effect.id === particle.effects.slideNote.id) kind = 2;
+  if (effect.id === particle.effects.flickNote.id) kind = 4;
+  if (effect.id === particle.effects.connectNote.id) kind = 3;
+  const count = hitFxCount(kind, 5);
+  const base = hitFxFirst(kind, 5) + hitFxBucket(fxWorldWidth(2)) * count;
+  const quad = fxSpawnQuad(0, 2);
+  // Prefab duration preserves the shared effect's authored animation speed.
+  const duration = hitFxDuration(kind, 5);
+  for (let index = 0; index < count; index++) particle.effects.spawn(fxId(base + index), quad, duration, false);
 };
 
 export const playLaneEffect = (effect: ParticleEffect) => {
@@ -66,34 +57,17 @@ export const playLaneEffect = (effect: ParticleEffect) => {
     );
 };
 
-/** Hold uses the same four projected planes and the shared particle period. */
 export const spawnHoldEffect = (): HoldEffectInstances => {
-  const id = particle.effects.slideLoop.id as unknown as number;
+  const first = LOOP_FX_FIRST + hitFxBucket(fxWorldWidth(2)) * LOOP_FX_COUNT;
+  const quad = fxSpawnQuad(0, 2);
   return {
-    p0: particle.effects.spawn(
-      id as unknown as ParticleEffectId,
-      nativeNoteEffectLayout(0),
-      NATIVE_PARTICLE_TIMINGS.loopParticle,
-      true,
-    ),
-    p1: particle.effects.spawn(
-      (id + 1) as unknown as ParticleEffectId,
-      nativeNoteEffectLayout(1),
-      NATIVE_PARTICLE_TIMINGS.loopParticle,
-      true,
-    ),
-    p2: particle.effects.spawn(
-      (id + 2) as unknown as ParticleEffectId,
-      nativeNoteEffectLayout(2),
-      NATIVE_PARTICLE_TIMINGS.loopParticle,
-      true,
-    ),
-    p3: particle.effects.spawn(
-      (id + 3) as unknown as ParticleEffectId,
-      nativeNoteEffectLayout(3),
-      NATIVE_PARTICLE_TIMINGS.loopParticle,
-      true,
-    ),
+    p0: particle.effects.spawn(fxId(first), quad, LOOP_FX_DURATION, true),
+    p1: particle.effects.spawn(fxId(first + 1), quad, LOOP_FX_DURATION, true),
+    p2: particle.effects.spawn(fxId(first + 2), quad, LOOP_FX_DURATION, true),
+    p3: particle.effects.spawn(fxId(first + 3), quad, LOOP_FX_DURATION, true),
+    p4: particle.effects.spawn(fxId(first + 4), quad, LOOP_FX_DURATION, true),
+    p5: particle.effects.spawn(fxId(first + 5), quad, LOOP_FX_DURATION, true),
+    p6: particle.effects.spawn(fxId(first + 6), quad, LOOP_FX_DURATION, true),
   };
 };
 
@@ -102,6 +76,9 @@ export type HoldEffectInstances = {
   p1: ParticleEffectInstanceId;
   p2: ParticleEffectInstanceId;
   p3: ParticleEffectInstanceId;
+  p4: ParticleEffectInstanceId;
+  p5: ParticleEffectInstanceId;
+  p6: ParticleEffectInstanceId;
 };
 
 export const destroyHoldEffect = (instances: HoldEffectInstances) => {
@@ -109,4 +86,7 @@ export const destroyHoldEffect = (instances: HoldEffectInstances) => {
   particle.effects.destroy(instances.p1);
   particle.effects.destroy(instances.p2);
   particle.effects.destroy(instances.p3);
+  particle.effects.destroy(instances.p4);
+  particle.effects.destroy(instances.p5);
+  particle.effects.destroy(instances.p6);
 };

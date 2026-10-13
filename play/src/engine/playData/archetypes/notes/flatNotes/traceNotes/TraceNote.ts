@@ -1,5 +1,6 @@
 import { getZ, layer } from "../../../../skin.js";
 import { disallowEmpty } from "../../../InputManager.js";
+import { getTraceHitTime } from "../../../../trace.js";
 import { FlatNote } from "../FlatNote.js";
 
 export abstract class TraceNote extends FlatNote {
@@ -15,18 +16,12 @@ export abstract class TraceNote extends FlatNote {
 
   layer = layer.note.trace;
 
-  earlyInputTime = this.entityMemory(Number);
-  earlyHitTime = this.entityMemory(Number);
-
   diamondLayout = this.entityMemory(Rect);
 
   diamondZ = this.entityMemory(Number);
 
   initialize() {
     super.initialize();
-
-    this.earlyInputTime = this.targetTime + input.offset;
-    this.earlyHitTime = -9999;
 
     if (!this.useFallbackSprites) {
       new Rect(this.nativeMarkRect).copyTo(this.diamondLayout);
@@ -36,48 +31,31 @@ export abstract class TraceNote extends FlatNote {
   }
 
   touch() {
+    if (this.despawn) return;
     if (time.now < this.inputTime.min) return;
 
-    if (time.now < this.earlyInputTime) {
-      this.earlyTouch();
-    } else {
-      this.lateTouch();
-    }
-  }
-
-  updateParallel() {
-    this.triggerEarlyTouch();
-
-    super.updateParallel();
-  }
-
-  earlyTouch() {
     for (const touch of touches) {
-      if (!this.fullHitbox.contains(touch.position)) continue;
+      const hitTime = getTraceHitTime(touch, this.fullHitbox, this.inputTime, this.targetTime);
+      if (hitTime === -9999) continue;
 
       disallowEmpty(touch);
-      this.earlyHitTime = touch.time;
+      this.complete(hitTime);
       return;
     }
   }
 
-  lateTouch() {
-    for (const touch of touches) {
-      if (!this.fullHitbox.contains(touch.position)) continue;
-
-      disallowEmpty(touch);
-      this.complete(Math.max(touch.time, this.targetTime));
-      return;
-    }
-  }
-
-  triggerEarlyTouch() {
+  updateSequential() {
     if (this.despawn) return;
-    if (time.now < this.earlyInputTime) return;
-    if (this.earlyHitTime === -9999) return;
+    if (time.now < this.targetTime + input.offset || time.now > this.inputTime.max) return;
 
-    this.complete(this.earlyHitTime);
-    this.despawn = true;
+    for (const touch of touches) {
+      if (touch.started || touch.ended) continue;
+      if (!this.fullHitbox.contains(touch.position)) continue;
+
+      disallowEmpty(touch);
+      this.complete(this.targetTime);
+      return;
+    }
   }
 
   render() {

@@ -11,6 +11,9 @@ const effectInstanceIds = tutorialMemory({
   p1: ParticleEffectInstanceId,
   p2: ParticleEffectInstanceId,
   p3: ParticleEffectInstanceId,
+  p4: ParticleEffectInstanceId,
+  p5: ParticleEffectInstanceId,
+  p6: ParticleEffectInstanceId,
 });
 
 export const slideStartNoteHit = {
@@ -30,6 +33,9 @@ export const slideStartNoteHit = {
       effectInstanceIds.p1 = ids.p1;
       effectInstanceIds.p2 = ids.p2;
       effectInstanceIds.p3 = ids.p3;
+      effectInstanceIds.p4 = ids.p4;
+      effectInstanceIds.p5 = ids.p5;
+      effectInstanceIds.p6 = ids.p6;
     }
   },
 

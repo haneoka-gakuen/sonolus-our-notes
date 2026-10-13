@@ -10,6 +10,17 @@ no Cassiopeia or game-server dependency. A host builds the engine, supplies its
 resource pack, and publishes the generated `dist/` files through its existing
 Sonolus server.
 
+## Engine options
+
+Options are grouped into Gameplay, Graphics, Audio, and Miscellaneous. Note
+speed, mirror, flick direction, vertical stage cover, bar lines, and HIT
+Position Display appear first. HIT Position Display shows the horizontal line
+where notes are judged. Vertical stage cover is the game's Notes Start Position.
+
+Display titles use Sonolus text keys or five-language localized text. Saved
+option names stay stable, and the configuration supplies the original option
+order for older replays.
+
 ## Build from a clean checkout
 
 This repository owns its Sonolus compiler dependencies and has no unpublished
