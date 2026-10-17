@@ -212,7 +212,7 @@ export const optionsDefinition = {
     type: "toggle",
     def: 1,
   },
-  // Native effect profiles: Light, Native, and Simple. Light is the default.
+  // Native effect profiles: Light, Native, and Simple. Simple is the default.
   noteEffectProfile: {
     category: "graphics",
     name: "Note Effect Style",
@@ -225,7 +225,7 @@ export const optionsDefinition = {
     }),
     scope: "Our Notes",
     type: "select",
-    def: 0,
+    def: 2,
     values: [
       localized({
         en: "Standard (Light)",
