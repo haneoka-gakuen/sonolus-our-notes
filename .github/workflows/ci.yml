@@ -1,0 +1,78 @@
+name: Engine CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+
+  engine:
+    name: Compile ${{ matrix.facet }} facet
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - facet: play
+            optimization: high
+          - facet: watch
+            optimization: high
+          - facet: preview
+            optimization: high
+          - facet: tutorial
+            optimization: low
+    steps:
+      - uses: actions/checkout@v7
+      - run: corepack enable
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Identify facet inputs
+        id: facet-key
+        run: echo "key=$(node scripts/build-cache-key.ts '${{ matrix.facet }}' '${{ matrix.optimization }}')" >> "$GITHUB_OUTPUT"
+      - name: Restore compiled facet
+        id: facet-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: .build-matrix/${{ matrix.facet }}/dist
+          key: sonolus-facet-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.facet-key.outputs.key }}
+      - name: Compile facet
+        if: steps.facet-cache.outputs.cache-hit != 'true'
+        run: node scripts/build.ts '${{ matrix.facet }}'
+        env:
+          SONOLUS_COMPILER_OPTIMIZATION_LEVEL: ${{ matrix.optimization }}
+          SONOLUS_COMPILER_WORKERS: 1
+      - name: Save compiled facet
+        if: steps.facet-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: .build-matrix/${{ matrix.facet }}/dist
+          key: sonolus-facet-v1-${{ runner.os }}-${{ runner.arch }}-${{ steps.facet-key.outputs.key }}
+      - uses: actions/upload-artifact@v7
+        with:
+          name: engine-facet-${{ matrix.facet }}
+          path: .build-matrix/${{ matrix.facet }}/dist
+          if-no-files-found: error
+          retention-days: 7

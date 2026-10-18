@@ -1,4 +1,4 @@
-import { spawnHitFx } from "../../../../hitFx.js";
+import { nativeParticleProfile, particle, sizedEffectId, spawnNativeEffect } from "../../../../particle.js";
 import { nativeNoteEffectDuration } from "../../../../../../../../shared/src/engine/data/nativeEffects.js";
 import {
   getNativeNoteCapId,
@@ -153,6 +153,13 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   playNoteEffect() {
-    spawnHitFx(3, 5, this.import.lane, this.import.size);
+    spawnNativeEffect(
+      sizedEffectId(particle.effects.normalTraceNoteCircular.id, this.import.size),
+      this.import.lane,
+      this.import.size,
+      nativeNoteEffectDuration(nativeParticleProfile(), this.import.operateType, 5),
+      false,
+      false,
+    );
   }
 }

@@ -1,13 +1,9 @@
-import { nativeLaneEffectLifetime } from "../../../../../shared/src/engine/data/lane.js";
-import { groundEffectLayout, particle } from "../particle.js";
+import { NativeLaneEffectType } from "../../../../../shared/src/engine/data/nativeLaneFeedback.js";
+import { restartNativeLaneEffect } from "../particle.js";
 
 export class EmptyEffect extends SpawnableArchetype({
   l: Number,
 }) {
-  initialized = this.entityMemory(Boolean);
-
-  layout = this.entityMemory(Quad);
-
   nextTime = this.entityMemory(Number);
 
   spawnTime() {
@@ -18,14 +14,7 @@ export class EmptyEffect extends SpawnableArchetype({
     return 999999;
   }
 
-  initialize() {
-    if (this.initialized) return;
-    this.initialized = true;
-
-    this.globalInitialize();
-  }
-
-  updateParallel() {
+  updateSequential() {
     let shouldUpdate = false;
     let shouldSpawn = false;
     if (time.skip) {
@@ -41,11 +30,9 @@ export class EmptyEffect extends SpawnableArchetype({
     }
 
     if (shouldSpawn) {
-      particle.effects.laneInVain.spawn(this.layout, nativeLaneEffectLifetime, false);
+      const first = (this.spawnData.l + 6) * 2;
+      restartNativeLaneEffect(NativeLaneEffectType.InVain, first);
+      restartNativeLaneEffect(NativeLaneEffectType.InVain, first + 1);
     }
-  }
-
-  globalInitialize() {
-    this.layout.copyFrom(new Quad(groundEffectLayout({ lane: this.spawnData.l + 0.5, size: 0.5 })));
   }
 }

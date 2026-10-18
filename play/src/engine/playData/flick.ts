@@ -1,22 +1,22 @@
 import { FlickDirection } from "../../../../shared/src/engine/data/FlickDirection.js";
+import { ourNotesInputRules } from "../../../../shared/src/engine/data/ourNotesInputRules.js";
 import { options } from "../configuration/options.js";
 import { disallowEmpty } from "./archetypes/InputManager.js";
+import { inputEventMs, inputFrameMs, isWithinSourceWindow, usesSourceTiming } from "./inputClock.js";
 
-export const minFlickVR = 0.5;
-
-// FTLiveSimulator's flick input is a movement-velocity crossing sampled while
-// the finger stays pressed (ScreenTouchInputProvider.GetFlickState runs for
-// Moved/Stationary phases only). Keep the existing displacement, Cartesian
-// velocity, and radial velocity thresholds for the default input policy.
-export const minFlickDelta = 0.15;
-export const minFlickSpeed = 14;
+// Sonolus velocity.r measures half PlayArea heights per second. Calibrate the
+// formal physical rule against an explicit reference height; the client does
+// not expose the device's physical display dimensions.
+const referencePlayAreaHeightCm = 8;
+export const minFlickVR =
+  (2 * ourNotesInputRules.flick.distanceCm) /
+  (ourNotesInputRules.flick.referenceFrameSeconds * referencePlayAreaHeightCm);
 
 export function isFlickTouch(touch: Touch): boolean {
-  const { x, y } = touch.delta;
-  if (x * x + y * y >= minFlickDelta * minFlickDelta) return true;
-  const { x: vx, y: vy } = touch.velocity;
-  if (vx * vx + vy * vy >= minFlickSpeed * minFlickSpeed) return true;
-  return touch.vr >= minFlickVR;
+  // Moved/Stationary can establish a new latch. A prior latch still settles
+  // through isFlickLatchReady when its bound finger is released.
+  if (touch.started || touch.ended) return false;
+  return touch.vr > minFlickVR / options.flickSensitivity;
 }
 
 /**
@@ -35,33 +35,47 @@ export function matchesFlickDirection(x: number, y: number, direction: FlickDire
 }
 
 export function isMatchingFlickTouch(touch: Touch, direction: FlickDirection): boolean {
-  // Use the signal that qualified the flick. A contrary current displacement
-  // cannot be overridden by velocity left over from the preceding movement.
-  const { x, y } = touch.delta;
-  if (x * x + y * y >= minFlickDelta * minFlickDelta) return matchesFlickDirection(x, y, direction);
-  const { x: vx, y: vy } = touch.velocity;
-  return matchesFlickDirection(vx, vy, direction);
+  const { x, y } = touch.velocity;
+  return matchesFlickDirection(x, y, direction);
 }
 
 /**
- * FlickUpdater's near-position latch scan: any pressed finger (held or
- * fresh) whose swipe begins inside [l, r] latches the note at the swipe's
- * event time. Returns -9999 when no qualifying swipe occurred this frame.
+ * FlickUpdater's near-position latch scan: a maintained finger whose
+ * swipe begins inside [l, r] latches the note at the swipe's
+ * event time and finger ID. The time is -9999 when no swipe qualifies.
  * Hitboxes are full-height natively (judgement Y offsets are unbounded), so
  * only the X bounds are checked, in transformed screen coordinates.
  */
-// FTLiveSimulator drains bucket 0 through GetPriorityNote: one note wins per
-// frame, so a single swipe judges exactly one flick. Touches consumed by
+// A touch ID completes one flick per update cycle. Touches consumed by
 // another flick in the same frame are skipped here.
 const consumedFlickTouches = levelMemory({
   ids: Dictionary(16, TouchId, Number),
   frame: Number,
 });
 
-export function scanFlickLatch(l: number, r: number, direction: FlickDirection): number {
+function clearConsumedFlicksFromPreviousFrame(): void {
+  if (consumedFlickTouches.frame === time.now) return;
+
+  consumedFlickTouches.ids.clear();
+  consumedFlickTouches.frame = time.now;
+}
+
+export type FlickLatch = { time: number; touchId: TouchId };
+
+export function scanFlickLatch(
+  l: number,
+  r: number,
+  direction: FlickDirection,
+  sourceTargetMs: number,
+  window: Range,
+): FlickLatch {
+  clearConsumedFlicksFromPreviousFrame();
+
   let latch = -9999;
+  let latchedTouchId = 0 as unknown as TouchId;
   for (const touch of touches) {
     if (!isFlickTouch(touch)) continue;
+    if (usesSourceTiming() && !isWithinSourceWindow(inputEventMs(touch.time), sourceTargetMs, window)) continue;
     if (options.matchFlickDirection && !isMatchingFlickTouch(touch, direction)) continue;
     if (touch.lastPosition.x < l || touch.lastPosition.x > r) continue;
 
@@ -70,17 +84,16 @@ export function scanFlickLatch(l: number, r: number, direction: FlickDirection):
 
     disallowEmpty(touch);
     latch = touch.time;
+    latchedTouchId = touch.id;
   }
-  return latch;
+  return { time: latch, touchId: latchedTouchId };
 }
 
-/** Marks the swipe that judged a flick as consumed for this frame. */
-export function consumeFlickTouch(latchedTime: number): void {
-  for (const touch of touches) {
-    if (touch.time !== latchedTime) continue;
-    consumedFlickTouches.ids.set(touch.id, time.now);
-    return;
-  }
+/** Consumes the finger that supplied the latched swipe for this frame. */
+export function consumeFlickTouch(latchedTouchId: TouchId): void {
+  clearConsumedFlicksFromPreviousFrame();
+
+  consumedFlickTouches.ids.set(latchedTouchId, time.now);
 }
 
 /**
@@ -88,9 +101,20 @@ export function consumeFlickTouch(latchedTime: number): void {
  * pressed once the note time has been reached. Pre-window swipes never latch;
  * with direction matching enabled, wrong-direction swipes never latch either.
  */
-export function isFlickLatchReady(latchedTime: number, targetTime: number): boolean {
+export function isFlickLatchReady(
+  latchedTime: number,
+  targetTime: number,
+  latchedTouchId: TouchId,
+  sourceTargetMs: number,
+  window: Range,
+): boolean {
   if (latchedTime === -9999) return false;
-  if (time.now >= targetTime) return true;
-  for (const touch of touches) if (touch.ended) return true;
+  if (usesSourceTiming()) {
+    const frameMs = inputFrameMs();
+    if (!isWithinSourceWindow(frameMs, sourceTargetMs, window)) return false;
+    if (!isWithinSourceWindow(inputEventMs(latchedTime), sourceTargetMs, window)) return false;
+    if (frameMs >= sourceTargetMs) return true;
+  } else if (time.now >= targetTime + input.offset) return true;
+  for (const touch of touches) if (touch.id === latchedTouchId && touch.ended) return true;
   return false;
 }

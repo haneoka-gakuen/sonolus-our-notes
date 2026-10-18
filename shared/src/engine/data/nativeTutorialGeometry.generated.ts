@@ -2,9 +2,9 @@
 
 const tutorialleftL = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return -1.4127890765666962
+        if (kind === 0) return -1.4084507019586967
         if (kind === 1) return -1.425352110409401
-        if (kind === 2) return -1.5226482314962737
+        if (kind === 2) return -1.4929577442122177
         if (kind === 3) return -1.4676056322917133
         if (kind === 4) return -1.4760563365170651
         if (kind === 5) return -1.4845070407424175
@@ -12,37 +12,33 @@ const tutorialleftL = (skin002: boolean, skin003: boolean, kind: number) => {
         return -1.8647887326462167
     }
     if (skin003) {
-        if (kind === 2) return -1.6242653049213787
         if (kind === 6) return -1.6619718304822144
-        if (kind === 7) return -1.5691271200985977
+        if (kind === 7) return -1.560563377259483
         return -1.619718309355454
     }
     {
-        if (kind === 2) return -1.7763779759407043
+        if (kind === 2) return -1.6957746423466107
         if (kind === 6) return -1.704225352112676
         if (kind === 7) return -1.780281690140845
-        return -1.7383498109562296
+        return -1.7042253506015723
     }
 }
 
 const tutorialleftR = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return -2.1057468230455694
-        if (kind === 1) return -2.10140844843757
-        if (kind === 2) return -2.1310989357216257
         if (kind === 6) return -2.084507043512774
         if (kind === 7) return -2.0591549298293153
+        if (kind === 0 || kind === 1 || kind === 2) return -2.10140844843757
         return -2.067605632291713
     }
     if (skin003) {
-        if (kind === 2) return -2.097504741541097
-        if (kind === 7) return -1.9325074017887385
+        if (kind === 7) return -1.9239436589496237
         return -2.092957745975172
     }
     {
-        if (kind === 2) return -2.2580681167857746
+        if (kind === 2) return -2.177464783191681
         if (kind === 6 || kind === 7) return -2
-        return -2.1017300926463705
+        return -2.067605632291713
     }
 }
 
@@ -82,9 +78,9 @@ const tutorialcapT = (skin002: boolean, skin003: boolean, kind: number) => {
 
 const tutorialmainL = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return -1.4171274511746956
+        if (kind === 0) return -1.4084507019586967
         if (kind === 1) return -1.425352110409401
-        if (kind === 2) return -1.5523387187803297
+        if (kind === 2) return -1.4929577442122177
         if (kind === 3) return -1.467605632291713
         if (kind === 4) return -1.4760563365170651
         if (kind === 5) return -1.4845070407424172
@@ -92,24 +88,23 @@ const tutorialmainL = (skin002: boolean, skin003: boolean, kind: number) => {
         return -1.864788732646217
     }
     if (skin003) {
-        if (kind === 2) return -1.6288123004873034
         if (kind === 6) return -1.6619718304822144
-        if (kind === 7) return -1.5776908629377124
+        if (kind === 7) return -1.560563377259483
         return -1.6197183093554537
     }
     {
-        if (kind === 2) return -1.8569813095347982
+        if (kind === 2) return -1.6957746423466105
         if (kind === 6) return -1.704225352112676
         if (kind === 7) return -1.7802816901408451
-        return -1.772474271310887
+        return -1.7042253506015723
     }
 }
 
 const tutorialmainInnerL = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return -1.3833246342732872
+        if (kind === 0) return -1.3746478850572883
         if (kind === 1) return -1.3915492935079925
-        if (kind === 2) return -1.5185359018789213
+        if (kind === 2) return -1.4591549273108093
         if (kind === 3) return -1.4338028153903046
         if (kind === 4) return -1.4422535196156567
         if (kind === 5) return -1.4507042238410088
@@ -117,24 +112,23 @@ const tutorialmainInnerL = (skin002: boolean, skin003: boolean, kind: number) =>
         return -1.8309859157448085
     }
     if (skin003) {
-        if (kind === 2) return -1.595009483585895
         if (kind === 6) return -1.628169013580806
-        if (kind === 7) return -1.543888046036304
+        if (kind === 7) return -1.5267605603580745
         return -1.5859154924540453
     }
     {
-        if (kind === 2) return -1.8231784926333898
+        if (kind === 2) return -1.661971825445202
         if (kind === 6) return -1.6704225352112676
         if (kind === 7) return -1.7464788732394367
-        return -1.7386714544094786
+        return -1.670422533700164
     }
 }
 
 const tutorialmainInnerR = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return 1.3833246342732872
+        if (kind === 0) return 1.3746478850572883
         if (kind === 1) return 1.3915492935079925
-        if (kind === 2) return 1.5185359018789213
+        if (kind === 2) return 1.4591549273108093
         if (kind === 3) return 1.4338028153903046
         if (kind === 4) return 1.4422535196156567
         if (kind === 5) return 1.4507042238410088
@@ -142,24 +136,23 @@ const tutorialmainInnerR = (skin002: boolean, skin003: boolean, kind: number) =>
         return 1.8309859157448085
     }
     if (skin003) {
-        if (kind === 2) return 1.595009483585895
         if (kind === 6) return 1.628169013580806
-        if (kind === 7) return 1.543888046036304
+        if (kind === 7) return 1.5267605603580745
         return 1.5859154924540453
     }
     {
-        if (kind === 2) return 1.8231784926333898
+        if (kind === 2) return 1.661971825445202
         if (kind === 6) return 1.6704225352112676
         if (kind === 7) return 1.7464788732394367
-        return 1.7386714544094786
+        return 1.670422533700164
     }
 }
 
 const tutorialmainR = (skin002: boolean, skin003: boolean, kind: number) => {
     if (skin002) {
-        if (kind === 0) return 1.4171274511746956
+        if (kind === 0) return 1.4084507019586967
         if (kind === 1) return 1.425352110409401
-        if (kind === 2) return 1.5523387187803297
+        if (kind === 2) return 1.4929577442122177
         if (kind === 3) return 1.467605632291713
         if (kind === 4) return 1.4760563365170651
         if (kind === 5) return 1.4845070407424172
@@ -167,16 +160,15 @@ const tutorialmainR = (skin002: boolean, skin003: boolean, kind: number) => {
         return 1.864788732646217
     }
     if (skin003) {
-        if (kind === 2) return 1.6288123004873034
         if (kind === 6) return 1.6619718304822144
-        if (kind === 7) return 1.5776908629377124
+        if (kind === 7) return 1.560563377259483
         return 1.6197183093554537
     }
     {
-        if (kind === 2) return 1.8569813095347982
+        if (kind === 2) return 1.6957746423466105
         if (kind === 6) return 1.704225352112676
         if (kind === 7) return 1.7802816901408451
-        return 1.772474271310887
+        return 1.7042253506015723
     }
 }
 

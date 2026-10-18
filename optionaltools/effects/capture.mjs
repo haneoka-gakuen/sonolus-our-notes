@@ -1,4 +1,4 @@
-import { WebGLRenderer, PerspectiveCamera, Scene, Vector3, SRGBColorSpace } from "three";
+import { WebGLRenderer, PerspectiveCamera, Scene, Vector3, SRGBColorSpace, Mesh, PlaneGeometry, ShaderMaterial, Texture, NoColorSpace, LinearFilter } from "three";
 import {
   ParticleLayer,
   StageProjector,
@@ -8,6 +8,7 @@ import {
 import { createOurNotesAssetManifest, nativeParticleEffectLifetime } from "@haneoka/cassiopeia-plugin-our-notes";
 import {
   SonolusParticlePreview,
+  readSourceLoopRom,
   groundEffectLayout,
   linearEffectLayout,
   planeEffectLayout,
@@ -39,8 +40,10 @@ const hud = {
 };
 // ?quality=2 selects the authored effect001Light profile (native quality 2).
 const quality = Number(new URLSearchParams(location.search).get("quality") ?? "0");
+const noteEffectSkin =
+  new URLSearchParams(location.search).get("skin") === "effect001Simple" ? "effect001Simple" : "effect001";
 const assets = createOurNotesAssetManifest(
-  { noteAtlasTextureUrl: placeholder, hud, currentQuality: Number.isInteger(quality) ? quality : 0 },
+  { noteAtlasTextureUrl: placeholder, hud, currentQuality: Number.isInteger(quality) ? quality : 0, noteEffectSkin },
   {
     asset: (path) => "/asset/" + path,
     runtime: (path) => "/runtime/" + path,
@@ -82,8 +85,6 @@ const measureCtx = measure.getContext("2d", { willReadFrequently: true });
 // remaining atlas budget is then distributed proportionally to each effect's
 // on-screen footprint so wide/tall effects stay as sharp as small ones.
 const atlas = document.createElement("canvas");
-atlas.width = 8192;
-atlas.height = 8192;
 const ctx = atlas.getContext("2d", { willReadFrequently: true });
 const floorTileWidth = 190,
   floorTileHeight = 254;
@@ -249,6 +250,10 @@ const layoutAtlas = (density) => {
 };
 window.allocateAtlas = () => {
   if (plans.length !== specs.length) throw Error("Incomplete effect measurement");
+  // Diagnostic previews use the source and Sonolus canvases only. Allocate
+  // the 256 MiB capture atlas when an actual atlas capture begins.
+  atlas.width = 8192;
+  atlas.height = 8192;
   let lo = 0,
     hi = 1;
   for (let i = 0; i < 40; i++) {
@@ -346,7 +351,7 @@ window.finishCapture = async () => {
     method: "POST",
     body: JSON.stringify({
       schema: "cassiopeia-baked-effects-v1",
-      source: "effect001",
+      source: noteEffectSkin,
       renderer: "Cassiopeia ParticleLayer + LiveUrpBloom",
       sourceInfo,
       seed: 0x4f4e,
@@ -369,8 +374,39 @@ window.finishCapture = async () => {
 window.captureReady = true;
 document.querySelector("#status").textContent = "Ready";
 
+const loadPreviewBackground = async (url) => createImageBitmap(
+  await fetch(url).then((response) => {
+    if (!response.ok) throw Error("Could not read preview background");
+    return response.blob();
+  }),
+  { premultiplyAlpha: "none", colorSpaceConversion: "none", imageOrientation: "none" },
+);
+
+const previewBackgroundLayer = (bitmap) => {
+  const texture = new Texture(bitmap);
+  texture.colorSpace = NoColorSpace;
+  texture.flipY = false;
+  texture.minFilter = texture.magFilter = LinearFilter;
+  texture.generateMipmaps = false;
+  texture.needsUpdate = true;
+  const geometry = new PlaneGeometry(2, 2);
+  const material = new ShaderMaterial({
+    uniforms: { uMap: { value: texture } },
+    vertexShader: "varying vec2 vUv; void main(){ vUv=uv; gl_Position=vec4(position.xy,0.0,1.0); }",
+    fragmentShader: "uniform sampler2D uMap; varying vec2 vUv; void main(){ gl_FragColor=texture2D(uMap,vec2(vUv.x,1.0-vUv.y)); }",
+    depthTest: false,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  const mesh = new Mesh(geometry, material);
+  mesh.frustumCulled = false;
+  const scene = new Scene();
+  scene.add(mesh);
+  return { scene, dispose: () => { geometry.dispose(); material.dispose(); texture.dispose(); } };
+};
+
 // Full-resolution diagnostic view for comparison with recorded client frames.
-window.previewEffect = ({
+const previewEffect = ({
   kind = "tap",
   direction = "none",
   judgement = "perfect",
@@ -379,48 +415,126 @@ window.previewEffect = ({
   lane = 6,
   screenWidth = 1554,
   screenHeight = 1080,
+  sourceFrameRate = 60,
+  sourceSeed = 0x4f4e,
+  includeSourceTrace = false,
+  sourceParticles,
+  sourceMeshFamilies,
+  sourceBillboardTextures,
+  bloomEnabled = true,
+  bloomQuality,
+  renderingScale = 0.85,
+  backgroundRgb = [0, 0, 0],
+  backgroundImageUrl,
+  backgroundBitmap,
+  laneInstances,
 } = {}) => {
-  const aspect = screenWidth / screenHeight;
-  camera.aspect = aspect;
-  camera.fov = (2 * Math.atan((Math.tan((54 * Math.PI) / 360) * (16 / 9)) / Math.min(aspect, 16 / 9)) * 180) / Math.PI;
-  camera.updateProjectionMatrix();
-  renderer.setSize(screenWidth, screenHeight, false);
-  bloom.setSize(screenWidth, screenHeight);
-  const updateStarted = performance.now();
-  particles.update([]);
-  particles.updateLaneInput([]);
-  particles.update([
-    {
-      id: 1,
-      kind,
-      direction,
-      judgement,
-      lane,
-      width,
-      age,
-      lifetime: 1,
-      seed: 0x4f4e,
-    },
-  ]);
-  const cpuUpdateMs = performance.now() - updateStarted;
-  renderer.setRenderTarget(null);
-  renderer.clear();
-  bloom.renderEffect(renderer, () => renderer.render(scene, camera));
-  bloom.composite(renderer);
-  const stats = particles.stats;
-  const png = renderer.domElement.toDataURL("image/png");
-  particles.update([]);
-  camera.aspect = 16 / 9;
-  camera.fov = 54;
-  camera.updateProjectionMatrix();
-  renderer.setSize(1920, 1080, false);
-  bloom.setSize(1920, 1080);
-  return { png, age, width, lane, stats, cpuUpdateMs };
+  const diagnosticBloom = renderingScale === 0.85 && bloomQuality === undefined ? bloom : new LiveUrpBloomPipeline(renderingScale, bloomQuality);
+  const visibility = [];
+  const sourceTrace = [];
+  const alphaRestore = [];
+  const bloomIntensity = diagnosticBloom.compositeUniforms.uIntensity.value;
+  if (!bloomEnabled) diagnosticBloom.compositeUniforms.uIntensity.value = 0;
+  if (includeSourceTrace || sourceParticles) particles.setTraceSink({ billboard: (entry) => sourceTrace.push(entry), mesh: () => {} });
+  const background = backgroundBitmap ? previewBackgroundLayer(backgroundBitmap) : undefined;
+  try {
+    const aspect = screenWidth / screenHeight;
+    camera.aspect = aspect;
+    camera.fov = (2 * Math.atan((Math.tan((54 * Math.PI) / 360) * (16 / 9)) / Math.min(aspect, 16 / 9)) * 180) / Math.PI;
+    camera.updateProjectionMatrix();
+    renderer.setSize(screenWidth, screenHeight, false);
+    diagnosticBloom.setSize(screenWidth, screenHeight);
+    const updateStarted = performance.now();
+    particles.update([]);
+    particles.updateLaneInput([]);
+    const effect = {
+      id: 1, kind, direction, judgement, lane, width, age,
+      ...(kind === "slide-loop" ? {} : { lifetime: kind.startsWith("lane-") ? 0.45 / 2 : 1 }),
+      seed: sourceSeed,
+    };
+    const laneFeedback = laneInstances !== undefined || kind.startsWith("lane-");
+    if (laneFeedback) particles.updateLaneInput(laneInstances === undefined ? [effect] : laneInstances.map((entry, i) => ({
+      id: `lane-instance-${i}`, kind: entry.kind, direction: "none", judgement: "perfect",
+      lane: entry.chartLane, width: 1, age: entry.age, lifetime: Math.fround(.225), seed: 1,
+    })));
+    else {
+      for (let frame = 0; frame / sourceFrameRate < age; frame++)
+        particles.update([{ ...effect, age: frame / sourceFrameRate }]);
+      sourceTrace.length = 0;
+      particles.update([effect]);
+    }
+    if (sourceParticles) scene.traverse((object) => {
+      if (!object.isMesh || !object.name.startsWith("Effect001Particles:")) return;
+      const texture = object.name.slice("Effect001Particles:".length);
+      const entries = sourceTrace.filter(entry => entry.texture === texture);
+      const colour = object.geometry.attributes.aColor;
+      for (let i = 0; i < object.geometry.instanceCount; i++) {
+        const entry = entries[i];
+        if (entry && sourceParticles.some(p => p.system === entry.system && p.emission === entry.emission)) continue;
+        alphaRestore.push([colour, i, colour.getW(i)]);
+        colour.setW(i, 0);
+      }
+      colour.data.needsUpdate = true;
+    });
+    if (sourceMeshFamilies || sourceBillboardTextures)
+      scene.traverse((object) => {
+        if (!object.isMesh) return;
+        visibility.push([object, object.visible]);
+        object.visible = object.visible && ((sourceMeshFamilies?.some((family) => object.name === `Effect001Mesh:${family}`) ?? false) || (sourceBillboardTextures?.some((texture) => object.name === `Effect001Particles:${texture}`) ?? false));
+      });
+    const cpuUpdateMs = performance.now() - updateStarted;
+    renderer.setRenderTarget(null);
+    renderer.setClearColor((backgroundRgb[0] << 16) | (backgroundRgb[1] << 8) | backgroundRgb[2], 1);
+    renderer.clear();
+    if (background) renderer.render(background.scene, camera);
+    if (laneFeedback) renderer.render(scene, camera);
+    else {
+      diagnosticBloom.renderEffect(renderer, () => renderer.render(scene, camera));
+      diagnosticBloom.composite(renderer);
+    }
+    const stats = particles.stats;
+    const sourceBuffers = [];
+    if (includeSourceTrace) scene.traverse((object) => {
+      if (!object.isMesh || !object.name.startsWith("Effect001Particles:center")) return;
+      const values = {};
+      for (const key of ["aColor", "aTint", "aSize", "aRenderMode"]) {
+        const attr = object.geometry.attributes[key];
+        if (attr) values[key] = [attr.getX(0), attr.getY(0), attr.getZ(0), attr.getW(0)].slice(0, attr.itemSize);
+      }
+      sourceBuffers.push({ name: object.name, values, texture: object.material.uniforms.uMap.value.image.src, visible: object.visible });
+    });
+    const png = renderer.domElement.toDataURL("image/png");
+    return { png, age, width, lane, stats, cpuUpdateMs, sourceFrameRate, sourceSeed, noteEffectSkin, renderingScale, sourceParticles, sourceMeshFamilies, sourceBillboardTextures, bloomEnabled, bloomQuality, backgroundRgb, backgroundImage: Boolean(backgroundImageUrl), ...(laneInstances === undefined ? {} : { laneInstances }), ...(includeSourceTrace ? { sourceTrace, sourceBuffers } : {}) };
+  } finally {
+    diagnosticBloom.compositeUniforms.uIntensity.value = bloomIntensity;
+    if (includeSourceTrace || sourceParticles) particles.setTraceSink(undefined);
+    for (const [colour, index, alpha] of alphaRestore) { colour.setW(index, alpha); colour.data.needsUpdate = true; }
+    background?.dispose();
+    for (const [object, visible] of visibility) object.visible = visible;
+    particles.update([]);
+    particles.updateLaneInput([]);
+    renderer.setClearColor(0, 1);
+    camera.aspect = 16 / 9;
+    camera.fov = 54;
+    camera.updateProjectionMatrix();
+    renderer.setSize(1920, 1080, false);
+    bloom.setSize(1920, 1080);
+    if (diagnosticBloom !== bloom) diagnosticBloom.dispose();
+  }
 };
+
+window.previewEffect = (options = {}) => options.backgroundImageUrl
+  ? loadPreviewBackground(options.backgroundImageUrl).then((bitmap) => {
+      try { return previewEffect({ ...options, backgroundBitmap: bitmap }); }
+      finally { bitmap.close(); }
+    })
+  : previewEffect(options);
 
 // Native Sonolus particle preview of /output/particle.json at the same
 // screen size, for numeric comparison with previewEffect().
 let sonolusPreview;
+let sonolusSourceRom;
+let sonolusPreviewKey;
 window.previewSonolus = async ({
   names = [],
   ground = [],
@@ -430,19 +544,41 @@ window.previewSonolus = async ({
   screenWidth = 1554,
   screenHeight = 1080,
   seed = 1,
+  loop = false,
+  planeOrder = [0, 1, 2, 3],
+  sourceLoopTime,
+  sourceLoopFrameRate = 60,
+  sourceLoopLayout,
+  compositeOperation = "source-over",
+  backgroundRgb = [0, 0, 0],
+  backgroundImageUrl,
+  laneInstances,
+  particleDataUrl = "/output/particle.json",
+  textureUrl = "/output/particle.texture.png",
 } = {}) => {
-  if (!sonolusPreview) {
-    const data = await fetch("/output/particle.json", { cache: "no-store" }).then((r) => r.json());
+  const resourceKey = `${particleDataUrl}|${textureUrl}`;
+  if (!sonolusPreview || sonolusPreviewKey !== resourceKey) {
+    const data = await fetch(particleDataUrl, { cache: "no-store" }).then((r) => r.json());
     const image = await createImageBitmap(
-      await fetch("/output/particle.texture.png", { cache: "no-store" }).then((r) => r.blob()),
+      await fetch(textureUrl, { cache: "no-store" }).then((r) => r.blob()),
       { premultiplyAlpha: "none", colorSpaceConversion: "none" },
     );
+    const previous = sonolusPreview;
     sonolusPreview = new SonolusParticlePreview(data, image);
+    previous?.image.close?.();
+    sonolusPreviewKey = resourceKey;
   }
   const canvas = new OffscreenCanvas(screenWidth, screenHeight);
   const ctx = canvas.getContext("2d");
-  ctx.fillStyle = "#000";
+  ctx.fillStyle = `rgb(${backgroundRgb.join(",")})`;
   ctx.fillRect(0, 0, screenWidth, screenHeight);
+  if (backgroundImageUrl) {
+    const bitmap = await loadPreviewBackground(backgroundImageUrl);
+    try { ctx.drawImage(bitmap, 0, 0, screenWidth, screenHeight); }
+    finally { bitmap.close(); }
+  }
+  if (!["source-over", "lighter"].includes(compositeOperation)) throw Error("Invalid diagnostic composite operation");
+  ctx.globalCompositeOperation = compositeOperation;
   const tr = stageTransform(screenWidth / screenHeight);
   const toPixel = stageToPixel(tr, screenWidth, screenHeight);
   // chartToLevelData: lane = (pos + size / 2) / 2 - 6, size = width / 4.
@@ -452,7 +588,8 @@ window.previewSonolus = async ({
   for (const name of names) {
     // Layered native effects: "<name> P0".."P3", each on its own plane.
     if (sonolusPreview.byName.has(`${name} P0`)) {
-      for (let plane = 0; plane < 4; plane += 1)
+      for (const plane of planeOrder) {
+        if (!sonolusPreview.byName.has(`${name} P${plane}`)) continue;
         drawn += sonolusPreview.draw(
           ctx,
           `${name} P${plane}`,
@@ -460,18 +597,56 @@ window.previewSonolus = async ({
           progress,
           toPixel,
           seed + plane * 7919,
+          loop,
         );
-    } else drawn += sonolusPreview.draw(ctx, name, linearEffectLayout(tr, lane, size), progress, toPixel, seed);
+      }
+    } else drawn += sonolusPreview.draw(ctx, name, name.endsWith(" B0") ? planeEffectLayout(tr, 0, lane, size) : linearEffectLayout(tr, lane, size), progress, toPixel, seed, loop);
   }
   for (const name of ground)
-    drawn += sonolusPreview.draw(ctx, name, groundEffectLayout(tr, lane, size), progress, toPixel, seed);
+    drawn += sonolusPreview.draw(ctx, name, groundEffectLayout(tr, lane, size), progress, toPixel, seed, loop);
+  for (const entry of laneInstances ?? []) {
+    if (entry.age < 0 || entry.age >= Math.fround(.225)) continue;
+    const spec = specs.find((spec) => spec.ground && spec.kind === entry.kind);
+    if (!spec) throw Error(`Unknown lane feedback kind: ${entry.kind}`);
+    const centre = (entry.chartLane + .5) / 2 - 6;
+    drawn += sonolusPreview.draw(ctx, spec.name, groundEffectLayout(tr, centre, .25),
+      Math.fround(entry.age) / Math.fround(.225), toPixel, 1, false);
+  }
+  let sourceResidents = 0;
+  let sourceDroppedLate = 0;
+  if (sourceLoopTime !== undefined) {
+    sonolusSourceRom ??= readSourceLoopRom(
+      await fetch("/output/EngineRom", { cache: "no-store" }).then((r) => {
+        if (!r.ok) throw Error("Source particle ROM is missing");
+        return r.arrayBuffer();
+      }),
+    );
+    const result = sonolusPreview.drawMovedSourceSlot(
+      ctx,
+      sonolusSourceRom,
+      sourceLoopTime,
+      tr,
+      lane,
+      toPixel,
+      sourceLoopFrameRate,
+      1,
+      size,
+      sourceLoopLayout,
+    );
+    drawn += result.drawn;
+    sourceResidents = result.residents;
+    sourceDroppedLate = result.droppedLate;
+  }
   const blob = await canvas.convertToBlob({ type: "image/png" });
   const bytes = new Uint8Array(await blob.arrayBuffer());
   let binary = "";
   for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return { png: "data:image/png;base64," + btoa(binary), drawn };
+  return { png: "data:image/png;base64," + btoa(binary), drawn, sourceResidents, sourceDroppedLate, compositeOperation, backgroundRgb, backgroundImage: Boolean(backgroundImageUrl) };
 };
 window.reloadSonolus = () => {
+  sonolusPreview?.image.close?.();
   sonolusPreview = undefined;
+  sonolusPreviewKey = undefined;
+  sonolusSourceRom = undefined;
   return true;
 };

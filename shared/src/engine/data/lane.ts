@@ -32,6 +32,9 @@ export const nativeStage = {
 // startLifetime=.45 and simulationSpeed=2.
 export const nativeLaneEffectLifetime = 0.45 / 2
 
+// LiveGameLaneEffectBase._isPlaying follows the hidden parent PS stop callback.
+export const nativeLaneEffectGuardLifetime = 1
+
 const judgmentDepth =
     nativeStage.cameraHeight * nativeStage.cameraPitchSin +
     nativeStage.judgmentZ * nativeStage.cameraPitchCos

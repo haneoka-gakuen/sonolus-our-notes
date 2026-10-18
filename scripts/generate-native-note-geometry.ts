@@ -133,8 +133,8 @@ const tutorialRows = Object.fromEntries(
     rows.map((row) => {
       const cap = row.parts[2]!.right;
       const overhang = row.parts[2]!.rightOverhang;
-      const capCenter = -2 + cap.tightW / 2 - overhang - cap.x;
-      const mainHalfWidth = Math.max(0.001, 4 - cap.tightW * 2 + overhang * 2) / 2;
+      const capCenter = -2 + cap.w / 2 - overhang - cap.x;
+      const mainHalfWidth = Math.max(0, 4 - cap.w * 2 + overhang * 2) / 2;
       const borderTotal = row.borderLeft + row.borderRight;
       const borderScale = borderTotal > mainHalfWidth * 2 ? (mainHalfWidth * 2) / borderTotal : 1;
       return [

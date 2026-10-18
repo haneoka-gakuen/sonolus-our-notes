@@ -1,4 +1,5 @@
 import { ClaimManager } from "./ClaimManager.js";
+import { inputEventMs, inputFrameMs, usesSourceTiming } from "../inputClock.js";
 
 const disallowedEmpties = levelMemory({
   old: Collection(16, TouchId),
@@ -13,8 +14,34 @@ export const disallowEmpty = (touch: Touch) => {
 
 const claimStartManager = new ClaimManager();
 
-export const claimStart = (index: number, time: number, hitbox: Rect, fullHitbox: Rect) => {
-  claimStartManager.claim(index, time, hitbox, fullHitbox, (touch) => touch.started);
+export const claimStart = (
+  index: number,
+  time: number,
+  hitbox: Rect,
+  fullHitbox: Rect,
+  sourceTargetMs: number,
+  window: Range,
+) => {
+  if (!usesSourceTiming()) {
+    claimStartManager.claim(index, time, hitbox, fullHitbox, (touch) => touch.started, 0, 0, 0, 0);
+    return;
+  }
+
+  claimStartManager.claim(
+    index,
+    time,
+    hitbox,
+    fullHitbox,
+    (touch, inputMinMs, inputMaxMs) => {
+      if (!touch.started) return false;
+      const eventMs = inputEventMs(touch.startTime);
+      return eventMs >= inputMinMs && eventMs <= inputMaxMs;
+    },
+    sourceTargetMs + Math.round(window.min * 1000),
+    sourceTargetMs + Math.round(window.max * 1000),
+    sourceTargetMs,
+    0,
+  );
 };
 
 export const getClaimedStart = (index: number) => claimStartManager.getClaimedTouchIndex(index);
@@ -23,13 +50,46 @@ export const claimEndManager = new ClaimManager();
 
 const isMaintained = (touch: Touch) => !touch.started && !touch.ended;
 
-export const claimEnd = (index: number, noteTime: number, hitbox: Rect, fullHitbox: Rect, lockoutTime: number) => {
+export const claimEnd = (
+  index: number,
+  noteTime: number,
+  hitbox: Rect,
+  fullHitbox: Rect,
+  lockoutTime: number,
+  sourceTargetMs: number,
+  window: Range,
+) => {
+  if (!usesSourceTiming()) {
+    claimEndManager.claim(
+      index,
+      noteTime,
+      hitbox,
+      fullHitbox,
+      (touch) => canEnd(touch, lockoutTime) && (touch.ended || (time.now >= noteTime && isMaintained(touch))),
+      0,
+      0,
+      0,
+      0,
+    );
+    return;
+  }
   claimEndManager.claim(
     index,
     noteTime,
     hitbox,
     fullHitbox,
-    (touch) => canEnd(touch, lockoutTime) && (touch.ended || (time.now >= noteTime && isMaintained(touch))),
+    (touch, inputMinMs, inputMaxMs, targetMs, ownLockoutTime) => {
+      if (!canEnd(touch, ownLockoutTime)) return false;
+      if (touch.ended) {
+        const eventMs = inputEventMs(touch.time);
+        return eventMs >= inputMinMs && eventMs <= inputMaxMs;
+      }
+      return inputFrameMs() >= targetMs && isMaintained(touch);
+    },
+    sourceTargetMs + Math.round(window.min * 1000),
+    sourceTargetMs + Math.round(window.max * 1000),
+    sourceTargetMs,
+    lockoutTime,
   );
 };
 

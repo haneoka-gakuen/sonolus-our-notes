@@ -1,74 +1,181 @@
+import { SIMPLE_LOOP_PHASE_EFFECTS } from "../../../../shared/src/engine/data/simpleLoopPhaseEffects.js";
+import {
+  createSimpleLoopSource,
+  releaseSimpleLoopSource,
+  updateSimpleLoopSource,
+  moveSimpleLoopSource,
+  simpleLoopSourceMemory,
+  validSimpleLoopRom,
+  hasSimpleLoopSourceEffects,
+  type SimpleLoopSourcePool,
+} from "../../../../shared/src/engine/data/simpleLoopSourceFactory.js";
 import { nativeLaneEffectLayout } from "../../../../shared/src/engine/data/nativeLaneEffectLayout.js";
 import { nativeLaneEffectLifetime } from "../../../../shared/src/engine/data/lane.js";
-import { fxSpawnQuad, fxWorldWidth } from "../../../../shared/src/engine/data/nativeHitFx.js";
 import {
-  LOOP_FX_COUNT,
-  LOOP_FX_DURATION,
-  LOOP_FX_FIRST,
-  hitFxBucket,
-  hitFxCount,
-  hitFxDuration,
-  hitFxFirst,
-  nativeHitFxNames,
-} from "../../../../shared/src/engine/data/nativeHitFxNames.generated.js";
+  NATIVE_EFFECT_PLANE_COUNT,
+  NATIVE_EFFECT_CONTRACT,
+  nativeLoopEffectDuration,
+  nativeEffectPlaneQuad,
+  nativeEffectSpawnPlane,
+  nativeNoteEffectDuration,
+  nativeEffectTable,
+  nativeEarlyPointEffectTable,
+  nativeBackgroundEffectTable,
+  nativeShortEffectTable,
+  nativeSlideShortEffectTable,
+  NATIVE_EFFECT_BACKGROUND,
+  NATIVE_SHORT_EFFECTS,
+  NATIVE_SHORT_EFFECT_DURATION_RATIO,
+  NATIVE_SHORT_SLIDE_EFFECT,
+  NATIVE_PARTICLE_TIMINGS,
+  NATIVE_EFFECT_WIDTHS,
+  NATIVE_EARLY_POINT_EFFECT,
+  nativeEffectVariant,
+} from "../../../../shared/src/engine/data/nativeEffects.js";
+import { optionsDefinition } from "../../../../shared/src/engine/configuration/options.js";
 import { scaledScreen } from "./scaledScreen.js";
 
+const names = nativeEffectTable();
 export const particle = defineParticle({
   effects: {
     laneNormal: "Our Notes Lane Normal",
     laneSlide: "Our Notes Lane Slide",
     laneFlick: "Our Notes Lane Flick",
-
-    ...nativeHitFxNames,
-    normalNote: nativeHitFxNames.fx0,
-    slideNote: nativeHitFxNames.fx1200,
-    flickNote: nativeHitFxNames.fx2304,
-    connectNote: nativeHitFxNames.fx1752,
-    slideLoop: nativeHitFxNames.fx4272,
+    ...names,
+    simpleProfile: NATIVE_EFFECT_CONTRACT.nativeEffects.simpleCapability,
+    normalNote: names.normalNoteCircular,
+    slideNote: names.slideNoteCircular,
+    flickNote: names.flickNoteCircular,
+    connectNote: names.normalTraceNoteCircular,
+    slideLoop: names.normalSlideConnectorCircular,
+    ...nativeEarlyPointEffectTable(),
+    ...nativeBackgroundEffectTable(),
+    ...nativeShortEffectTable(),
+    ...nativeSlideShortEffectTable(),
+    sourceSimpleLoop: "Our Notes Source SimpleLoop Point",
+    ...SIMPLE_LOOP_PHASE_EFFECTS,
   },
 });
 
-const fxId = (offset: number) =>
-  ((particle.effects.fx0.id as unknown as number) + offset) as unknown as ParticleEffectId;
-
 // Tutorial notes span chart width 8, centred on lane 0.
-export const nativeNoteEffectLayout = (_plane: number) => fxSpawnQuad(0, 2);
+export const nativeNoteEffectLayout = (plane: number, lane: number) =>
+  nativeEffectPlaneQuad(plane, lane, 2, optionsDefinition.noteEffectSize.def, scaledScreen.wToH);
 
-export const playNoteEffect = (effect: ParticleEffect, _duration: number) => {
-  let kind = 0;
-  if (effect.id === particle.effects.slideNote.id) kind = 2;
-  if (effect.id === particle.effects.flickNote.id) kind = 4;
-  if (effect.id === particle.effects.connectNote.id) kind = 3;
-  const count = hitFxCount(kind, 5);
-  const base = hitFxFirst(kind, 5) + hitFxBucket(fxWorldWidth(2)) * count;
-  const quad = fxSpawnQuad(0, 2);
-  // Prefab duration preserves the shared effect's authored animation speed.
-  const duration = hitFxDuration(kind, 5);
-  for (let index = 0; index < count; index++) particle.effects.spawn(fxId(base + index), quad, duration, false);
+const variantId = (baseId: ParticleEffectId, plane: number): ParticleEffectId =>
+  (nativeEffectVariant(baseId as unknown as number, 2) + plane) as unknown as ParticleEffectId;
+
+const backgroundVariants = NATIVE_EFFECT_BACKGROUND.keys.map(
+  (key) =>
+    [
+      particle.effects[key].id as unknown as number,
+      particle.effects[`background_${key}`].id as unknown as number,
+    ] as const,
+);
+const earlyVariants = NATIVE_EARLY_POINT_EFFECT.keys.map(
+  (key) =>
+    [
+      particle.effects[key].id as unknown as number,
+      particle.effects[`earlyPoint_${key}`].id as unknown as number,
+    ] as const,
+);
+const shortVariants = Object.entries(NATIVE_SHORT_EFFECTS).map(
+  ([key, { sourceKey }]) =>
+    [
+      particle.effects[sourceKey].id as unknown as number,
+      particle.effects[key as keyof typeof NATIVE_SHORT_EFFECTS].id as unknown as number,
+    ] as const,
+);
+
+const spawnNotePlanes = (base: ParticleEffectId, duration: number, lane: number) => {
+  const variant = variantId(base, 0) as unknown as number;
+  for (const [sourceBase, backgroundBase] of backgroundVariants) {
+    const offset = variant - sourceBase;
+    if (offset < 0 || offset >= NATIVE_EFFECT_WIDTHS.length * NATIVE_EFFECT_PLANE_COUNT) continue;
+    const id = (backgroundBase + Math.floor(offset / NATIVE_EFFECT_PLANE_COUNT)) as unknown as ParticleEffectId;
+    if (particle.effects.exists(id))
+      particle.effects.spawn(id, nativeNoteEffectLayout(NATIVE_EFFECT_BACKGROUND.plane, lane), duration, false);
+    break;
+  }
+  for (let order = 0; order < NATIVE_EFFECT_PLANE_COUNT; order++) {
+    const plane = nativeEffectSpawnPlane(order);
+    if (plane === 0)
+      for (const [sourceBase, earlyBase] of earlyVariants) {
+        const offset = variant - sourceBase;
+        if (offset < 0 || offset >= NATIVE_EFFECT_WIDTHS.length * NATIVE_EFFECT_PLANE_COUNT) continue;
+        const id = (earlyBase + Math.floor(offset / NATIVE_EFFECT_PLANE_COUNT)) as unknown as ParticleEffectId;
+        if (particle.effects.exists(id))
+          particle.effects.spawn(
+            id,
+            nativeNoteEffectLayout(plane, lane),
+            duration * NATIVE_EARLY_POINT_EFFECT.durationRatio,
+            false,
+          );
+        break;
+      }
+    const id = (variant + plane) as unknown as ParticleEffectId;
+    if (particle.effects.exists(id)) particle.effects.spawn(id, nativeNoteEffectLayout(plane, lane), duration, false);
+  }
 };
 
-export const playLaneEffect = (effect: ParticleEffect) => {
-  // The width-eight teaching note spans four physical stage lanes.
-  for (let lane = -2; lane < 2; lane++)
+export const playNoteEffect = (effect: ParticleEffect, _duration: number, lane: number, direction: number) => {
+  let operateType = 1;
+  let base = particle.effects.normalNoteCircular.id;
+  if (effect.id === particle.effects.slideNote.id) {
+    base = particle.effects.slideNoteCircular.id;
+    operateType = 20;
+  }
+  if (effect.id === particle.effects.flickNote.id) {
+    base =
+      direction === 1
+        ? particle.effects.flickLeftWall.id
+        : direction === 2
+          ? particle.effects.flickRightWall.id
+          : particle.effects.flickNoteCircular.id;
+    operateType = 40;
+  }
+  if (effect.id === particle.effects.connectNote.id) {
+    base = particle.effects.normalTraceNoteCircular.id;
+    operateType = 60;
+  }
+  let duration = nativeNoteEffectDuration(particle.effects.simpleProfile.exists ? 2 : 1, operateType, 5);
+  if (operateType === 20 && duration === NATIVE_SHORT_SLIDE_EFFECT.sourceDuration) {
+    const candidate = variantId(particle.effects.shortSlideNoteCircular.id, 0);
+    if (particle.effects.exists(candidate)) {
+      base = particle.effects.shortSlideNoteCircular.id;
+      duration = NATIVE_SHORT_SLIDE_EFFECT.duration;
+    }
+  }
+  if (operateType === 40 && duration === NATIVE_PARTICLE_TIMINGS.simpleFlick[0]) {
+    for (const [sourceBase, shortBase] of shortVariants) {
+      if ((base as unknown as number) !== sourceBase) continue;
+      const candidate = variantId(shortBase as unknown as ParticleEffectId, 0);
+      if (particle.effects.simpleProfile.exists && particle.effects.exists(candidate)) {
+        base = shortBase as unknown as ParticleEffectId;
+        duration *= NATIVE_SHORT_EFFECT_DURATION_RATIO;
+      }
+    }
+  }
+  spawnNotePlanes(base, duration, lane);
+};
+
+export const playLaneEffect = (effect: ParticleEffect, center: number) => {
+  for (let lane = 8; lane < 16; lane++)
     effect.spawn(
-      nativeLaneEffectLayout({ lane: lane + 0.5, size: 0.5, wToH: scaledScreen.wToH }),
+      nativeLaneEffectLayout({ lane: center + (lane + 0.5) / 2 - 6, size: 0.25, wToH: scaledScreen.wToH }),
       nativeLaneEffectLifetime,
       false,
     );
 };
 
-export const spawnHoldEffect = (): HoldEffectInstances => {
-  const first = LOOP_FX_FIRST + hitFxBucket(fxWorldWidth(2)) * LOOP_FX_COUNT;
-  const quad = fxSpawnQuad(0, 2);
-  return {
-    p0: particle.effects.spawn(fxId(first), quad, LOOP_FX_DURATION, true),
-    p1: particle.effects.spawn(fxId(first + 1), quad, LOOP_FX_DURATION, true),
-    p2: particle.effects.spawn(fxId(first + 2), quad, LOOP_FX_DURATION, true),
-    p3: particle.effects.spawn(fxId(first + 3), quad, LOOP_FX_DURATION, true),
-    p4: particle.effects.spawn(fxId(first + 4), quad, LOOP_FX_DURATION, true),
-    p5: particle.effects.spawn(fxId(first + 5), quad, LOOP_FX_DURATION, true),
-    p6: particle.effects.spawn(fxId(first + 6), quad, LOOP_FX_DURATION, true),
-  };
+const spawnHoldPlane = (plane: number, lane: number) => {
+  const id = variantId(particle.effects.normalSlideConnectorCircular.id, plane);
+  if (!particle.effects.exists(id)) return 0 as unknown as ParticleEffectInstanceId;
+  return particle.effects.spawn(
+    id,
+    nativeNoteEffectLayout(plane, lane),
+    nativeLoopEffectDuration(particle.effects.simpleProfile.exists ? 2 : 1),
+    true,
+  );
 };
 
 export type HoldEffectInstances = {
@@ -76,17 +183,82 @@ export type HoldEffectInstances = {
   p1: ParticleEffectInstanceId;
   p2: ParticleEffectInstanceId;
   p3: ParticleEffectInstanceId;
-  p4: ParticleEffectInstanceId;
-  p5: ParticleEffectInstanceId;
-  p6: ParticleEffectInstanceId;
+};
+
+const sourceLoop = createSimpleLoopSource(
+  tutorialMemory(simpleLoopSourceMemory(1) as never) as unknown as SimpleLoopSourcePool,
+  1,
+);
+const holdSource = tutorialMemory({ active: Boolean, endTime: Number });
+const sourceOwner = 0;
+
+export const spawnHoldEffect = (lane: number, endTime: number): HoldEffectInstances => {
+  releaseSimpleLoopSource(sourceLoop, sourceOwner, time.now, false);
+  holdSource.active =
+    particle.effects.sourceSimpleLoop.exists && validSimpleLoopRom() && hasSimpleLoopSourceEffects(particle.effects);
+  holdSource.endTime = endTime;
+
+  const instances = {
+    p0: 0 as unknown as ParticleEffectInstanceId,
+    p1: 0 as unknown as ParticleEffectInstanceId,
+    p2: 0 as unknown as ParticleEffectInstanceId,
+    p3: 0 as unknown as ParticleEffectInstanceId,
+  };
+  for (let order = 0; order < NATIVE_EFFECT_PLANE_COUNT; order++) {
+    const plane = nativeEffectSpawnPlane(order);
+    if (plane === 0 && holdSource.active) continue;
+    const id = spawnHoldPlane(plane, lane);
+    if (plane === 0) instances.p0 = id;
+    else if (plane === 1) instances.p1 = id;
+    else if (plane === 2) instances.p2 = id;
+    else instances.p3 = id;
+  }
+  return instances;
 };
 
 export const destroyHoldEffect = (instances: HoldEffectInstances) => {
-  particle.effects.destroy(instances.p0);
-  particle.effects.destroy(instances.p1);
-  particle.effects.destroy(instances.p2);
-  particle.effects.destroy(instances.p3);
-  particle.effects.destroy(instances.p4);
-  particle.effects.destroy(instances.p5);
-  particle.effects.destroy(instances.p6);
+  releaseSimpleLoopSource(sourceLoop, sourceOwner, time.now, false);
+  holdSource.active = false;
+  if (instances.p0) particle.effects.destroy(instances.p0);
+  if (instances.p1) particle.effects.destroy(instances.p1);
+  if (instances.p2) particle.effects.destroy(instances.p2);
+  if (instances.p3) particle.effects.destroy(instances.p3);
+  instances.p0 = 0 as unknown as ParticleEffectInstanceId;
+  instances.p1 = 0 as unknown as ParticleEffectInstanceId;
+  instances.p2 = 0 as unknown as ParticleEffectInstanceId;
+  instances.p3 = 0 as unknown as ParticleEffectInstanceId;
+};
+
+export const updateHoldSource = (lane: number) => {
+  if (holdSource.active) {
+    if (time.now >= holdSource.endTime) {
+      releaseSimpleLoopSource(sourceLoop, sourceOwner, time.now, false);
+      holdSource.active = false;
+    } else {
+      holdSource.active = updateSimpleLoopSource(
+        sourceLoop,
+        sourceOwner,
+        time.now,
+        lane,
+        2,
+        particle.effects,
+        holdSource.endTime,
+      );
+      moveSimpleLoopSource(
+        sourceLoop,
+        sourceOwner,
+        time.now,
+        lane,
+        optionsDefinition.noteEffectSize.def,
+        scaledScreen.wToH,
+      );
+    }
+  }
+};
+
+export const moveHoldEffect = (instances: HoldEffectInstances, lane: number) => {
+  if (instances.p0) particle.effects.move(instances.p0, nativeNoteEffectLayout(0, lane));
+  if (instances.p1) particle.effects.move(instances.p1, nativeNoteEffectLayout(1, lane));
+  if (instances.p2) particle.effects.move(instances.p2, nativeNoteEffectLayout(2, lane));
+  if (instances.p3) particle.effects.move(instances.p3, nativeNoteEffectLayout(3, lane));
 };

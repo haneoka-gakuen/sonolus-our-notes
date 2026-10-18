@@ -1,17 +1,22 @@
+import {
+  validSimpleLoopRom,
+  hasSimpleLoopSourceEffects,
+  updateSimpleLoopSource,
+  moveSimpleLoopSource,
+  releaseSimpleLoopSource,
+} from "../../../../../../../shared/src/engine/data/simpleLoopSource.js";
+import { scaledScreen } from "../../../scaledScreen.js";
+import { nativeEffectSpawnPlane } from "../../../../../../../shared/src/engine/data/nativeEffects.js";
 import { stableHoldEffectWidthBucket } from "../../../../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js";
 import { getNativeNoteCapId } from "../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
 import {
   getNativeNoteParts,
   getNativeNoteRects,
 } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
-import {
-  NATIVE_EFFECT_PLANE_COUNT,
-  NATIVE_PARTICLE_TIMINGS,
-} from "../../../../../../../shared/src/engine/data/nativeEffects.js";
 import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/nativeNoteLayout.js";
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
-import { linearEffectLayout, nativeEffectPlaneLayout, particle, sizedEffectId } from "../../../particle.js";
+import { linearEffectLayout, particle } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 import { LOOP_FX_PARTS, moveLoopFx, spawnLoopFx } from "../../../hitFx.js";
@@ -31,7 +36,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   };
 
   effectInstanceIds = this.entityMemory({
-    circular: ParticleEffectInstanceId,
+    circularScheduled: Boolean,
     linear: ParticleEffectInstanceId,
   });
 
@@ -42,15 +47,12 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   resources = this.entityMemory({
     circularEnabled: Boolean,
     linearEnabled: Boolean,
-    circularProfileBase: ParticleEffectId,
+    loopWidthBucket: Number,
+    sourceProgram: Boolean,
     slideAvailable: Boolean,
     skin002: Boolean,
     skin003: Boolean,
   });
-
-  preprocess() {
-    super.preprocess();
-  }
 
   initialize() {
     super.initialize();
@@ -58,11 +60,30 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     this.slideZ = getZ(layer.note.slide, this.head.time, this.headImport.lane);
     this.resources.circularEnabled = options.noteEffectEnabled;
     this.resources.linearEnabled = options.noteEffectEnabled && this.effects.linear.exists;
-    this.resources.circularProfileBase = sizedEffectId(this.effects.circular.id, 0);
+    this.resources.loopWidthBucket = -1;
+    this.loopLayoutIsFixed = this.head.l === this.tail.l && this.head.r === this.tail.r;
+    this.resources.sourceProgram =
+      particle.effects.sourceSimpleLoop.exists && validSimpleLoopRom() && hasSimpleLoopSourceEffects(particle.effects);
     this.resources.slideAvailable =
       this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
     this.resources.skin002 = skin.sprites.nativeArrowAnimationSkin002.exists;
     this.resources.skin003 = skin.sprites.nativeArrowAnimationSkin003.exists;
+  }
+
+  updateSequential() {
+    super.updateSequential();
+    if (!this.resources.sourceProgram) return;
+    if (time.now < this.head.time || time.now >= this.tail.time) return;
+    this.updateVisualType();
+    if (!this.resources.circularEnabled || this.visual !== VisualType.Activated) {
+      releaseSimpleLoopSource(this.import.startRef, time.now, false);
+      return;
+    }
+    const { l, r } = this.getEdgeBounds(time.scaled);
+    if (
+      !updateSimpleLoopSource(this.import.startRef, time.now, (l + r) / 2, (r - l) / 2, particle.effects, this.end.time)
+    )
+      this.resources.sourceProgram = false;
   }
 
   updateParallel() {
@@ -81,7 +102,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     if (this.visual === VisualType.Activated) {
       if (this.shouldPlayCircularEffect) {
-        if (!this.effectInstanceIds.circular) this.spawnCircularEffect();
+        if (!this.effectInstanceIds.circularScheduled) this.spawnCircularEffect();
 
         this.updateCircularEffect();
       }
@@ -92,7 +113,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
         this.updateLinearEffect();
       }
     } else {
-      if (this.shouldPlayCircularEffect && this.effectInstanceIds.circular) this.destroyCircularEffect();
+      if (this.shouldPlayCircularEffect && this.effectInstanceIds.circularScheduled) this.destroyCircularEffect();
 
       if (this.shouldPlayLinearEffect && this.effectInstanceIds.linear) this.destroyLinearEffect();
     }
@@ -101,7 +122,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   terminate() {
-    if (this.shouldPlayCircularEffect && this.effectInstanceIds.circular) this.destroyCircularEffect();
+    if (this.shouldPlayCircularEffect && this.effectInstanceIds.circularScheduled) this.destroyCircularEffect();
 
     if (this.shouldPlayLinearEffect && this.effectInstanceIds.linear) this.destroyLinearEffect();
   }
@@ -120,21 +141,38 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   // effect001 hold loop: one looping instance per part, re-projected every frame.
   loopFx = this.entityMemory(Tuple(LOOP_FX_PARTS, ParticleEffectInstanceId));
+  loopLayoutIsFixed = this.entityMemory(Boolean);
 
   spawnCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
-    for (let i = 0; i < LOOP_FX_PARTS; i++) this.loopFx.set(i, spawnLoopFx(i, (l + r) / 2, (r - l) / 2));
-    this.effectInstanceIds.circular = this.loopFx.get(0);
+    this.resources.loopWidthBucket = stableHoldEffectWidthBucket((r - l) / 2);
+    for (let order = 0; order < LOOP_FX_PARTS; order++) {
+      const plane = nativeEffectSpawnPlane(order);
+      if (plane === 0 && this.resources.sourceProgram) continue;
+      this.loopFx.set(plane, spawnLoopFx(plane, (l + r) / 2, (r - l) / 2));
+    }
+    // Scheduling stays latched even when the selected pack omits plane 0.
+    this.effectInstanceIds.circularScheduled = true;
   }
 
   updateCircularEffect() {
     const { l, r } = this.getEdgeBounds(time.scaled);
-    for (let i = 0; i < LOOP_FX_PARTS; i++) moveLoopFx(this.loopFx.get(i), (l + r) / 2, (r - l) / 2);
+    if (stableHoldEffectWidthBucket((r - l) / 2) !== this.resources.loopWidthBucket) {
+      this.destroyCircularEffect();
+      this.spawnCircularEffect();
+    }
+    if (!this.loopLayoutIsFixed)
+      for (let i = 0; i < LOOP_FX_PARTS; i++) moveLoopFx(this.loopFx.get(i), i, (l + r) / 2, (r - l) / 2);
+    if (this.resources.sourceProgram)
+      moveSimpleLoopSource(this.import.startRef, time.now, (l + r) / 2, options.noteEffectSize, scaledScreen.wToH);
   }
 
   destroyCircularEffect() {
-    for (let i = 0; i < LOOP_FX_PARTS; i++) particle.effects.destroy(this.loopFx.get(i));
-    this.effectInstanceIds.circular = 0;
+    for (let i = 0; i < LOOP_FX_PARTS; i++) {
+      const instance = this.loopFx.get(i);
+      if (instance) particle.effects.destroy(instance);
+    }
+    this.effectInstanceIds.circularScheduled = false;
   }
 
   spawnLinearEffect() {

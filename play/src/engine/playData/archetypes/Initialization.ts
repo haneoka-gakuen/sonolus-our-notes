@@ -9,9 +9,17 @@ import { particle } from "../particle.js";
 import { scaledScreen } from "../scaledScreen.js";
 import { skin } from "../skin.js";
 import { archetypes } from "./index.js";
+import { inputClock, sourceTimingProfile, sourceTimingProfileDataName } from "../inputClock.js";
 
 export class Initialization extends Archetype {
+  import = this.defineImport({
+    timingProfile: { name: sourceTimingProfileDataName, type: Number },
+  });
+
+  preprocessOrder = -1;
+
   preprocess() {
+    inputClock.profile = this.import.timingProfile === sourceTimingProfile ? sourceTimingProfile : 0;
     const targetAspectRatio = nativeStage.targetAspectRatio;
 
     const stage = {

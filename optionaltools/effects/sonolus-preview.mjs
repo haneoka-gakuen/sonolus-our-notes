@@ -5,6 +5,120 @@
 // Spawn quads use the engine's Initialization transform and
 // linearEffectLayout / groundEffectLayout formulas.
 
+import { nativeLaneEffectLayout } from "../../shared/src/engine/data/nativeLaneEffectLayout.ts";
+import { nativeEffectPlaneAlpha } from "../../shared/src/engine/data/nativeEffects.ts";
+import { SIMPLE_LOOP_ROM } from "../../shared/src/engine/data/simpleLoopRomAbi.ts";
+import { SIMPLE_LOOP_WORLD_ROM } from "../../shared/src/engine/data/simpleLoopWorldRomAbi.ts";
+import { projectSourceViewBillboard } from "../../shared/src/engine/data/sourceViewBillboard.ts";
+import { SIMPLE_LOOP_PHASE_EFFECTS } from "../../shared/src/engine/data/simpleLoopPhaseEffects.ts";
+
+/** Read the engine's actual little-endian Float32 ROM for the authoring preview. */
+export function readSourceLoopRom(bytes) {
+  const view = new DataView(bytes);
+  const get = (i) => view.getFloat32(i * 4, true);
+  if (get(0) === SIMPLE_LOOP_WORLD_ROM.magic) return readSourceWorldLoopRom(get, bytes.byteLength);
+  if (get(0) !== SIMPLE_LOOP_ROM.magic || get(1) !== SIMPLE_LOOP_ROM.version || get(11) * 4 !== bytes.byteLength)
+    throw Error("Source particle ROM does not match the engine ABI");
+  const sizeOffset = get(7),
+    sizeCount = get(8);
+  const size = (phase) => {
+    let i = 0;
+    while (i < sizeCount - 2 && phase >= get(sizeOffset + (i + 1) * 5)) i++;
+    const a = sizeOffset + i * 5;
+    if (phase <= get(sizeOffset)) return Math.max(0, get(sizeOffset + 4));
+    if (phase >= get(sizeOffset + (sizeCount - 1) * 5)) return Math.max(0, get(sizeOffset + (sizeCount - 1) * 5 + 4));
+    const dt = phase - get(a);
+    return Math.max(0, ((get(a + 1) * dt + get(a + 2)) * dt + get(a + 3)) * dt + get(a + 4));
+  };
+  const records = Array.from({ length: get(4) }, (_, i) => {
+    const a = get(5) + i * 4;
+    return { birth: get(a), lifetime: get(a + 1), offset: get(a + 2), keys: get(a + 3) };
+  });
+  return {
+    period: get(3),
+    records,
+    sample(record, phase) {
+      let i = 0;
+      while (i < record.keys - 2 && phase >= get(record.offset + (i + 1) * 11)) i++;
+      const a = record.offset + i * 11,
+        b = a + 11;
+      const q = Math.max(0, Math.min(1, (phase - get(a)) / (get(b) - get(a))));
+      const at = (axis) => get(a + axis) + (get(b + axis) - get(a + axis)) * q;
+      const scale = size(phase),
+        cx = at(1),
+        cy = at(2);
+      return [0, 3, 2, 1].map((corner) => [cx + at(3 + corner * 2) * scale, cy + at(4 + corner * 2) * scale]);
+    },
+  };
+}
+
+function readSourceWorldLoopRom(get, byteLength) {
+  if (
+    (get(1) !== SIMPLE_LOOP_WORLD_ROM.version && get(1) !== SIMPLE_LOOP_WORLD_ROM.phaseVersion) ||
+    get(11) * 4 !== byteLength
+  )
+    throw Error("Source world ROM does not match its ABI");
+  const frame = {
+    cameraY: get(16),
+    cameraZ: get(17),
+    sinPitch: get(18),
+    cosPitch: get(19),
+    scaleX: get(20),
+    scaleY: get(21),
+    offsetY: get(22),
+    expandX: get(24),
+    expandY: get(25),
+  };
+  const so = get(7),
+    sc = get(8),
+    records = Array.from({ length: get(4) }, (_, i) => {
+      const p = get(5) + i * 8;
+      return {
+        birth: get(p),
+        lifetime: get(p + 1),
+        slope: get(p + 2),
+        intercept: get(p + 3),
+        baseX: get(p + 4),
+        baseY: get(p + 5),
+        offset: get(p + 6),
+        keys: get(p + 7),
+      };
+    });
+  return {
+    coordinate: "stage",
+    phaseOffset: get(1) === SIMPLE_LOOP_WORLD_ROM.phaseVersion,
+    phaseProgramCount: get(27),
+    maximumLatePhase: get(28),
+    canonicalWToH: get(26),
+    period: get(3),
+    records,
+    sample(record, phase, lane, birthWidth) {
+      let s = 0,
+        m = 0;
+      while (s < sc - 2 && phase >= get(so + (s + 1) * 5)) s++;
+      const p = so + s * 5,
+        dt = phase - get(p);
+      let scale = Math.max(0, ((get(p + 1) * dt + get(p + 2)) * dt + get(p + 3)) * dt + get(p + 4));
+      if (phase <= get(so)) scale = Math.max(0, get(so + 4));
+      if (phase >= get(so + (sc - 1) * 5)) scale = Math.max(0, get(so + (sc - 1) * 5 + 4));
+      while (m < record.keys - 2 && phase >= get(record.offset + (m + 1) * 3)) m++;
+      const a = record.offset + m * 3,
+        b = a + 3,
+        q = Math.max(0, Math.min(1, (phase - get(a)) / (get(b) - get(a))));
+      const y = get(a + 1) + (get(b + 1) - get(a + 1)) * q,
+        z = get(a + 2) + (get(b + 2) - get(a + 2)) * q,
+        x = lane * get(23) + record.intercept + record.slope * birthWidth;
+      const f = projectSourceViewBillboard(x, y, z, record.baseX * scale, record.baseY * scale, frame);
+      return [
+        [f.x - f.halfWidth, f.y + f.halfHeight],
+        [f.x - f.halfWidth, f.y - f.halfHeight],
+        [f.x + f.halfWidth, f.y - f.halfHeight],
+        [f.x + f.halfWidth, f.y + f.halfHeight],
+      ];
+    },
+  };
+}
+
 const TAU = Math.PI * 2;
 const c1 = 1.70158;
 const c2 = c1 * 1.525;
@@ -78,12 +192,12 @@ export function linearEffectLayout(tr, lane, size, effectSize = 1) {
 }
 
 export function groundEffectLayout(tr, lane, size) {
-  const top = 1 - 2 * tr.wToH;
+  const quad = nativeLaneEffectLayout({ lane, size, wToH: tr.wToH });
   return [
-    [lane - size, 1],
-    [lane * top - size, top],
-    [lane * top + size, top],
-    [lane + size, 1],
+    [quad.x1, quad.y1],
+    [quad.x2, quad.y2],
+    [quad.x3, quad.y3],
+    [quad.x4, quad.y4],
   ];
 }
 
@@ -187,7 +301,15 @@ export class SonolusParticlePreview {
           const p2 = point(2);
           const p3 = point(3);
           const texture = this.sprite(particle.sprite, particle.color);
-          ctx.globalAlpha = Math.min(1, a);
+          const layer = (this.triangleLayer ??= new OffscreenCanvas(ctx.canvas.width, ctx.canvas.height));
+          if (layer.width !== ctx.canvas.width || layer.height !== ctx.canvas.height) {
+            layer.width = ctx.canvas.width;
+            layer.height = ctx.canvas.height;
+          }
+          const paint = layer.getContext("2d");
+          paint.clearRect(0, 0, layer.width, layer.height);
+          paint.globalCompositeOperation = "lighter";
+          paint.globalAlpha = Math.min(1, a);
           for (const [m, clip] of [
             [
               [p3[0] - p0[0], p3[1] - p0[1], p0[0] - p1[0], p0[1] - p1[1], p1[0], p1[1]],
@@ -206,23 +328,64 @@ export class SonolusParticlePreview {
               ],
             ],
           ]) {
-            ctx.save();
-            ctx.transform(...m);
-            ctx.beginPath();
-            ctx.moveTo(...clip[0]);
-            ctx.lineTo(...clip[1]);
-            ctx.lineTo(...clip[2]);
-            ctx.closePath();
-            ctx.clip();
-            ctx.drawImage(texture, 0, 0, 1, 1);
-            ctx.restore();
+            paint.save();
+            paint.transform(...m);
+            paint.beginPath();
+            paint.moveTo(...clip[0]);
+            paint.lineTo(...clip[1]);
+            paint.lineTo(...clip[2]);
+            paint.closePath();
+            paint.clip();
+            paint.drawImage(texture, 0, 0, 1, 1);
+            paint.restore();
           }
+          ctx.globalAlpha = 1;
+          ctx.drawImage(layer, 0, 0);
           drawn += 1;
         }
       }
     }
     ctx.globalAlpha = 1;
     return drawn;
+  }
+
+  /** Same source-slot particle resource, Move corners and applied birth epoch as the engine. */
+  drawMovedSourceSlot(ctx, rom, age, tr, lane, toPixel, frameRate = 60, effectSize = 1, size = 2, layoutAt) {
+    let drawn = 0,
+      residents = 0,
+      droppedLate = 0;
+    const names = [SIMPLE_LOOP_ROM.effectName, ...Object.values(SIMPLE_LOOP_PHASE_EFFECTS)];
+    const cycle = Math.floor(age / rom.period);
+    for (let c = Math.max(0, cycle - 1); c <= cycle; c++)
+      for (const record of rom.records) {
+        const birth = c * rom.period + record.birth;
+        const appliedBirth = Math.ceil((birth - 1e-10) * frameRate) / frameRate;
+        const elapsed = age - appliedBirth;
+        const lateness = appliedBirth - birth,
+          latePhase = lateness / record.lifetime,
+          duration = record.lifetime - (rom.phaseOffset ? lateness : 0);
+        if (elapsed < 0 || elapsed >= duration) continue;
+        if (rom.phaseOffset && latePhase > rom.maximumLatePhase) {
+          droppedLate++;
+          continue;
+        }
+        const phase = (age - (rom.phaseOffset ? birth : appliedBirth)) / record.lifetime,
+          program = rom.phaseOffset ? Math.round((latePhase / rom.maximumLatePhase) * (rom.phaseProgramCount - 1)) : 0;
+        const current = layoutAt?.(age) ?? { lane, size },
+          born = layoutAt?.(appliedBirth) ?? { lane, size };
+        const quad = rom.sample(record, phase, current.lane, born.size * 4).map(([x, y]) => {
+          if (rom.coordinate === "stage")
+            return [
+              current.lane + (x - current.lane) * effectSize,
+              1 + ((y - 1) * effectSize * tr.wToH) / rom.canonicalWToH,
+            ];
+          const stageY = 1 - (y + 1) * effectSize * tr.wToH;
+          return [(lane + x * 2 * effectSize) * nativeEffectPlaneAlpha(0, stageY), stageY];
+        });
+        residents++;
+        drawn += this.draw(ctx, names[program], quad, elapsed / duration, toPixel);
+      }
+    return { drawn, residents, droppedLate };
   }
 }
 

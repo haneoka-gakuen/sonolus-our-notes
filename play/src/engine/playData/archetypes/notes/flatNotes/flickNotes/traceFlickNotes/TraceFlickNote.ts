@@ -26,12 +26,29 @@ export abstract class TraceFlickNote extends FlickNote {
   }
 
   touch() {
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
-    const latched = scanFlickLatch(this.fullHitbox.l, this.fullHitbox.r, this.flickImport.direction);
-    if (latched !== -9999) this.flickLatchedTime = latched;
-    if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
-      consumeFlickTouch(this.flickLatchedTime);
+    const latched = scanFlickLatch(
+      this.fullHitbox.l,
+      this.fullHitbox.r,
+      this.flickImport.direction,
+      this.import.originalTimeMs,
+      this.windows.input,
+    );
+    if (latched.time !== -9999) {
+      this.flickLatchedTime = latched.time;
+      this.flickLatchedTouchId = latched.touchId;
+    }
+    if (
+      isFlickLatchReady(
+        this.flickLatchedTime,
+        this.targetTime,
+        this.flickLatchedTouchId,
+        this.import.originalTimeMs,
+        this.windows.input,
+      )
+    ) {
+      consumeFlickTouch(this.flickLatchedTouchId);
       this.completeTraceFlick(this.flickLatchedTime);
     }
   }
@@ -41,7 +58,15 @@ export abstract class TraceFlickNote extends FlickNote {
 
     // touch() only fires on touch events; complete a latched swipe once
     // the note time arrives on an otherwise quiet frame.
-    if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
+    if (
+      isFlickLatchReady(
+        this.flickLatchedTime,
+        this.targetTime,
+        this.flickLatchedTouchId,
+        this.import.originalTimeMs,
+        this.windows.input,
+      )
+    ) {
       this.completeTraceFlick(this.flickLatchedTime);
     }
 
@@ -69,11 +94,7 @@ export abstract class TraceFlickNote extends FlickNote {
   }
 
   completeTraceFlick(hitTime: number) {
-    this.result.judgment = this.judge(hitTime);
-    this.result.accuracy = hitTime - this.targetTime;
-
-    this.result.bucket.index = this.bucket.index;
-    this.result.bucket.value = this.result.accuracy * 1000;
+    this.result.judgment = this.judge(hitTime, false);
 
     this.playHitEffects(time.now);
 

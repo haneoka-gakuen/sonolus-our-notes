@@ -1,6 +1,7 @@
 import { getZ, layer } from "../../../../skin.js";
 import { disallowEmpty } from "../../../InputManager.js";
-import { getTraceHitTime } from "../../../../trace.js";
+import { getTraceHit } from "../../../../trace.js";
+import { sizedEffectId, spawnNativeConnectEffect } from "../../../../particle.js";
 import { FlatNote } from "../FlatNote.js";
 
 export abstract class TraceNote extends FlatNote {
@@ -32,28 +33,35 @@ export abstract class TraceNote extends FlatNote {
 
   touch() {
     if (this.despawn) return;
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
     for (const touch of touches) {
-      const hitTime = getTraceHitTime(touch, this.fullHitbox, this.inputTime, this.targetTime);
-      if (hitTime === -9999) continue;
+      const hit = getTraceHit(
+        touch,
+        this.fullHitbox,
+        this.inputTime,
+        this.targetTime,
+        this.import.originalTimeMs,
+        this.windows.input,
+      );
+      if (hit.time === -9999) continue;
 
       disallowEmpty(touch);
-      this.complete(hitTime);
+      this.complete(hit.time, hit.atTarget);
       return;
     }
   }
 
   updateSequential() {
     if (this.despawn) return;
-    if (time.now < this.targetTime + input.offset || time.now > this.inputTime.max) return;
+    if (!this.hasInputTargetArrived || this.hasInputWindowEnded) return;
 
     for (const touch of touches) {
       if (touch.started || touch.ended) continue;
       if (!this.fullHitbox.contains(touch.position)) continue;
 
       disallowEmpty(touch);
-      this.complete(this.targetTime);
+      this.complete(this.targetTime, true);
       return;
     }
   }
@@ -66,12 +74,8 @@ export abstract class TraceNote extends FlatNote {
     }
   }
 
-  complete(hitTime: number) {
-    this.result.judgment = this.judge(hitTime);
-    this.result.accuracy = hitTime - this.targetTime;
-
-    this.result.bucket.index = this.bucket.index;
-    this.result.bucket.value = this.result.accuracy * 1000;
+  complete(hitTime: number, atTarget: boolean) {
+    this.result.judgment = this.judge(hitTime, atTarget);
 
     this.playHitEffects(time.now);
 
@@ -79,7 +83,13 @@ export abstract class TraceNote extends FlatNote {
   }
 
   playCircularNoteEffect() {
-    super.playCircularNoteEffect();
+    spawnNativeConnectEffect(
+      sizedEffectId(this.nativeNoteEffectId, this.import.size),
+      this.import.lane,
+      this.import.size,
+      this.noteEffectDuration,
+      this.noteEffectBirth,
+    );
   }
 
   playSlotEffects() {

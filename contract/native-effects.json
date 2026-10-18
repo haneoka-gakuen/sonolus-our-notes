@@ -1,14 +1,44 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "engine": "ourNotes",
   "package": "@haneoka/sonolus-our-notes",
-  "targets": ["play", "watch", "preview", "tutorial"],
+  "targets": [
+    "play",
+    "watch",
+    "preview",
+    "tutorial"
+  ],
   "nativeEffects": {
-    "profiles": ["Our Notes Light", "Our Notes Native", "Our Notes Simple"],
-    "profileQualities": [2, 0, 2],
-    "profileSkins": ["effect001", "effect001", "effect001Simple"],
-    "widths": [4, 6, 8, 12, 24],
-    "widthThresholds": [5, 7, 10, 18],
+    "profiles": [
+      "Our Notes Light",
+      "Our Notes Native",
+      "Our Notes Simple"
+    ],
+    "semanticPrefix": "Our Notes Native",
+    "simpleCapability": "Our Notes Profile Simple",
+    "profileQualities": [
+      2,
+      0,
+      0
+    ],
+    "profileSkins": [
+      "effect001",
+      "effect001",
+      "effect001Simple"
+    ],
+    "widths": [
+      4,
+      6,
+      8,
+      12,
+      24
+    ],
+    "widthThresholds": [
+      5,
+      7,
+      10,
+      18
+    ],
     "planes": [
       {
         "label": "P0",
@@ -58,13 +88,82 @@
       "normalTraceNoteBad": "Connect Bad",
       "normalSlideConnectorCircular": "Slide Loop"
     },
+    "background": {
+      "label": "B0",
+      "plane": 0,
+      "keys": [
+        "normalNoteCircular",
+        "flickNoteCircular"
+      ],
+      "targets": [
+        "play",
+        "watch"
+      ]
+    },
     "timings": {
-      "normal": [0.4166666666666667, 0.4166666666666667, 0.4166666666666667, 0.4166666666666667],
-      "slide": [0.5833333333333334, 0.4166666666666667, 0.4166666666666667, 0.4166666666666667],
-      "flick": [0.4166666666666667, 0.5, 0.5, 0.5833333333333334],
-      "simpleFlick": [0.75, 0.5, 0.5, 0.4166666666666667],
+      "normal": [
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667
+      ],
+      "slide": [
+        0.5833333333333334,
+        0.4166666666666667,
+        0.4166666666666667,
+        0.4166666666666667
+      ],
+      "flick": [
+        0.4166666666666667,
+        0.5,
+        0.5,
+        0.5833333333333334
+      ],
+      "simpleFlick": [
+        0.75,
+        0.5,
+        0.5,
+        0.4166666666666667
+      ],
       "loopAnimation": 0.1,
-      "loopParticle": 1
+      "loopParticle": 2,
+      "loopParticles": [
+        2,
+        2,
+        3
+      ]
+    },
+    "shortEffects": {
+      "profiles": [
+        "Our Notes Simple"
+      ],
+      "sourceDuration": 0.75,
+      "duration": 0.4166666666666667,
+      "bases": {
+        "shortFlickNoteCircular": {
+          "sourceKey": "flickNoteCircular",
+          "baseName": "Flick"
+        },
+        "shortFlickLeftWall": {
+          "sourceKey": "flickLeftWall",
+          "baseName": "Flick Left"
+        },
+        "shortFlickRightWall": {
+          "sourceKey": "flickRightWall",
+          "baseName": "Flick Right"
+        }
+      }
+    },
+    "shortSlideEffect": {
+      "key": "shortSlideNoteCircular",
+      "sourceKey": "slideNoteCircular",
+      "baseName": "Slide",
+      "profiles": [
+        "standard",
+        "light"
+      ],
+      "sourceDuration": 0.5833333333333334,
+      "duration": 0.45
     }
   }
 }

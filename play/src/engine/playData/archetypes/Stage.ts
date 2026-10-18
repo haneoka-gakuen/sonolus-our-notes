@@ -1,3 +1,10 @@
+import { initializeConnectWallDraw, drawConnectWalls } from "../particle.js";
+import { updateConnectWalls } from "../particle.js";
+import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
+import {
+  NativeLaneEffectType,
+  nativeEmptyLaneFeedbackPair,
+} from "../../../../../shared/src/engine/data/nativeLaneFeedback.js";
 import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
@@ -7,7 +14,6 @@ import { updateNativeArrowFrames } from "../../../../../shared/src/engine/data/n
 import { perspectiveLayout } from "../../../../../shared/src/engine/data/utils.js";
 import {
   laneBase,
-  nativeLaneEffectLifetime,
   nativeJudgmentLineHalfHeight,
   nativeStage,
   projectLaneZ,
@@ -20,7 +26,7 @@ import { effect, sfxDistance } from "../effect.js";
 import { updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
 import { getHitbox, lane } from "../lane.js";
 import { note } from "../note.js";
-import { groundEffectLayout, particle } from "../particle.js";
+import { particle, restartNativeLaneEffect } from "../particle.js";
 import { layer, skin } from "../skin.js";
 import { canEmpty } from "./InputManager.js";
 import { archetypes } from "./index.js";
@@ -30,6 +36,7 @@ export class Stage extends Archetype {
   slotHitbox = this.entityMemory(Rect);
   holdInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
   holdSecondaryInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
+  emptyPairs = this.entityMemory(Tuple(12, { previous: Boolean, current: Boolean, emitted: Boolean }));
 
   spawnOrder() {
     return 1;
@@ -40,6 +47,7 @@ export class Stage extends Archetype {
   }
 
   preprocess() {
+    initializeConnectWallDraw();
     if (options.sfxEnabled && options.autoSFX && effect.clips.normalHold.exists) {
       this.scheduleHeldSFX();
     }
@@ -53,18 +61,31 @@ export class Stage extends Archetype {
   touchOrder = 2;
   touch() {
     for (const touch of touches) {
+      if (touch.ended || !this.hitbox.contains(touch.position)) continue;
+      if (!canEmpty(touch)) continue;
+      const index = this.xToL(touch.position.x) + 6;
+      const pair = this.emptyPairs.get(index);
+      this.emptyPairs.set(index, { previous: pair.previous, current: true, emitted: pair.emitted });
+    }
+    for (const touch of touches) {
       if (!this.hitbox.contains(touch.position)) continue;
       if (!canEmpty(touch)) continue;
-
-      if (touch.started) {
-        this.onEmptyStart(touch);
-      } else {
-        this.onEmptyMove(touch);
-      }
+      if (touch.ended && !touch.started) continue;
+      const lane = this.xToL(touch.position.x);
+      const pair = this.emptyPairs.get(lane + 6);
+      if (pair.previous || pair.emitted) continue;
+      this.emptyPairs.set(lane + 6, { previous: pair.previous, current: pair.current, emitted: true });
+      this.playEmptyEffects(lane);
     }
   }
 
   updateSequential() {
+    updateConnectWalls();
+    if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, false);
+    for (let index = 0; index < 12; index++) {
+      const pair = this.emptyPairs.get(index);
+      this.emptyPairs.set(index, { previous: pair.current, current: false, emitted: false });
+    }
     if (!options.markerAnimation) return;
     const nativeSkin = getNativeArrowAnimationSkin(
       skin.sprites.nativeArrowAnimationSkin001.exists,
@@ -75,6 +96,7 @@ export class Stage extends Archetype {
   }
 
   updateParallel() {
+    drawConnectWalls();
     this.updateHeldSFX();
 
     // lane_base is the authored Unity stage mesh baked into the native
@@ -198,25 +220,8 @@ export class Stage extends Archetype {
     return value;
   }
 
-  onEmptyStart(touch: Touch) {
-    this.playEmptyEffects(this.xToL(touch.position.x));
-  }
-
-  onEmptyMove(touch: Touch) {
-    const l = this.xToL(touch.position.x);
-    const oldL = this.xToL(touch.lastPosition.x);
-    if (l === oldL) {
-      // LiveLaneFingerState re-marks the InVain lanes every frame a
-      // finger holds an empty lane, so the fill stays lit while held.
-      if (options.laneEffectEnabled) this.playEmptyLaneEffects(l);
-      return;
-    }
-
-    this.playEmptyEffects(l);
-  }
-
   xToL(x: number) {
-    return Math.clamp(Math.floor(Math.unlerp(this.slotHitbox.l, this.slotHitbox.r, x) * 12 - 6), -6, 5);
+    return nativeEmptyLaneFeedbackPair(Math.unlerp(this.slotHitbox.l, this.slotHitbox.r, x) * 12 - 6);
   }
 
   playEmptyEffects(l: number) {
@@ -232,22 +237,10 @@ export class Stage extends Archetype {
   }
 
   playEmptyLaneEffects(l: number) {
-    // xToL already quantizes the twelve half-road slots. Restart only the
-    // selected slot so an empty touch cannot illuminate its neighbour.
-    if (l < -6 || l > 5) return;
-
-    const existing = this.inVainInstances.indexOf(l);
-    if (existing !== -1) particle.effects.destroy(this.inVainInstances.getValue(existing));
-
-    const instance = particle.effects.laneInVain.spawn(
-      groundEffectLayout({ lane: l + 0.5, size: 0.5 }),
-      nativeLaneEffectLifetime,
-      false,
-    );
-    this.inVainInstances.set(l, instance);
+    const first = (l + 6) * 2;
+    restartNativeLaneEffect(NativeLaneEffectType.InVain, first);
+    restartNativeLaneEffect(NativeLaneEffectType.InVain, first + 1);
   }
-
-  inVainInstances = levelMemory(Dictionary(12, Number, ParticleEffectInstanceId));
 
   drawSekaiStage() {
     skin.sprites.sekaiStage.draw(

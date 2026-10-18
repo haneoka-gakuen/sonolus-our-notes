@@ -5,13 +5,42 @@ export class ClaimManager {
       time: Number,
       hitbox: Rect,
       fullHitbox: Rect,
+      inputMinMs: Number,
+      inputMaxMs: Number,
+      sourceTargetMs: Number,
+      lockoutTime: Number,
     }),
   );
 
-  claim(index: number, time: number, hitbox: Rect, fullHitbox: Rect, checkTouch: (touch: Touch) => boolean) {
+  claim(
+    index: number,
+    time: number,
+    hitbox: Rect,
+    fullHitbox: Rect,
+    checkTouch: (
+      touch: Touch,
+      inputMinMs: number,
+      inputMaxMs: number,
+      sourceTargetMs: number,
+      lockoutTime: number,
+    ) => boolean,
+    inputMinMs: number,
+    inputMaxMs: number,
+    sourceTargetMs: number,
+    lockoutTime: number,
+  ) {
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     while (true) {
-      const touchIndex = this.findBestTouchIndex(time, hitbox, fullHitbox, checkTouch);
+      const touchIndex = this.findBestTouchIndex(
+        time,
+        hitbox,
+        fullHitbox,
+        checkTouch,
+        inputMinMs,
+        inputMaxMs,
+        sourceTargetMs,
+        lockoutTime,
+      );
       if (touchIndex === -1) return;
 
       const claimedIndex = this.claimed.indexOf(touchIndex);
@@ -21,6 +50,10 @@ export class ClaimManager {
           time,
           hitbox,
           fullHitbox,
+          inputMinMs,
+          inputMaxMs,
+          sourceTargetMs,
+          lockoutTime,
         });
         return;
       }
@@ -32,12 +65,21 @@ export class ClaimManager {
         time,
         hitbox,
         fullHitbox,
+        inputMinMs,
+        inputMaxMs,
+        sourceTargetMs,
+        lockoutTime,
       });
 
       index = replaced.index;
       time = replaced.time;
       hitbox.copyFrom(replaced.hitbox);
       fullHitbox.copyFrom(replaced.fullHitbox);
+      // Re-admit the displaced entity against its own event window.
+      inputMinMs = replaced.inputMinMs;
+      inputMaxMs = replaced.inputMaxMs;
+      sourceTargetMs = replaced.sourceTargetMs;
+      lockoutTime = replaced.lockoutTime;
     }
   }
 
@@ -53,14 +95,29 @@ export class ClaimManager {
     this.claimed.clear();
   }
 
-  findBestTouchIndex(time: number, hitbox: Rect, fullHitbox: Rect, checkTouch: (touch: Touch) => boolean) {
+  findBestTouchIndex(
+    time: number,
+    hitbox: Rect,
+    fullHitbox: Rect,
+    checkTouch: (
+      touch: Touch,
+      inputMinMs: number,
+      inputMaxMs: number,
+      sourceTargetMs: number,
+      lockoutTime: number,
+    ) => boolean,
+    inputMinMs: number,
+    inputMaxMs: number,
+    sourceTargetMs: number,
+    lockoutTime: number,
+  ) {
     const x = (hitbox.l + hitbox.r) / 2;
 
     let i = -1;
     let minDist = 0;
 
     for (const touch of touches) {
-      if (!checkTouch(touch)) continue;
+      if (!checkTouch(touch, inputMinMs, inputMaxMs, sourceTargetMs, lockoutTime)) continue;
       if (!fullHitbox.contains(touch.position)) continue;
 
       const dist = Math.abs(touch.position.x - x);

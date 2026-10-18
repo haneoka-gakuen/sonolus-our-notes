@@ -9,17 +9,13 @@ export abstract class SlideEndFlickNote extends FlickNote {
     slideRef: { name: "slide", type: Number },
   });
 
-  earlyInputTime = this.entityMemory(Number);
-
   head = this.entityMemory({
-    time: Number,
     scaledTime: Number,
 
     l: Number,
     r: Number,
   });
   tail = this.entityMemory({
-    time: Number,
     scaledTime: Number,
 
     l: Number,
@@ -29,47 +25,61 @@ export abstract class SlideEndFlickNote extends FlickNote {
   initialize() {
     super.initialize();
 
-    this.earlyInputTime = this.targetTime + input.offset;
-
-    this.head.time = bpmChanges.at(this.headImport.beat).time;
-    this.head.scaledTime = timeScaleChanges.at(this.head.time).scaledTime;
+    const headTime = bpmChanges.at(this.headImport.beat).time;
+    this.head.scaledTime = timeScaleChanges.at(headTime).scaledTime;
     this.head.l = this.headImport.lane - this.headImport.size;
     this.head.r = this.headImport.lane + this.headImport.size;
 
-    this.tail.time = bpmChanges.at(this.tailImport.beat).time;
-    this.tail.scaledTime = timeScaleChanges.at(this.tail.time).scaledTime;
+    const tailTime = bpmChanges.at(this.tailImport.beat).time;
+    this.tail.scaledTime = timeScaleChanges.at(tailTime).scaledTime;
     this.tail.l = this.tailImport.lane - this.tailImport.size;
     this.tail.r = this.tailImport.lane + this.tailImport.size;
   }
 
   touch() {
-    if (time.now < this.inputTime.min) return;
+    if (this.despawn) return;
+    if (!this.canReceiveInput) return;
 
     if (this.startInfo.state === EntityState.Active) return;
 
-    if (time.now < this.earlyInputTime) {
+    if (!this.hasInputTargetArrived) {
       this.earlyLatch();
     } else {
       this.lateLatch();
     }
 
-    if (isFlickLatchReady(this.flickLatchedTime, this.targetTime)) {
-      consumeFlickTouch(this.flickLatchedTime);
+    if (
+      isFlickLatchReady(
+        this.flickLatchedTime,
+        this.targetTime,
+        this.flickLatchedTouchId,
+        this.import.originalTimeMs,
+        this.windows.input,
+      )
+    ) {
+      consumeFlickTouch(this.flickLatchedTouchId);
       this.completeAt(this.flickLatchedTime);
     }
   }
 
-  updateParallel() {
-    if (this.despawn) return;
+  updateSequential() {
+    if (this.despawn || touches.count) return;
 
     // touch() only fires on touch events; complete a latched swipe once
     // the note time arrives on an otherwise quiet frame. The slide-end
     // flick accepts its swipe from note time onward (or on release).
-    if (isFlickLatchReady(this.flickLatchedTime, this.targetTime) && this.startInfo.state !== EntityState.Active) {
+    if (
+      isFlickLatchReady(
+        this.flickLatchedTime,
+        this.targetTime,
+        this.flickLatchedTouchId,
+        this.import.originalTimeMs,
+        this.windows.input,
+      ) &&
+      this.startInfo.state !== EntityState.Active
+    ) {
       this.completeAt(this.flickLatchedTime);
     }
-
-    super.updateParallel();
   }
 
   get slideImport() {
@@ -115,12 +125,30 @@ export abstract class SlideEndFlickNote extends FlickNote {
       }),
     });
 
-    const latched = scanFlickLatch(hitbox.l, hitbox.r, this.flickImport.direction);
-    if (latched !== -9999) this.flickLatchedTime = latched;
+    const latched = scanFlickLatch(
+      hitbox.l,
+      hitbox.r,
+      this.flickImport.direction,
+      this.import.originalTimeMs,
+      this.windows.input,
+    );
+    if (latched.time !== -9999) {
+      this.flickLatchedTime = latched.time;
+      this.flickLatchedTouchId = latched.touchId;
+    }
   }
 
   lateLatch() {
-    const latched = scanFlickLatch(this.fullHitbox.l, this.fullHitbox.r, this.flickImport.direction);
-    if (latched !== -9999) this.flickLatchedTime = latched;
+    const latched = scanFlickLatch(
+      this.fullHitbox.l,
+      this.fullHitbox.r,
+      this.flickImport.direction,
+      this.import.originalTimeMs,
+      this.windows.input,
+    );
+    if (latched.time !== -9999) {
+      this.flickLatchedTime = latched.time;
+      this.flickLatchedTouchId = latched.touchId;
+    }
   }
 }

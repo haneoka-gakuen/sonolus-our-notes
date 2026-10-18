@@ -1,3 +1,8 @@
+import { initializeConnectWallDraw, drawConnectWalls } from "../particle.js";
+import { updateConnectWalls } from "../connectWalls.js";
+import { particle } from "../particle.js";
+import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
+import { updateNativeLaneFeedback } from "../laneFeedback.js";
 import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
@@ -96,6 +101,7 @@ export class Stage extends Archetype {
   }
 
   preprocess() {
+    initializeConnectWallDraw();
     if (options.sfxEnabled && effect.clips.normalHold.exists) {
       this.indexHeldConnectors();
       this.scheduleHeldSFX();
@@ -146,6 +152,9 @@ export class Stage extends Archetype {
   }
 
   updateSequential() {
+    updateConnectWalls();
+    if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, time.skip);
+    updateNativeLaneFeedback();
     if (!options.markerAnimation) return;
     const nativeSkin = getNativeArrowAnimationSkin(
       skin.sprites.nativeArrowAnimationSkin001.exists,
@@ -156,6 +165,7 @@ export class Stage extends Archetype {
   }
 
   updateParallel() {
+    drawConnectWalls();
     // Do not substitute the generic six-lane PJS stage for Unity's
     // authored lane_base geometry. Missing native stage data fails closed.
     if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();

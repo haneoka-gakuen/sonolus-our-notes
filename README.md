@@ -21,6 +21,22 @@ Display titles use Sonolus text keys or five-language localized text. Saved
 option names stay stable, and the configuration supplies the original option
 order for older replays.
 
+Flick Sensitivity defaults to 100%; raising it recognizes slower flicks. The
+formal rule is 0.2 cm per 1/60-second reference frame. The Sonolus adapter uses
+an 8 cm reference PlayArea height, giving a normalized velocity threshold of
+3.0 divided by the sensitivity multiplier. This reference supports device
+calibration because the engine API exposes normalized touch velocity while
+physical display dimensions remain device-specific. New latches use maintained
+touches; an existing latch can complete when its bound finger is released.
+
+Our Notes converters opt into music-relative integer-millisecond judgement by
+setting `ourNotesTimingProfile: 1` on the `Initialization` entity. This profile
+uses each note's imported `originalTimeMs`, floors the already calibrated touch
+time once, and floors `time.now - input.offset` for window and latch updates.
+Judgement, accuracy exports, and buckets share the same integer difference.
+Continuous target times still control visuals, audio, and touch priority.
+Levels without this marker keep their existing timing path, including USC.
+
 ## Build from a clean checkout
 
 This repository owns its Sonolus compiler dependencies and has no unpublished

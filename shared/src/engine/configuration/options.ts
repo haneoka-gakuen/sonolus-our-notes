@@ -212,38 +212,6 @@ export const optionsDefinition = {
     type: "toggle",
     def: 1,
   },
-  // Native effect profiles: Light, Native, and Simple. Simple is the default.
-  noteEffectProfile: {
-    category: "graphics",
-    name: "Note Effect Style",
-    title: localized({
-      en: "Note Effect Style",
-      ja: "ノーツエフェクト形式",
-      ko: "노트 이펙트 스타일",
-      zhs: "音符特效样式",
-      zht: "音符特效樣式",
-    }),
-    scope: "Our Notes",
-    type: "select",
-    def: 2,
-    values: [
-      localized({
-        en: "Standard (Light)",
-        ja: "標準（軽量）",
-        ko: "표준 (경량)",
-        zhs: "标准（轻量）",
-        zht: "標準（輕量）",
-      }),
-      localized({ en: "Standard", ja: "標準", ko: "표준", zhs: "标准", zht: "標準" }),
-      localized({
-        en: "Simple (Light)",
-        ja: "シンプル（軽量）",
-        ko: "심플 (경량)",
-        zhs: "简洁（轻量）",
-        zht: "簡潔（輕量）",
-      }),
-    ],
-  },
   noteEffectSize: {
     category: "graphics",
     name: Text.NoteEffectSize,
@@ -329,6 +297,32 @@ export const optionsDefinition = {
     type: "toggle",
     def: 1,
   },
+  // Append new entries to preserve the existing compiled option indices.
+  flickSensitivity: {
+    category: "gameplay",
+    name: "Flick Sensitivity",
+    title: localized({
+      en: "Flick Sensitivity",
+      ja: "フリック感度",
+      ko: "플릭 민감도",
+      zhs: "滑动灵敏度",
+      zht: "滑動靈敏度",
+    }),
+    description: localized({
+      en: "Higher values recognize slower flicks.",
+      ja: "値を上げると、ゆっくりしたフリックも判定されます。",
+      ko: "값을 높이면 느린 플릭도 인식합니다.",
+      zhs: "数值越高，越慢的滑动也能判定。",
+      zht: "數值越高，越慢的滑動也能判定。",
+    }),
+    scope: "Our Notes",
+    type: "slider",
+    def: 1,
+    min: 0.25,
+    max: 4,
+    step: 0.05,
+    unit: Text.PercentageUnit,
+  },
 } satisfies Record<string, EngineConfigurationOption>;
 
 export const optionCategories = [
@@ -352,7 +346,6 @@ export const replayFallbackOptionNames = [
   optionsDefinition.autoSFX.name,
   optionsDefinition.hapticsEnabled.name,
   optionsDefinition.noteEffectEnabled.name,
-  optionsDefinition.noteEffectProfile.name,
   optionsDefinition.noteEffectSize.name,
   optionsDefinition.markerAnimation.name,
   optionsDefinition.simLineEnabled.name,

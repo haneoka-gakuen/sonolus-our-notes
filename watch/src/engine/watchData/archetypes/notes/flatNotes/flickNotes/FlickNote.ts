@@ -12,6 +12,7 @@ import {
 import { readNativeArrowFrame } from "../../../../../../../../shared/src/engine/data/nativeArrowFrames.js";
 import { options } from "../../../../../configuration/options.js";
 import { effect, sfxDistance } from "../../../../effect.js";
+import { sizedEffectId, spawnNativeFlickEffect } from "../../../../particle.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
 import { getZ, layer, skin } from "../../../../skin.js";
 import { FlatNote } from "../FlatNote.js";
@@ -159,6 +160,15 @@ export abstract class FlickNote extends FlatNote {
         );
       }
     }
+  }
+
+  override playCircularNoteEffect() {
+    spawnNativeFlickEffect(
+      sizedEffectId(this.nativeNoteEffectId, this.import.size),
+      this.import.lane,
+      this.import.size,
+      this.noteEffectDuration,
+    );
   }
 
   playNoteEffects() {

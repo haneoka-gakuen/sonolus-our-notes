@@ -13,6 +13,12 @@
     "dist",
     "contract",
     "optionaltools",
+    "shared/src/engine/data/nativeLaneEffectLayout.ts",
+    "shared/src/engine/data/nativeEffects.ts",
+    "shared/src/engine/data/simpleLoopRomAbi.ts",
+    "shared/src/engine/data/simpleLoopWorldRomAbi.ts",
+    "shared/src/engine/data/sourceViewBillboard.ts",
+    "shared/src/engine/data/simpleLoopPhaseEffects.ts",
     "LICENSE",
     "LICENSE.pjsekai.txt",
     "NOTICE.txt",
@@ -20,7 +26,11 @@
     "patches",
     "docs/COMPILER.md",
     "LICENSE.sonolus-compiler.txt",
-    "releases"
+    "releases",
+    "shared/src/engine/data/connectWallContract.ts",
+    "shared/src/engine/data/connectWallDrawContract.ts",
+    "shared/src/engine/data/connectWallDraw.generated.ts",
+    "shared/src/engine/data/connectFrameDraw.generated.ts"
   ],
   "scripts": {
     "build": "pnpm run typecheck:tools && node ./scripts/build.ts",

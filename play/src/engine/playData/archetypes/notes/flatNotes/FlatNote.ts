@@ -1,4 +1,9 @@
 import {
+  NativeLaneEffectType,
+  nativeLaneFeedbackFirst,
+  nativeLaneFeedbackLast,
+} from "../../../../../../../shared/src/engine/data/nativeLaneFeedback.js";
+import {
   getNativeNoteCapId,
   getNativeNoteMainIds,
 } from "../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
@@ -11,25 +16,26 @@ import {
   getNativeNoteRects,
 } from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
 import { approach } from "../../../../../../../shared/src/engine/data/note.js";
-import { nativeLaneEffectLifetime } from "../../../../../../../shared/src/engine/data/lane.js";
 import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/nativeNoteLayout.js";
-import { toBucketWindows, Windows } from "../../../../../../../shared/src/engine/data/windows.js";
+import { toBucketWindows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { options } from "../../../../configuration/options.js";
 import { effect, sfxDistance } from "../../../effect.js";
 import { getHitbox, getNativeJudgmentLeniency, lane } from "../../../lane.js";
 import { note } from "../../../note.js";
 import {
-  groundEffectLayout,
+  nativeParticleProfile,
+  restartNativeLaneEffect,
   linearEffectLayout,
   particle,
   sizedEffectId,
   spawnNativeEffect,
+  spawnNativeSlideEffect,
 } from "../../../particle.js";
-import { spawnHitFx } from "../../../hitFx.js";
 import { getZ, layer, skin } from "../../../skin.js";
-import { Note } from "../Note.js";
+import { InputNote } from "../InputNote.js";
+import { containsInputAccuracy } from "../../../inputClock.js";
 
-export abstract class FlatNote extends Note {
+export abstract class FlatNote extends InputNote {
   abstract sprites: {
     left: SkinSprite;
     middle: SkinSprite;
@@ -51,8 +57,6 @@ export abstract class FlatNote extends Note {
     linearFallback?: ParticleEffect;
   };
 
-  abstract windows: Windows;
-
   abstract bucket: Bucket;
 
   originalExport = this.defineExport({
@@ -66,6 +70,7 @@ export abstract class FlatNote extends Note {
   hiddenTime = this.entityMemory(Number);
 
   inputTime = this.entityMemory(Range);
+  noteEffectBirth = this.entityMemory(Number);
 
   spriteLayouts = this.entityMemory({
     left: Rect,
@@ -96,7 +101,7 @@ export abstract class FlatNote extends Note {
 
     this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
 
-    this.inputTime.copyFrom(this.windows.input.add(this.targetTime).add(input.offset));
+    this.inputTime.copyFrom(this.windows.input.add(this.inputTargetTime).add(input.offset));
 
     this.spawnTime = Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime.min).scaledTime);
 
@@ -143,7 +148,7 @@ export abstract class FlatNote extends Note {
   }
 
   updateParallel() {
-    if (time.now > this.inputTime.max) this.despawn = true;
+    if (this.hasInputWindowEnded) this.despawn = true;
     if (this.despawn) return;
 
     if (time.scaled < this.visualTime.min) return;
@@ -186,7 +191,7 @@ export abstract class FlatNote extends Note {
   }
 
   get noteEffectDuration() {
-    return nativeNoteEffectDuration(options.noteEffectProfile, this.import.operateType, this.nativeJudgment);
+    return nativeNoteEffectDuration(nativeParticleProfile(), this.import.operateType, this.nativeJudgment);
   }
 
   get nativeNoteEffectId() {
@@ -337,6 +342,7 @@ export abstract class FlatNote extends Note {
   }
 
   playHitEffects(hitTime: number) {
+    this.noteEffectBirth = hitTime;
     // HapticFeedback.judgement: Bad..Just vibrate (native judgement >= 2).
     this.result.haptic = options.hapticsEnabled && this.nativeJudgment >= 2 ? HapticType.Medium : HapticType.None;
     if (this.shouldPlaySFX && this.nativeJudgment >= 3) this.playSFX();
@@ -348,27 +354,29 @@ export abstract class FlatNote extends Note {
     if (options.laneEffectEnabled && this.nativeJudgment >= 3) this.playLaneEffects();
   }
 
-  judge(hitTime: number) {
-    const diff = hitTime - this.targetTime;
+  judge(hitTime: number, atTarget: boolean) {
+    const accuracy = this.inputAccuracy(hitTime, atTarget);
+    this.result.accuracy = accuracy.seconds;
+    this.result.bucket.index = this.bucket.index;
+    this.result.bucket.value = accuracy.milliseconds;
+    this.originalExport("accuracyMs", accuracy.milliseconds);
 
-    this.originalExport("accuracyMs", diff * 1000);
-
-    if (this.windows.perfect.contains(diff)) {
+    if (containsInputAccuracy(this.windows.perfect, accuracy)) {
       this.nativeJudgment = 5;
       this.originalExport("judgment", 5);
       return Judgment.Perfect;
     }
-    if (this.windows.great.contains(diff)) {
+    if (containsInputAccuracy(this.windows.great, accuracy)) {
       this.nativeJudgment = 4;
       this.originalExport("judgment", 4);
       return Judgment.Great;
     }
-    if (this.windows.good.contains(diff)) {
+    if (containsInputAccuracy(this.windows.good, accuracy)) {
       this.nativeJudgment = 3;
       this.originalExport("judgment", 3);
       return Judgment.Good;
     }
-    if (this.windows.bad.contains(diff)) {
+    if (containsInputAccuracy(this.windows.bad, accuracy)) {
       this.nativeJudgment = 2;
       this.originalExport("judgment", 2);
       return Judgment.Miss;
@@ -428,26 +436,23 @@ export abstract class FlatNote extends Note {
   }
 
   playCircularNoteEffect() {
-    spawnHitFx(this.hitFxKind, this.nativeJudgment, this.import.lane, this.import.size);
-  }
-
-  /** Hit effect prefab: 0 normal, 1 just (a Just on a tap), 2 slide, 3 connect, 4/5/6 flick up/left/right. */
-  get hitFxKind() {
-    const type = this.import.operateType;
-    if (type === 40 || type === 41 || type === 42 || type === 102) {
-      const direction = options.mirror
-        ? this.import.originalDirection === 1
-          ? 2
-          : this.import.originalDirection === 2
-            ? 1
-            : 0
-        : this.import.originalDirection;
-      return direction === 1 ? 5 : direction === 2 ? 6 : 4;
+    if (this.effects.circular.id === particle.effects.slideNoteCircular.id) {
+      spawnNativeSlideEffect(
+        sizedEffectId(this.nativeNoteEffectId, this.import.size),
+        this.import.lane,
+        this.import.size,
+        this.noteEffectDuration,
+      );
+    } else {
+      spawnNativeEffect(
+        sizedEffectId(this.nativeNoteEffectId, this.import.size),
+        this.import.lane,
+        this.import.size,
+        this.noteEffectDuration,
+        false,
+        false,
+      );
     }
-    if (type === 20 || type === 22) return 2;
-    if (type === 21 || type === 60 || type === 61 || type === 62 || type === 63 || type === 104 || type === 105)
-      return 3;
-    return this.nativeJudgment === 6 ? 1 : 0;
   }
 
   playLaneEffects() {
@@ -459,63 +464,26 @@ export abstract class FlatNote extends Note {
           : 0
       : this.import.originalDirection;
 
-    // LiveLaneEffectView lights every physical lane of the note separately
-    // (one width-1 fill per lane), not one quad stretched across the span.
-    // The note rect is lane +/- size (size is the half-width); lanes index the
-    // physical slots, each spanning [lane, lane + 1].
-    // Native lane ranges use System.Math.Round(float), whose default midpoint
-    // rule is ToEven. JavaScript Math.round differs for .5 ties and negatives.
-    const nativeRoundToEven = (value: number) => {
-      const floor = Math.floor(value);
-      const fraction = value - floor;
-      if (fraction < 0.5) return floor;
-      if (fraction > 0.5) return floor + 1;
-      return floor % 2 === 0 ? floor : floor + 1;
-    };
-    const laneStart = nativeRoundToEven(this.import.lane - this.import.size);
-    const laneEnd = laneStart + Math.max(1, nativeRoundToEven(this.import.size * 2)) - 1;
+    // Round in the original 24-slot coordinate system before mapping to the stage.
+    const laneStart = nativeLaneFeedbackFirst(this.import.lane, this.import.size);
+    const laneEnd = nativeLaneFeedbackLast(this.import.lane, this.import.size);
 
-    if (this.import.operateType === 1 || this.import.operateType === 101) {
-      for (let lane = laneStart; lane <= laneEnd; lane += 1)
-        particle.effects.laneNormal.spawn(
-          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-          nativeLaneEffectLifetime,
-          false,
-        );
-    } else if (
+    let type = -1;
+    if (this.import.operateType === 1 || this.import.operateType === 101) type = NativeLaneEffectType.Normal;
+    else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
       this.import.operateType === 42 ||
       this.import.operateType === 102
-    ) {
-      for (let lane = laneStart; lane <= laneEnd; lane += 1) {
-        if (direction === 1) {
-          particle.effects.laneFlickLeft.spawn(
-            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-            nativeLaneEffectLifetime,
-            false,
-          );
-        } else if (direction === 2) {
-          particle.effects.laneFlickRight.spawn(
-            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-            nativeLaneEffectLifetime,
-            false,
-          );
-        } else {
-          particle.effects.laneFlick.spawn(
-            groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-            nativeLaneEffectLifetime,
-            false,
-          );
-        }
-      }
-    } else if (this.import.operateType === 20 || this.import.operateType === 22) {
-      for (let lane = laneStart; lane <= laneEnd; lane += 1)
-        particle.effects.laneSlide.spawn(
-          groundEffectLayout({ lane: lane + 0.5, size: 0.5 }),
-          nativeLaneEffectLifetime,
-          false,
-        );
-    }
+    )
+      type =
+        direction === 1
+          ? NativeLaneEffectType.FlickLeft
+          : direction === 2
+            ? NativeLaneEffectType.FlickRight
+            : NativeLaneEffectType.Flick;
+    else if (this.import.operateType === 20 || this.import.operateType === 22) type = NativeLaneEffectType.Slide;
+    if (type < 0) return;
+    for (let lane = laneStart; lane <= laneEnd; lane++) restartNativeLaneEffect(type, lane);
   }
 }

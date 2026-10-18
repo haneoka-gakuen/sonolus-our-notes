@@ -23,6 +23,7 @@ export const initialization = {
     const w = getNativeLaneUnitWidth(stage.w);
 
     scaledScreen.wToH = w / (t - b);
+    scaledScreen.laneUnitWidth = w;
 
     new Vec(0, -1)
       .rotate(Math.PI / 3)

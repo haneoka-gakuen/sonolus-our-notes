@@ -12,6 +12,7 @@ import {
 import { readNativeArrowFrame } from "../../../../../../../../shared/src/engine/data/nativeArrowFrames.js";
 import { options } from "../../../../../configuration/options.js";
 import { effect, sfxDistance } from "../../../../effect.js";
+import { sizedEffectId, spawnNativeFlickEffect } from "../../../../particle.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
 import { getZ, layer, skin } from "../../../../skin.js";
 import { FlatNote } from "../FlatNote.js";
@@ -48,6 +49,7 @@ export abstract class FlickNote extends FlatNote {
   // the finger is still pressed once the note time is reached, or on release.
   // -9999 means "not latched".
   flickLatchedTime = this.entityMemory(Number);
+  flickLatchedTouchId = this.entityMemory(TouchId);
 
   preprocess() {
     super.preprocess();
@@ -81,6 +83,7 @@ export abstract class FlickNote extends FlatNote {
     this.arrow.z = getZ(layer.note.arrow, this.targetTime, this.import.lane);
 
     this.flickLatchedTime = -9999;
+    this.flickLatchedTouchId = 0 as unknown as TouchId;
   }
 
   scheduleSFX() {
@@ -108,11 +111,7 @@ export abstract class FlickNote extends FlatNote {
   }
 
   completeAt(hitTime: number) {
-    this.result.judgment = this.judge(hitTime);
-    this.result.accuracy = hitTime - this.targetTime;
-
-    this.result.bucket.index = this.bucket.index;
-    this.result.bucket.value = this.result.accuracy * 1000;
+    this.result.judgment = this.judge(hitTime, false);
 
     this.playHitEffects(hitTime);
 
@@ -184,6 +183,15 @@ export abstract class FlickNote extends FlatNote {
         );
       }
     }
+  }
+
+  override playCircularNoteEffect() {
+    spawnNativeFlickEffect(
+      sizedEffectId(this.nativeNoteEffectId, this.import.size),
+      this.import.lane,
+      this.import.size,
+      this.noteEffectDuration,
+    );
   }
 
   playNoteEffects() {

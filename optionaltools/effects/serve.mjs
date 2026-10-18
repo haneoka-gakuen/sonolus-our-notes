@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { createReadStream, existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { resolve, dirname, basename, extname, sep } from "node:path";
 import { createHash } from "node:crypto";
-import { createRequire } from "node:module";
+import { createRequire, stripTypeScriptTypes } from "node:module";
 import { fileURLToPath } from "node:url";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const require = createRequire(import.meta.url);
@@ -27,6 +27,7 @@ const mounts = {
   "/renderer/": resolve(rendererRoot, "dist"),
   "/three/": dirname(require.resolve("three")),
   "/runtime/": runtime,
+  "/shared/": resolve(root, "shared"),
 };
 const mime = {
   ".html": "text/html",
@@ -58,14 +59,15 @@ const server = createServer(async (req, res) => {
     if (req.method !== "GET") throw Error("Unsupported request");
     if (path === "/source.json") {
       res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify(sourceInfo));
+      res.end(JSON.stringify({ ...sourceInfo, captureScriptSha256: sha256(resolve(root, "optionaltools/effects/capture.mjs")) }));
       return;
     }
     let file;
     if (path === "/") file = resolve(root, "optionaltools/effects/capture.html");
     else if (path === "/capture.mjs") file = resolve(root, "optionaltools/effects/capture.mjs");
     else if (path === "/sonolus-preview.mjs") file = resolve(root, "optionaltools/effects/sonolus-preview.mjs");
-    else if (/^\/output\/(particle\.texture\.png|particle\.json)$/.test(path)) file = safe(output, path.slice(8));
+    else if (/^\/output\/(particle\.texture\.png|particle\.json|EngineRom)$/.test(path))
+      file = safe(output, path.slice(8));
     else if (path.startsWith("/asset/")) {
       // Materials sample the complete Texture2D, not a tight Sprite crop.
       // ef_tap_particle_star is 128x128; its 47x125 derivative would stretch
@@ -77,6 +79,11 @@ const server = createServer(async (req, res) => {
     if (!file || !existsSync(file)) {
       res.writeHead(404);
       res.end("Not found");
+      return;
+    }
+    if (extname(file) === ".ts") {
+      res.setHeader("content-type", "text/javascript");
+      res.end(stripTypeScriptTypes(readFileSync(file, "utf8")));
       return;
     }
     res.setHeader("content-type", mime[extname(file)] || "application/octet-stream");

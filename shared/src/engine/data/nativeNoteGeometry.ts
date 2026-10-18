@@ -39,12 +39,12 @@ export const getNativeNoteRects = (lane: number, size: number, kind: number, ski
     const parts = getNativeNoteParts(lane, size, flat)
     const left = getNativeNotePartGeometry(skin002, skin003, kind, parts.leftTilt, parts.leftRight)
     const right = getNativeNotePartGeometry(skin002, skin003, kind, parts.rightTilt, parts.rightRight)
-    // Native Sprite.bounds uses the tight textureRect. Our packer restores
-    // m_Rect padding, so place that padded image around the tight cap centre.
-    const leftCenter = lane - size + left.tightW / 2 - left.overhang + (parts.leftFlip ? -left.x : left.x)
-    const rightCenter = lane + size - right.tightW / 2 + right.overhang + (parts.rightFlip ? -right.x : right.x)
-    const mainCenter = lane + (left.tightW - right.tightW + right.overhang - left.overhang) / 2
-    const mainWidth = Math.max(0.001, size * 2 - left.tightW - right.tightW + left.overhang + right.overhang)
+    // Full Sprite bounds set cap/body placement. Texture cropping affects UVs
+    // and offsets within the cap, independently of its layout width.
+    const leftCenter = lane - size + left.w / 2 - left.overhang + (parts.leftFlip ? -left.x : left.x)
+    const rightCenter = lane + size - right.w / 2 + right.overhang + (parts.rightFlip ? -right.x : right.x)
+    const mainCenter = lane + (left.w - right.w + right.overhang - left.overhang) / 2
+    const mainWidth = Math.max(0, size * 2 - left.w - right.w + left.overhang + right.overhang)
     const borderTotal = g.borderLeft + g.borderRight
     const borderScale = borderTotal > mainWidth ? mainWidth / borderTotal : 1
     const bl = g.borderLeft * borderScale

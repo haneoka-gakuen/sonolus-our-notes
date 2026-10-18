@@ -1,40 +1,20 @@
-import { fxSpawnQuad, fxWorldWidth } from "../../../../shared/src/engine/data/nativeHitFx.js";
+import { stableHoldEffectWidthBucket } from "../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js";
 import {
-  LOOP_FX_COUNT,
-  LOOP_FX_DURATION,
-  LOOP_FX_FIRST,
-  hitFxBucket,
-  hitFxCount,
-  hitFxDuration,
-  hitFxFirst,
-} from "../../../../shared/src/engine/data/nativeHitFxNames.generated.js";
-import { particle } from "./particle.js";
+  NATIVE_EFFECT_PLANE_COUNT,
+  nativeLoopEffectDuration,
+} from "../../../../shared/src/engine/data/nativeEffects.js";
+import { nativeEffectPlaneLayout, nativeParticleProfile, particle, sizedEffectId } from "./particle.js";
 
-/** Hit-effect parts are declared consecutively from fx0, in blocks per effect, judgement and width bucket. */
-const fxId = (offset: number) =>
-  ((particle.effects.fx0.id as unknown as number) + offset) as unknown as ParticleEffectId;
+export const LOOP_FX_PARTS = NATIVE_EFFECT_PLANE_COUNT;
 
-/** Kinds: 0 normal, 1 just, 2 slide, 3 connect, 4/5/6 flick up/left/right. Judgement: native 2 Bad .. 6 Just. */
-export const spawnHitFx = (kind: number, judgment: number, lane: number, size: number) => {
-  const first = hitFxFirst(kind, judgment);
-  if (first < 0) return;
-  const count = hitFxCount(kind, judgment);
-  const duration = hitFxDuration(kind, judgment);
-  const base = first + hitFxBucket(fxWorldWidth(size)) * count;
-  const quad = fxSpawnQuad(lane, size);
-  for (let i = 0; i < count; i++) particle.effects.spawn(fxId(base + i), quad, duration, false);
+export const spawnLoopFx = (plane: number, lane: number, size: number) => {
+  const id = ((sizedEffectId(particle.effects.normalSlideConnectorCircular.id, 0) as unknown as number) +
+    stableHoldEffectWidthBucket(size) * NATIVE_EFFECT_PLANE_COUNT + plane) as unknown as ParticleEffectId;
+  if (!particle.effects.exists(id)) return 0 as unknown as ParticleEffectInstanceId;
+  return particle.effects.spawn(id, nativeEffectPlaneLayout({ plane, lane, size }),
+    nativeLoopEffectDuration(nativeParticleProfile()), true);
 };
 
-export const LOOP_FX_PARTS = LOOP_FX_COUNT;
-
-export const spawnLoopFx = (index: number, lane: number, size: number) =>
-  particle.effects.spawn(
-    fxId(LOOP_FX_FIRST + hitFxBucket(fxWorldWidth(size)) * LOOP_FX_COUNT + index),
-    fxSpawnQuad(lane, size),
-    LOOP_FX_DURATION,
-    true,
-  );
-
-export const moveLoopFx = (instance: ParticleEffectInstanceId, lane: number, size: number) => {
-  particle.effects.move(instance, fxSpawnQuad(lane, size));
+export const moveLoopFx = (instance: ParticleEffectInstanceId, plane: number, lane: number, size: number) => {
+  if (instance) particle.effects.move(instance, nativeEffectPlaneLayout({ plane, lane, size }));
 };

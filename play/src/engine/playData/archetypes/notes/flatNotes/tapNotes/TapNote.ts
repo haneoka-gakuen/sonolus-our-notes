@@ -6,13 +6,20 @@ export abstract class TapNote extends FlatNote {
   leniency = 0.75;
 
   updateSequential() {
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
-    claimStart(this.info.index, this.targetTime, this.hitbox, this.fullHitbox);
+    claimStart(
+      this.info.index,
+      this.targetTime,
+      this.hitbox,
+      this.fullHitbox,
+      this.import.originalTimeMs,
+      this.windows.input,
+    );
   }
 
   touch() {
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
     const index = getClaimedStart(this.info.index);
     if (index === -1) return;
@@ -23,11 +30,7 @@ export abstract class TapNote extends FlatNote {
   complete(touch: Touch) {
     disallowEmpty(touch);
 
-    this.result.judgment = this.judge(touch.startTime);
-    this.result.accuracy = touch.startTime - this.targetTime;
-
-    this.result.bucket.index = this.bucket.index;
-    this.result.bucket.value = this.result.accuracy * 1000;
+    this.result.judgment = this.judge(touch.startTime, false);
 
     this.playHitEffects(touch.startTime);
 

@@ -10,7 +10,7 @@ export abstract class SlideEndNote extends FlatNote {
   });
 
   updateSequential() {
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
     claimEnd(
       this.info.index,
@@ -18,11 +18,13 @@ export abstract class SlideEndNote extends FlatNote {
       this.hitbox,
       this.fullHitbox,
       this.startSharedMemory.lastActiveTime === time.now ? this.targetTime : 99999,
+      this.import.originalTimeMs,
+      this.windows.input,
     );
   }
 
   touch() {
-    if (time.now < this.inputTime.min) return;
+    if (!this.canReceiveInput) return;
 
     const index = getClaimedEnd(this.info.index);
     if (index === -1) return;
@@ -41,11 +43,7 @@ export abstract class SlideEndNote extends FlatNote {
   complete(touch: Touch) {
     const hitTime = touch.ended ? touch.time : this.targetTime;
 
-    this.result.judgment = this.judge(hitTime);
-    this.result.accuracy = hitTime - this.targetTime;
-
-    this.result.bucket.index = this.bucket.index;
-    this.result.bucket.value = this.result.accuracy * 1000;
+    this.result.judgment = this.judge(hitTime, !touch.ended);
 
     this.playHitEffects(hitTime);
 

@@ -6,6 +6,9 @@ const workerCount = Number(process.env.SONOLUS_COMPILER_WORKERS || 1);
 if (!Number.isInteger(workerCount) || workerCount < 1 || workerCount > 4) {
   throw new Error("SONOLUS_COMPILER_WORKERS must be an integer from 1 to 4");
 }
+const optimizationLevel = process.env.SONOLUS_COMPILER_OPTIMIZATION_LEVEL;
+if (optimizationLevel && optimizationLevel !== "low" && optimizationLevel !== "high")
+  throw new Error("SONOLUS_COMPILER_OPTIMIZATION_LEVEL must be low or high");
 
 export const engineEsbuild: EsbuildHook = (options) => ({
   ...options,
@@ -21,6 +24,7 @@ export const engineEsbuild: EsbuildHook = (options) => ({
  * each facet an isolated workspace; standalone builds keep the defaults.
  */
 export const engineOutputPaths = {
+  ...(optimizationLevel ? { optimizationLevel: optimizationLevel as "low" | "high" } : {}),
   // sonolus-cli otherwise starts half the machine's CPU count in workers,
   // each retaining a compiler graph. Keep local builds bounded by default.
   workerCount,
