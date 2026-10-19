@@ -61,8 +61,10 @@ const groups = levelMemory<Group>(
 );
 // A positive link is slot + 1, -1 ends a live chain, and 0 marks a free slot.
 const births = levelMemory<Birth>(Tuple(BIRTH_COUNT, { next: Number, time: Number }));
+const active = levelMemory<{ count: number }>(Tuple(1, { count: Number }));
 
 export const clearConnectWallAggregate = (drawProfile: number) => {
+  active.set(0, { count: 0 });
   for (let i = 0; i < GROUP_COUNT; i++) {
     const group = groups.get(i);
     if (drawProfile < 0 && group.wall) native.DestroyParticleEffect(group.wall);
@@ -109,6 +111,7 @@ const updateGroup = (
     }
     entry = next;
   }
+  if (!head) active.set(0, { count: active.get(0).count - 1 });
   if (drawProfile >= 0) {
     groups.set(index, { ...group, head, wall: energy, frame: frameEnergy });
     return;
@@ -148,15 +151,23 @@ export const admitConnectWall = (
     freeBirth = -1;
   for (let i = 0; i < GROUP_COUNT; i++) {
     const g = groups.get(i);
-    if (g.head && g.lane === lane && g.size === size) groupIndex = i;
+    if (g.head && g.lane === lane && g.size === size) {
+      groupIndex = i;
+      break;
+    }
     if (!g.head && freeGroup < 0) freeGroup = i;
   }
-  for (let i = 0; i < BIRTH_COUNT; i++) if (!births.get(i).next && freeBirth < 0) freeBirth = i;
+  for (let i = 0; i < BIRTH_COUNT; i++) {
+    if (births.get(i).next) continue;
+    freeBirth = i;
+    break;
+  }
   if (groupIndex < 0) groupIndex = freeGroup;
   if (groupIndex < 0 || freeBirth < 0) return false;
   const previous = groups.get(groupIndex);
   births.set(freeBirth, { next: previous.head || -1, time: birth });
-  if (!previous.head)
+  if (!previous.head) {
+    active.set(0, { count: active.get(0).count + 1 });
     groups.set(groupIndex, {
       head: freeBirth + 1,
       lane,
@@ -164,7 +175,7 @@ export const admitConnectWall = (
       wall: 0,
       frame: 0,
     });
-  else groups.set(groupIndex, { ...previous, head: freeBirth + 1 });
+  } else groups.set(groupIndex, { ...previous, head: freeBirth + 1 });
   if (refresh) updateGroup(groupIndex, now, baseEffect, effectSize, wToH, drawProfile, frameEnabled, simple);
   return true;
 };
@@ -183,6 +194,7 @@ export const updateConnectWallAggregate = (
     clearConnectWallAggregate(drawProfile);
     return;
   }
+  if (!active.get(0).count) return;
   for (let i = 0; i < GROUP_COUNT; i++) updateGroup(i, now, baseEffect, effectSize, wToH, drawProfile, frameEnabled, simple);
 };
 
@@ -193,7 +205,7 @@ export const drawConnectWallAggregate = (
   effectSize: number,
   wToH: number,
 ) => {
-  if (profile < 0) return;
+  if (profile < 0 || !active.get(0).count) return;
   for (let i = 0; i < GROUP_COUNT; i++) {
     const group = groups.get(i);
     if (!group.head) continue;
