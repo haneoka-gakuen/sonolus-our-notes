@@ -4,8 +4,6 @@ import { scaledScreen } from "./scaledScreen.js";
 
 export const instruction = defineInstruction({
   texts: {
-    normal: Text.Normal,
-    easy: Text.Easy,
     tap: Text.Tap,
     hold: Text.Hold,
     slide: Text.HoldSlide,

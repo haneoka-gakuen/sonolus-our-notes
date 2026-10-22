@@ -200,8 +200,7 @@ export function enterDemonstration(lesson: TutorialLesson, phase: number) {
       else instruction.texts.slide.show();
     } else if (lesson.direction) instruction.texts.flick.show();
     else if (lesson.operateType === 60) instruction.texts.hold.show();
-    else if (lesson.easy) instruction.texts.easy.show();
-    else instruction.texts.normal.show();
+    else instruction.texts.tap.show();
   } else if (phase === 2) {
     state.hit = false;
     state.holding = false;

@@ -116,9 +116,9 @@ const updateHeldSource = (index: number, lesson: TutorialLesson) => {
 };
 
 const updateHeldSources = [
+  () => updateHeldSource(4, lessons[4]),
   () => updateHeldSource(5, lessons[5]),
   () => updateHeldSource(6, lessons[6]),
-  () => updateHeldSource(7, lessons[7]),
 ] as const;
 
 const updateHeldEndNote = (index: number, lesson: TutorialLesson) => {
@@ -127,9 +127,9 @@ const updateHeldEndNote = (index: number, lesson: TutorialLesson) => {
 };
 
 const updateHeldEndNotes = [
+  () => updateHeldEndNote(4, lessons[4]),
   () => updateHeldEndNote(5, lessons[5]),
   () => updateHeldEndNote(6, lessons[6]),
-  () => updateHeldEndNote(7, lessons[7]),
 ] as const;
 // Each callback captures only global bindings and a literal lesson index.
 // The compiler can inline one lesson without expanding every other lesson.
@@ -141,7 +141,6 @@ const enterLessons = [
   () => enterLesson(4, lessons[4]),
   () => enterLesson(5, lessons[5]),
   () => enterLesson(6, lessons[6]),
-  () => enterLesson(7, lessons[7]),
 ] as const;
 
 const updateLessons = [
@@ -173,10 +172,6 @@ const updateLessons = [
   () => updateLesson1(6, lessons[6]),
   () => updateLesson2(6, lessons[6]),
   () => updateLesson3(6, lessons[6]),
-  () => updateLesson0(7, lessons[7]),
-  () => updateLesson1(7, lessons[7]),
-  () => updateLesson2(7, lessons[7]),
-  () => updateLesson3(7, lessons[7]),
 ] as const;
 
 const updateComponent = (index: number) => {
