@@ -30,8 +30,6 @@ export class Stage extends Archetype {
       const b = 0;
       const t = panel.h;
 
-      // Keep the chart coordinates orthographic. The backdrop uses the
-      // actual native lane material; borders and dividers stay straight.
       if (skin.sprites.previewStage.exists)
         skin.sprites.previewStage.draw(
           new Rect({

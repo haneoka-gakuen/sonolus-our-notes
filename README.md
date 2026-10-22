@@ -21,6 +21,10 @@ Display titles use Sonolus text keys or five-language localized text. Saved
 option names stay stable, and the configuration supplies the original option
 order for older replays.
 
+Chart preview uses the flat `Our Notes Preview Stage` skin sprite. The
+playfield sprite `Our Notes Stage` contains baked perspective and belongs to
+play, watch, and tutorial.
+
 Flick Sensitivity defaults to 100%; raising it recognizes slower flicks. The
 formal rule is 0.2 cm per 1/60-second reference frame. The Sonolus adapter uses
 an 8 cm reference PlayArea height, giving a normalized velocity threshold of

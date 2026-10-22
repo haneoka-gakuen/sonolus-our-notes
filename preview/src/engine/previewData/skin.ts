@@ -7,9 +7,7 @@ export const skin = defineSkin({
   sprites: {
     ...nativeNoteCapSprites,
     ...nativeSlideSprites,
-    // Retain the import slots, but use visible pixels from the selected
-    // native skin instead of its transparent preview placeholders.
-    previewStage: "Our Notes Stage",
+    previewStage: "Our Notes Preview Stage",
     previewBorder: "Our Notes Outside Line",
     previewDivider: "Our Notes Guideline Space",
 
