@@ -17,7 +17,6 @@ export const optionsDefinition = {
   noteSpeed: {
     category: "gameplay",
     name: Text.NoteSpeed,
-    title: officialOptionText.ui_option_basic_note_speed,
     scope: "Our Notes",
     type: "slider",
     // MasterOptionDefault preset 1 stores the fresh-user value 5.00.
@@ -31,7 +30,6 @@ export const optionsDefinition = {
   mirror: {
     category: "gameplay",
     name: Text.Mirror,
-    title: officialOptionText.ui_option_basic_ntoe_mirror,
     type: "toggle",
     def: 0,
   },
@@ -59,7 +57,7 @@ export const optionsDefinition = {
   laneCover: {
     category: "gameplay",
     name: "Lane Cover",
-    title: officialOptionText.ui_option_display2_note__start_position,
+    title: Text.StageCoverVertical,
     scope: "Our Notes",
     type: "slider",
     def: 0,
@@ -104,7 +102,6 @@ export const optionsDefinition = {
   hapticsEnabled: {
     category: "gameplay",
     name: Text.Haptic,
-    title: officialOptionText.ui_option_basic_live_vibration,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -112,7 +109,7 @@ export const optionsDefinition = {
   laneOpacity: {
     category: "graphics",
     name: "Lane Opacity",
-    title: officialOptionText.ui_option_display2_lane_opacity,
+    title: Text.LaneAlpha,
     scope: "Our Notes",
     type: "slider",
     def: 0.8,
@@ -130,7 +127,7 @@ export const optionsDefinition = {
     // MasterOptionDefault GuidelineCount=2 -> LiveLaneSplitCountType.Lane6.
     def: 2,
     values: [
-      officialOptionText.ui_option_display2_lane_guideline_count_0,
+      Text.None,
       officialOptionText.ui_option_display2_lane_guideline_count_4,
       officialOptionText.ui_option_display2_lane_guideline_count_6,
       officialOptionText.ui_option_display2_lane_guideline_count_8,
@@ -152,7 +149,6 @@ export const optionsDefinition = {
   simLineEnabled: {
     category: "graphics",
     name: Text.Simline,
-    title: officialOptionText.ui_option_detail_note_simultaneous_line_display,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -160,7 +156,6 @@ export const optionsDefinition = {
   connectorAlpha: {
     category: "graphics",
     name: Text.ConnectorAlpha,
-    title: officialOptionText.ui_option_detail_note_slide_opacity,
     scope: "Our Notes",
     type: "slider",
     def: 1,
@@ -179,7 +174,6 @@ export const optionsDefinition = {
   noteEffectEnabled: {
     category: "graphics",
     name: Text.NoteEffect,
-    title: officialOptionText.ui_option_display2_note_effect,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -187,13 +181,6 @@ export const optionsDefinition = {
   noteEffectSize: {
     category: "graphics",
     name: Text.NoteEffectSize,
-    title: localized({
-      en: "Notes Effect Size",
-      ja: "ノーツエフェクトサイズ",
-      ko: "노트 이펙트 크기",
-      zhs: "节奏图示特效大小",
-      zht: "節奏圖示特效大小",
-    }),
     scope: "Our Notes",
     type: "slider",
     def: 1,
@@ -219,7 +206,6 @@ export const optionsDefinition = {
   sfxEnabled: {
     category: "audio",
     name: Text.Effect,
-    title: officialOptionText.ui_option_sound_live_note_se,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
