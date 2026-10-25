@@ -21,6 +21,12 @@ Display titles use Sonolus text keys or five-language localized text. Saved
 option names stay stable, and the configuration supplies the original option
 order for older replays.
 
+Game settings use the five-language `MasterText` records in
+[`officialOptionText.ts`](shared/src/engine/configuration/officialOptionText.ts),
+keyed by their original localization IDs. Japanese labels are checked against
+the Japanese game and the other languages against the international game.
+Sonolus-only settings retain Sonolus labels or use the game's note terminology.
+
 Chart preview uses the flat `Our Notes Preview Stage` skin sprite. The
 playfield sprite `Our Notes Stage` contains baked perspective and belongs to
 play, watch, and tutorial.

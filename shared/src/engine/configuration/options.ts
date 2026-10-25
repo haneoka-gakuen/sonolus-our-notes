@@ -1,7 +1,5 @@
-import { EngineConfigurationOption, EngineConfigurationOptionCategory, Text, TextFunction } from "@sonolus/core";
-
-const localized = (labels: Record<"en" | "ja" | "ko" | "zhs" | "zht", string>) =>
-  `${TextFunction.Localize}:${JSON.stringify(labels)}`;
+import { EngineConfigurationOption, EngineConfigurationOptionCategory, Text } from "@sonolus/core";
+import { localized, officialOptionText } from "./officialOptionText.js";
 
 export const optionsDefinition = {
   speed: {
@@ -19,6 +17,7 @@ export const optionsDefinition = {
   noteSpeed: {
     category: "gameplay",
     name: Text.NoteSpeed,
+    title: officialOptionText.ui_option_basic_note_speed,
     scope: "Our Notes",
     type: "slider",
     // MasterOptionDefault preset 1 stores the fresh-user value 5.00.
@@ -32,6 +31,7 @@ export const optionsDefinition = {
   mirror: {
     category: "gameplay",
     name: Text.Mirror,
+    title: officialOptionText.ui_option_basic_ntoe_mirror,
     type: "toggle",
     def: 0,
   },
@@ -45,8 +45,8 @@ export const optionsDefinition = {
       en: "Match Flick Direction",
       ja: "フリック方向一致",
       ko: "플릭 방향 일치",
-      zhs: "匹配滑键方向",
-      zht: "匹配滑鍵方向",
+      zhs: "匹配滑击方向",
+      zht: "匹配撥動方向",
     }),
     scope: "Our Notes",
     standard: true,
@@ -59,14 +59,7 @@ export const optionsDefinition = {
   laneCover: {
     category: "gameplay",
     name: "Lane Cover",
-    title: Text.StageCoverVertical,
-    description: localized({
-      en: "Notes Start Position: hide notes above this height.",
-      ja: "ノーツ開始位置：この高さより上のノーツを隠します。",
-      ko: "노트 시작 위치: 이 높이 위의 노트를 숨깁니다.",
-      zhs: "音符开始位置：隐藏此高度以上的音符。",
-      zht: "音符開始位置：隱藏此高度以上的音符。",
-    }),
+    title: officialOptionText.ui_option_display2_note__start_position,
     scope: "Our Notes",
     type: "slider",
     def: 0,
@@ -80,13 +73,7 @@ export const optionsDefinition = {
   measureLineDisplay: {
     category: "gameplay",
     name: "Bar Lines",
-    title: localized({
-      en: "Bar Line Display",
-      ja: "小節線表示",
-      ko: "마디선 표시",
-      zhs: "小节线显示",
-      zht: "小節線顯示",
-    }),
+    title: officialOptionText.ui_option_detail_note_measure_line_display,
     scope: "Our Notes",
     type: "toggle",
     def: 0,
@@ -94,20 +81,7 @@ export const optionsDefinition = {
   showJudgmentLine: {
     category: "gameplay",
     name: "Judgment Line",
-    title: localized({
-      en: "HIT Position Display",
-      ja: "HIT位置表示",
-      ko: "HIT 위치 표시",
-      zhs: "HIT位置显示",
-      zht: "HIT位置顯示",
-    }),
-    description: localized({
-      en: "Show the line where notes are judged.",
-      ja: "ノーツの判定位置を線で表示します。",
-      ko: "노트 판정 위치를 선으로 표시합니다.",
-      zhs: "显示音符判定位置的横线。",
-      zht: "顯示音符判定位置的橫線。",
-    }),
+    title: officialOptionText.ui_option_detail_note_judge_position_display,
     scope: "Our Notes",
     type: "toggle",
     // MasterOptionDefault JudgePositionDisplay is false in every preset.
@@ -130,6 +104,7 @@ export const optionsDefinition = {
   hapticsEnabled: {
     category: "gameplay",
     name: Text.Haptic,
+    title: officialOptionText.ui_option_basic_live_vibration,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -137,7 +112,7 @@ export const optionsDefinition = {
   laneOpacity: {
     category: "graphics",
     name: "Lane Opacity",
-    title: Text.LaneAlpha,
+    title: officialOptionText.ui_option_display2_lane_opacity,
     scope: "Our Notes",
     type: "slider",
     def: 0.8,
@@ -149,29 +124,23 @@ export const optionsDefinition = {
   guidelineCount: {
     category: "graphics",
     name: "Guideline Count",
-    title: localized({
-      en: "Guideline Count",
-      ja: "ガイドライン数",
-      ko: "가이드라인 수",
-      zhs: "分隔线数量",
-      zht: "分隔線數量",
-    }),
+    title: officialOptionText.ui_option_display2_lane_guideline_count,
     scope: "Our Notes",
     type: "select",
     // MasterOptionDefault GuidelineCount=2 -> LiveLaneSplitCountType.Lane6.
     def: 2,
-    values: [Text.None, "4", "6", "8", "12"],
+    values: [
+      officialOptionText.ui_option_display2_lane_guideline_count_0,
+      officialOptionText.ui_option_display2_lane_guideline_count_4,
+      officialOptionText.ui_option_display2_lane_guideline_count_6,
+      officialOptionText.ui_option_display2_lane_guideline_count_8,
+      officialOptionText.ui_option_display2_lane_guideline_count_12,
+    ],
   },
   guidelineOpacity: {
     category: "graphics",
     name: "Guideline Opacity",
-    title: localized({
-      en: "Guideline Opacity",
-      ja: "ガイドライン透明度",
-      ko: "가이드라인 투명도",
-      zhs: "分隔线透明度",
-      zht: "分隔線透明度",
-    }),
+    title: officialOptionText.ui_option_display2_lane_guideline_opacity,
     scope: "Our Notes",
     type: "slider",
     def: 0.4,
@@ -183,6 +152,7 @@ export const optionsDefinition = {
   simLineEnabled: {
     category: "graphics",
     name: Text.Simline,
+    title: officialOptionText.ui_option_detail_note_simultaneous_line_display,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -190,6 +160,7 @@ export const optionsDefinition = {
   connectorAlpha: {
     category: "graphics",
     name: Text.ConnectorAlpha,
+    title: officialOptionText.ui_option_detail_note_slide_opacity,
     scope: "Our Notes",
     type: "slider",
     def: 1,
@@ -208,6 +179,7 @@ export const optionsDefinition = {
   noteEffectEnabled: {
     category: "graphics",
     name: Text.NoteEffect,
+    title: officialOptionText.ui_option_display2_note_effect,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -215,6 +187,13 @@ export const optionsDefinition = {
   noteEffectSize: {
     category: "graphics",
     name: Text.NoteEffectSize,
+    title: localized({
+      en: "Notes Effect Size",
+      ja: "ノーツエフェクトサイズ",
+      ko: "노트 이펙트 크기",
+      zhs: "节奏图示特效大小",
+      zht: "節奏圖示特效大小",
+    }),
     scope: "Our Notes",
     type: "slider",
     def: 1,
@@ -240,6 +219,7 @@ export const optionsDefinition = {
   sfxEnabled: {
     category: "audio",
     name: Text.Effect,
+    title: officialOptionText.ui_option_sound_live_note_se,
     scope: "Our Notes",
     type: "toggle",
     def: 1,
@@ -305,15 +285,15 @@ export const optionsDefinition = {
       en: "Flick Sensitivity",
       ja: "フリック感度",
       ko: "플릭 민감도",
-      zhs: "滑动灵敏度",
-      zht: "滑動靈敏度",
+      zhs: "滑击灵敏度",
+      zht: "撥動靈敏度",
     }),
     description: localized({
       en: "Higher values recognize slower flicks.",
       ja: "値を上げると、ゆっくりしたフリックも判定されます。",
       ko: "값을 높이면 느린 플릭도 인식합니다.",
-      zhs: "数值越高，越慢的滑动也能判定。",
-      zht: "數值越高，越慢的滑動也能判定。",
+      zhs: "数值越高，越慢的滑击也能判定。",
+      zht: "數值越高，越慢的撥動也能判定。",
     }),
     scope: "Our Notes",
     type: "slider",
