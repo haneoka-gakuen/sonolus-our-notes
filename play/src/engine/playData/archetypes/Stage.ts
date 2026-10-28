@@ -23,7 +23,7 @@ import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
 import { chartExtent } from "../chartExtent.js";
 import { effect, sfxDistance } from "../effect.js";
-import { updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
+import { heldSoundActivity, updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
 import { getHitbox, lane } from "../lane.js";
 import { note } from "../note.js";
 import { particle, restartNativeLaneEffect } from "../particle.js";
@@ -80,6 +80,7 @@ export class Stage extends Archetype {
   }
 
   updateSequential() {
+    heldSoundActivity.active = false;
     updateConnectWalls();
     if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, false);
     for (let index = 0; index < 12; index++) {
@@ -108,55 +109,7 @@ export class Stage extends Archetype {
   }
 
   updateHeldSFX() {
-    let active = false;
-
-    if (options.sfxEnabled && !options.autoSFX && effect.clips.normalHold.exists) {
-      for (const entityInfo of entityInfos) {
-        if (entityInfo.state !== EntityState.Active) continue;
-
-        if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
-          const connectorImport = archetypes.NormalActiveSlideConnector.import.get(entityInfo.index);
-          const headImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-          const tailImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-          const headTime = bpmChanges.at(headImport.beat).time;
-          const tailTime = bpmChanges.at(tailImport.beat).time;
-          const startSharedMemory = archetypes.NormalActiveSlideConnector.slideStartNote.sharedMemory.get(
-            connectorImport.startRef,
-          );
-
-          if (
-            headTime <= time.now &&
-            time.now < tailTime &&
-            time.scaled >= timeScaleChanges.at(headTime).scaledTime - note.duration &&
-            startSharedMemory.lastActiveTime === time.now
-          ) {
-            active = true;
-            break;
-          }
-        } else if (entityInfo.archetype === archetypes.CriticalActiveSlideConnector.index) {
-          const connectorImport = archetypes.CriticalActiveSlideConnector.import.get(entityInfo.index);
-          const headImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-          const tailImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-          const headTime = bpmChanges.at(headImport.beat).time;
-          const tailTime = bpmChanges.at(tailImport.beat).time;
-          const startSharedMemory = archetypes.CriticalActiveSlideConnector.slideStartNote.sharedMemory.get(
-            connectorImport.startRef,
-          );
-
-          if (
-            headTime <= time.now &&
-            time.now < tailTime &&
-            time.scaled >= timeScaleChanges.at(headTime).scaledTime - note.duration &&
-            startSharedMemory.lastActiveTime === time.now
-          ) {
-            active = true;
-            break;
-          }
-        }
-      }
-    }
-
-    updateHeldSound(this, active, options.sfxEnabled && !options.autoSFX);
+    updateHeldSound(this, heldSoundActivity.active, options.sfxEnabled && !options.autoSFX);
   }
 
   terminate() {

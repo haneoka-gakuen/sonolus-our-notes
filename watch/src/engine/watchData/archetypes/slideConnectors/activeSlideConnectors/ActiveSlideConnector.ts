@@ -41,6 +41,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   });
 
   slideZ = this.entityMemory(Number);
+  liveBounds = this.entityMemory({ l: Number, r: Number });
 
   // Stage preprocessing links only held connectors for replay audio scans.
   heldAudioLinks = this.defineSharedMemory({
@@ -85,6 +86,9 @@ export abstract class ActiveSlideConnector extends SlideConnector {
       if (this.shouldScheduleLinearEffect) this.effectInstanceIds.linear = 0;
     }
     if (time.now < this.head.time) return;
+    const bounds = this.getEdgeBounds(time.scaled);
+    this.liveBounds.l = bounds.l;
+    this.liveBounds.r = bounds.r;
     if (this.visual === VisualType.Activated) {
       if (this.shouldScheduleCircularEffect) {
         if (!this.effectInstanceIds.circularScheduled) this.spawnCircularEffect();
@@ -137,7 +141,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     // Do not replace missing Our Notes slices with a generic green bar.
     if (this.useFallbackSlideSprite) return;
 
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
 
     const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
     const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
@@ -157,7 +161,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   loopLayoutIsFixed = this.entityMemory(Boolean);
 
   spawnCircularEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     this.resources.loopWidthBucket = stableHoldEffectWidthBucket((r - l) / 2);
     for (let order = 0; order < LOOP_FX_PARTS; order++) {
       const plane = nativeEffectSpawnPlane(order);
@@ -169,7 +173,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   updateCircularEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     if (stableHoldEffectWidthBucket((r - l) / 2) !== this.resources.loopWidthBucket) {
       this.destroyCircularEffect();
       this.spawnCircularEffect();
@@ -193,7 +197,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   updateLinearEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     const lane = (l + r) / 2;
     const size = (r - l) / 2;
 

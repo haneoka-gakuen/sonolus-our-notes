@@ -15,6 +15,7 @@
     "optionaltools",
     "shared/src/engine/data/nativeLaneEffectLayout.ts",
     "shared/src/engine/data/nativeEffects.ts",
+    "shared/src/engine/data/loopFrameContract.ts",
     "shared/src/engine/data/simpleLoopRomAbi.ts",
     "shared/src/engine/data/simpleLoopWorldRomAbi.ts",
     "shared/src/engine/data/sourceViewBillboard.ts",

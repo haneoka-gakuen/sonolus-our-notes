@@ -1,4 +1,5 @@
 import { SIMPLE_LOOP_PHASE_EFFECTS } from "../../../../shared/src/engine/data/simpleLoopPhaseEffects.js";
+import { LOOP_FRAME_DURATION, LOOP_FRAME_EFFECTS } from "../../../../shared/src/engine/data/loopFrameContract.js";
 import {
   createSimpleLoopSource,
   releaseSimpleLoopSource,
@@ -54,6 +55,7 @@ export const particle = defineParticle({
     ...nativeSlideShortEffectTable(),
     sourceSimpleLoop: "Our Notes Source SimpleLoop Point",
     ...SIMPLE_LOOP_PHASE_EFFECTS,
+    ...LOOP_FRAME_EFFECTS,
   },
 });
 
@@ -168,6 +170,8 @@ export const playLaneEffect = (effect: ParticleEffect, center: number) => {
 };
 
 const spawnHoldPlane = (plane: number, lane: number) => {
+  if (plane === 3 && particle.effects.sourceLoopFrame8.exists)
+    return particle.effects.sourceLoopFrame8.spawn(nativeNoteEffectLayout(plane, lane), LOOP_FRAME_DURATION, true);
   const id = variantId(particle.effects.normalSlideConnectorCircular.id, plane);
   if (!particle.effects.exists(id)) return 0 as unknown as ParticleEffectInstanceId;
   return particle.effects.spawn(

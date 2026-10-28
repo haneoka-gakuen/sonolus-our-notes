@@ -20,6 +20,7 @@ import { linearEffectLayout, particle } from "../../../particle.js";
 import { getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 import { LOOP_FX_PARTS, moveLoopFx, spawnLoopFx } from "../../../hitFx.js";
+import { heldSoundActivity } from "../../../sound.js";
 
 export abstract class ActiveSlideConnector extends SlideConnector {
   override nativeLine = true;
@@ -41,6 +42,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   });
 
   slideZ = this.entityMemory(Number);
+  liveBounds = this.entityMemory({ l: Number, r: Number });
 
   // Resource selection and engine options are fixed for this entity's run.
   // Dynamic lane/width and the width-bucket restart remain per-frame.
@@ -72,8 +74,12 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   updateSequential() {
     super.updateSequential();
-    if (!this.resources.sourceProgram) return;
     if (time.now < this.head.time || time.now >= this.tail.time) return;
+    if (time.scaled >= this.visualTime.min) {
+      this.startSharedMemory.heldSoundCandidateTime = time.now;
+      if (this.startSharedMemory.lastActiveTime === time.now) heldSoundActivity.active = true;
+    }
+    if (!this.resources.sourceProgram) return;
     this.updateVisualType();
     if (!this.resources.circularEnabled || this.visual !== VisualType.Activated) {
       releaseSimpleLoopSource(this.import.startRef, time.now, false);
@@ -99,6 +105,9 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     this.renderConnector();
 
     if (time.now < this.head.time) return;
+    const bounds = this.getEdgeBounds(time.scaled);
+    this.liveBounds.l = bounds.l;
+    this.liveBounds.r = bounds.r;
 
     if (this.visual === VisualType.Activated) {
       if (this.shouldPlayCircularEffect) {
@@ -144,7 +153,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   loopLayoutIsFixed = this.entityMemory(Boolean);
 
   spawnCircularEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     this.resources.loopWidthBucket = stableHoldEffectWidthBucket((r - l) / 2);
     for (let order = 0; order < LOOP_FX_PARTS; order++) {
       const plane = nativeEffectSpawnPlane(order);
@@ -156,7 +165,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   updateCircularEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     if (stableHoldEffectWidthBucket((r - l) / 2) !== this.resources.loopWidthBucket) {
       this.destroyCircularEffect();
       this.spawnCircularEffect();
@@ -180,7 +189,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   }
 
   updateLinearEffect() {
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
     const lane = (l + r) / 2;
     const size = (r - l) / 2;
 
@@ -208,7 +217,7 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     // three source-derived slices are unavailable, omit the overlay.
     if (this.useFallbackSlideSprite) return;
 
-    const { l, r } = this.getEdgeBounds(time.scaled);
+    const { l, r } = this.liveBounds;
 
     const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
     const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);

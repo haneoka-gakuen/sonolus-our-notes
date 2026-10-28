@@ -9,6 +9,7 @@ import { getHitbox, getNativeJudgmentLeniency } from "../../lane.js";
 import { note } from "../../note.js";
 import { getZ, layer, skin } from "../../skin.js";
 import { disallowEmpty } from "../InputManager.js";
+import { heldSoundActivity } from "../../sound.js";
 import { SlideStartNote } from "../notes/flatNotes/slideStartNotes/SlideStartNote.js";
 
 export enum VisualType {
@@ -140,6 +141,7 @@ export abstract class SlideConnector extends Archetype {
       disallowEmpty(touch);
 
       this.startSharedMemory.lastActiveTime = time.now;
+      if (this.startSharedMemory.heldSoundCandidateTime === time.now) heldSoundActivity.active = true;
     }
 
     if (this.startSharedMemory.lastActiveTime === time.now) {
@@ -212,43 +214,32 @@ export abstract class SlideConnector extends Archetype {
 
     const segmentCount = this.getSegmentCount(visibleTime.min, visibleTime.max);
 
-    for (let i = 0; i < 24; i++) {
-      if (i >= segmentCount) continue;
+    let scaledMin = visibleTime.min;
+    const firstEdge = this.getEdgeBounds(scaledMin);
+    let leftMin = firstEdge.l;
+    let rightMin = firstEdge.r;
+    let yMin = approach(scaledMin - note.duration, scaledMin, time.scaled);
 
-      const scaledTime = {
-        min: Math.lerp(visibleTime.min, visibleTime.max, i / segmentCount),
-        max: Math.lerp(visibleTime.min, visibleTime.max, (i + 1) / segmentCount),
-      };
-
-      const edges = {
-        min: this.getEdgeBounds(scaledTime.min),
-        max: this.getEdgeBounds(scaledTime.max),
-      };
-
-      const y = {
-        min: approach(scaledTime.min - note.duration, scaledTime.min, time.scaled),
-        max: approach(scaledTime.max - note.duration, scaledTime.max, time.scaled),
-      };
+    for (let i = 0; i < segmentCount; i++) {
+      const scaledMax = Math.lerp(visibleTime.min, visibleTime.max, (i + 1) / segmentCount);
+      const edgeMax = this.getEdgeBounds(scaledMax);
+      const yMax = approach(scaledMax - note.duration, scaledMax, time.scaled);
 
       const layout = {
-        x1: edges.min.l * y.min,
-        x2: edges.max.l * y.max,
-        x3: edges.max.r * y.max,
-        x4: edges.min.r * y.min,
-        y1: y.min,
-        y2: y.max,
-        y3: y.max,
-        y4: y.min,
+        x1: leftMin * yMin,
+        x2: edgeMax.l * yMax,
+        x3: edgeMax.r * yMax,
+        x4: rightMin * yMin,
+        y1: yMin,
+        y2: yMax,
+        y3: yMax,
+        y4: yMin,
       };
 
-      const a = this.getAlpha(this.start.scaledTime, this.end.scaledTime, scaledTime.min) * options.connectorAlpha;
+      const a = this.getAlpha(this.start.scaledTime, this.end.scaledTime, scaledMin) * options.connectorAlpha;
 
       if (this.nativeLine) {
-        const progress = Math.unlerpClamped(
-          this.start.scaledTime,
-          this.end.scaledTime,
-          (scaledTime.min + scaledTime.max) / 2,
-        );
+        const progress = Math.unlerpClamped(this.start.scaledTime, this.end.scaledTime, (scaledMin + scaledMax) / 2);
         const id = getNativeSlideSpriteId(skin.sprites, progress, this.visual);
         if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [this.z], a);
       } else if (this.visual === VisualType.Activated) {
@@ -258,6 +249,10 @@ export abstract class SlideConnector extends Archetype {
       } else {
         this.sprites.normal.draw(layout, [this.z], a);
       }
+      scaledMin = scaledMax;
+      leftMin = edgeMax.l;
+      rightMin = edgeMax.r;
+      yMin = yMax;
     }
   }
 

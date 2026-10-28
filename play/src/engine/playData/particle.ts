@@ -10,6 +10,7 @@ import {
   updateConnectWallAggregate,
 } from "../../../../shared/src/engine/data/connectWallAggregate.js";
 import { SIMPLE_LOOP_PHASE_EFFECTS } from "../../../../shared/src/engine/data/simpleLoopPhaseEffects.js";
+import { LOOP_FRAME_EFFECTS } from "../../../../shared/src/engine/data/loopFrameContract.js";
 import {
   NativeLaneEffectType,
   canRestartNativeLaneEffect,
@@ -78,6 +79,7 @@ export const particle = defineParticle({
     flickRightSparks: unused,
     sourceSimpleLoop: "Our Notes Source SimpleLoop Point",
     ...SIMPLE_LOOP_PHASE_EFFECTS,
+    ...LOOP_FRAME_EFFECTS,
     ...nativeShortEffectTable(),
     ...nativeSlideShortEffectTable(),
     ...nativeBackgroundEffectTable(),

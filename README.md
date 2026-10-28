@@ -29,6 +29,14 @@ Chart preview uses the flat `Our Notes Preview Stage` skin sprite. The
 playfield sprite `Our Notes Stage` contains baked perspective and belongs to
 play, watch, and tutorial.
 
+Slide connector tessellation shares each projected edge with the next segment.
+The moving head and its effects share one bounds calculation per render update.
+Active connectors report held sound during their sequential update; the stage
+reads that frame's aggregate instead of scanning the entire chart.
+Particle packs can supply the single-cycle frame effects in
+[`loopFrameContract.ts`](shared/src/engine/data/loopFrameContract.ts). These use
+the authored 0.1-second animation period; older packs retain their full loop.
+
 Flick Sensitivity defaults to 100%; raising it recognizes slower flicks. The
 formal rule is 0.2 cm per 1/60-second reference frame. The Sonolus adapter uses
 an 8 cm reference PlayArea height, giving a normalized velocity threshold of

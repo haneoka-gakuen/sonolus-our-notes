@@ -3,6 +3,9 @@ import { nativeSoundClips } from "../../../../shared/src/engine/data/nativeSound
 export const effect = defineEffect({ clips: nativeSoundClips });
 export const sfxDistance = 0.02;
 
+// Stage clears this before connectors report their held state in sequential order 1.
+export const heldSoundActivity = levelMemory({ active: Boolean });
+
 // One global native long-line cue, even when several connectors are held.
 export interface HeldSoundState {
   holdInstanceId: LoopedEffectClipInstanceId;
