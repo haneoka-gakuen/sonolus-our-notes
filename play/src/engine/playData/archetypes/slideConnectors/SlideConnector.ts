@@ -124,8 +124,7 @@ export abstract class SlideConnector extends Archetype {
 
     const scaledTime = timeScaleChanges.at(time.now - input.offset).scaledTime;
 
-    const l = this.getL(this.getScaleL(scaledTime));
-    const r = this.getR(this.getScaleR(scaledTime));
+    const { l, r } = this.getEdgeBounds(scaledTime);
     const hitbox = getHitbox({
       l,
       r,
@@ -302,10 +301,14 @@ export abstract class SlideConnector extends Archetype {
   }
 
   getEdgeBounds(scaledTime: number) {
-    return {
-      l: this.getL(this.getScaleL(scaledTime)),
-      r: this.getR(this.getScaleR(scaledTime)),
-    };
+    let l = this.head.l, r = this.head.r;
+    if (this.head.l !== this.tail.l || this.head.r !== this.tail.r) {
+      const progress = Math.unlerpClamped(this.head.scaledTime, this.tail.scaledTime, scaledTime);
+      const left = this.easeL(progress);
+      const right = this.import.easeL === this.import.easeR ? left : this.easeR(progress);
+      l = this.getL(left); r = this.getR(right);
+    }
+    return { l, r };
   }
 
   ease(s: number) {

@@ -11,6 +11,9 @@ import { archetypes } from "./index.js";
 export class ScrollRibbon extends Archetype {
   import = this.defineImport(scrollRibbonSchema);
   z = this.entityMemory(Number);
+  viewDuration = this.entityMemory(Number);
+  minimumDepth = this.entityMemory(Number);
+  maximumDepth = this.entityMemory(Number);
   preprocess() {
     if (options.mirror) {
       const leftA = this.import.aLeft, leftB = this.import.bLeft;
@@ -18,10 +21,13 @@ export class ScrollRibbon extends Archetype {
       this.import.bLeft = -this.import.bRight; this.import.bRight = -leftB;
     }
     this.z = getZ(layer.note.connector, this.import.lineEnd, this.import.aLeft);
+    this.viewDuration = this.import.forceNoteSpeed > 0 ? forcedScrollDuration(this.import.forceNoteSpeed) : note.duration;
+    this.minimumDepth = this.viewDuration * (options.hidden > 0 ? options.hidden : -.16);
+    this.maximumDepth = this.viewDuration * (options.laneCover > 0 ? note.coverDuration / note.duration : 1.1);
   }
   updateParallel() {
     if (time.now >= this.import.bTime) return;
-    const duration = this.import.forceNoteSpeed > 0 ? forcedScrollDuration(this.import.forceNoteSpeed) : note.duration;
+    const duration = this.viewDuration;
     const currentA = Math.lerp(currentScrollTime(this.import.aClockL), currentScrollTime(this.import.aClockR), this.import.aRatio);
     const currentB = Math.lerp(currentScrollTime(this.import.bClockL), currentScrollTime(this.import.bClockR), this.import.bRatio);
     let a = this.import.aValue - currentA, b = this.import.bValue - currentB;
@@ -31,8 +37,7 @@ export class ScrollRibbon extends Archetype {
       const progress = Math.unlerpClamped(realA, realB, time.now);
       lA = Math.lerp(lA, lB, progress); rA = Math.lerp(rA, rB, progress); a = 0; realA = time.now;
     }
-    const minimum = options.hidden > 0 ? duration * options.hidden : -duration * .16;
-    const maximum = duration * (options.laneCover > 0 ? note.coverDuration / note.duration : 1.1);
+    const minimum = this.minimumDepth, maximum = this.maximumDepth;
     if (a === b || Math.max(a, b) < minimum || Math.min(a, b) > maximum) return;
     const begin = Math.clamp(a, minimum, maximum), end = Math.clamp(b, minimum, maximum);
     const ratioA = (begin - a) / (b - a), ratioB = (end - a) / (b - a);
