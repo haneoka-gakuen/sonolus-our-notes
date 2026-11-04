@@ -49,7 +49,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   preprocess() {
     super.preprocess();
 
-    this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
+    this.visualTime.copyFrom(Range.l.mul(this.scrollDuration).add(this.scrollTarget));
 
     if (options.sfxEnabled) {
       if (replay.isReplay) {
@@ -61,11 +61,11 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   spawnTime() {
-    return this.visualTime.min;
+    return this.import.scrollRef > 0 ? this.import.scrollSpawn : this.visualTime.min;
   }
 
   despawnTime() {
-    return this.visualTime.max;
+    return this.import.scrollRef > 0 ? this.targetTime : this.visualTime.max;
   }
 
   initialize() {
@@ -76,8 +76,9 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   updateParallel() {
-    if (options.hidden > 0 && time.scaled > this.hiddenTime) return;
-    if (note.isCovered(this.visualTime.max)) return;
+    if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
+    if (options.hidden > 0 && this.scrollNow > this.hiddenTime) return;
+    if (this.scrollCovered) return;
 
     this.render();
   }
@@ -97,7 +98,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   globalInitialize() {
-    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - note.duration * options.hidden;
+    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - this.scrollDuration * options.hidden;
 
     const rects = getNativeNoteRects(
       this.import.lane,
@@ -138,7 +139,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   render() {
-    const y = approach(this.visualTime.min, this.visualTime.max, time.scaled);
+    const y = approach(this.visualTime.min, this.visualTime.max, this.scrollNow);
 
     if (this.useFallbackSprite) return;
 
@@ -147,7 +148,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     this.drawBody(this.bodyIds.middle, this.bodyLayouts.middle, y);
     this.drawBody(this.bodyIds.mainRight, this.bodyLayouts.mainRight, y);
     this.drawBody(this.bodyIds.right, this.bodyLayouts.right, y);
-    this.sprites.tick.draw(this.spriteLayout.mul(y), [this.z], 1);
+    this.sprites.tick.draw(this.spriteLayout.mul(y), [this.z], this.scrollAlpha);
   }
 
   drawBody(id: SkinSpriteId, layout: RectLike, y: number) {

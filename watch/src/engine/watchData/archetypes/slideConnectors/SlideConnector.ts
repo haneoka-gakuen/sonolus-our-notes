@@ -26,6 +26,7 @@ export abstract class SlideConnector extends Archetype {
   abstract slideStartNote: SlideStartNote;
 
   import = this.defineImport({
+    suppressDraw: { name: "suppressDraw", type: Number },
     startRef: { name: "start", type: Number },
     endRef: { name: "end", type: Number },
     headRef: { name: "head", type: Number },
@@ -72,6 +73,7 @@ export abstract class SlideConnector extends Archetype {
   visual = this.entityMemory(DataType<VisualType>);
 
   preprocess() {
+    this.import.suppressDraw = this.headImport.scrollRef > 0 || this.tailImport.scrollRef > 0 ? 1 : 0;
     this.end.time = bpmChanges.at(this.endImport.beat).time;
 
     this.head.time = bpmChanges.at(this.headImport.beat).time;
@@ -161,6 +163,7 @@ export abstract class SlideConnector extends Archetype {
   }
 
   renderConnector() {
+    if (this.import.suppressDraw) return;
     if (options.hidden > 0 && time.scaled > this.hiddenTime) return;
 
     const hiddenDuration = options.hidden > 0 ? note.duration * options.hidden : 0;

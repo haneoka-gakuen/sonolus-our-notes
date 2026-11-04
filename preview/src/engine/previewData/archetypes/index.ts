@@ -1,3 +1,5 @@
+import { ScrollClock } from "./ScrollClock.js";
+import { ScrollRibbon } from "./ScrollRibbon.js";
 import { EngineArchetypeName } from "@sonolus/core";
 import { BpmChange } from "./BpmChange.js";
 import { Initialization } from "./Initialization.js";
@@ -83,4 +85,6 @@ export const archetypes = defineArchetypes({
   CriticalActiveSlideConnector,
 
   SimLine,
+  ScrollClock,
+  ScrollRibbon,
 });

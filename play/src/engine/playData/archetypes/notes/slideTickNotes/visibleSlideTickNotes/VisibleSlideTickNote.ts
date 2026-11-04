@@ -49,9 +49,9 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   preprocess() {
     super.preprocess();
 
-    this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
+    this.visualTime.copyFrom(Range.l.mul(this.scrollDuration).add(this.scrollTarget));
 
-    this.spawnTime = Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime.min).scaledTime);
+    this.spawnTime = this.import.scrollRef > 0 ? Math.min(this.import.scrollSpawn, this.inputTime.min) : Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime.min).scaledTime);
 
     if (this.shouldScheduleSFX) this.scheduleSFX();
   }
@@ -59,7 +59,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   initialize() {
     super.initialize();
 
-    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - note.duration * options.hidden;
+    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - this.scrollDuration * options.hidden;
 
     const rects = getNativeNoteRects(
       this.import.lane,
@@ -86,12 +86,13 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   }
 
   updateParallel() {
+    if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
     super.updateParallel();
     if (this.despawn) return;
 
-    if (time.scaled < this.visualTime.min) return;
-    if (options.hidden > 0 && time.scaled > this.hiddenTime) return;
-    if (note.isCovered(this.visualTime.max)) return;
+    if (this.scrollNow < this.visualTime.min) return;
+    if (options.hidden > 0 && this.scrollNow > this.hiddenTime) return;
+    if (this.scrollCovered) return;
 
     this.render();
   }
@@ -123,7 +124,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
   render() {
     if (time.now >= this.targetTime) return;
 
-    this.y = approach(this.visualTime.min, this.visualTime.max, time.scaled);
+    this.y = approach(this.visualTime.min, this.visualTime.max, this.scrollNow);
 
     if (this.useFallbackSprite) return;
 
@@ -132,7 +133,7 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     this.drawBody(this.bodyIds.middle, this.bodyLayouts.middle, this.y);
     this.drawBody(this.bodyIds.mainRight, this.bodyLayouts.mainRight, this.y);
     this.drawBody(this.bodyIds.right, this.bodyLayouts.right, this.y);
-    this.sprites.tick.draw(this.spriteLayout.mul(this.y), [this.z], 1);
+    this.sprites.tick.draw(this.spriteLayout.mul(this.y), [this.z], this.scrollAlpha);
   }
 
   drawBody(id: SkinSpriteId, layout: RectLike, y: number) {

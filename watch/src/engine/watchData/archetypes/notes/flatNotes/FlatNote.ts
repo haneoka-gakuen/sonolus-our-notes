@@ -107,9 +107,9 @@ export abstract class FlatNote extends Note {
     this.bucket.set(toBucketWindows(this.windows));
     this.archetypeLife.miss = -100;
 
-    this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
+    this.visualTime.copyFrom(Range.l.mul(this.scrollDuration).add(this.scrollTarget));
 
-    this.sharedMemory.despawnTime = timeScaleChanges.at(this.hitTime).scaledTime;
+    this.sharedMemory.despawnTime = this.import.scrollRef > 0 ? this.hitTime : timeScaleChanges.at(this.hitTime).scaledTime;
     if (options.laneEffectEnabled && this.nativeJudgment >= 3) this.playLaneEffects();
     if (
       options.noteEffectEnabled &&
@@ -143,7 +143,7 @@ export abstract class FlatNote extends Note {
   }
 
   spawnTime() {
-    return this.visualTime.min;
+    return this.import.scrollRef > 0 ? this.import.scrollSpawn : this.visualTime.min;
   }
 
   despawnTime() {
@@ -158,8 +158,9 @@ export abstract class FlatNote extends Note {
   }
 
   updateParallel() {
-    if (options.hidden > 0 && time.scaled > this.hiddenTime) return;
-    if (note.isCovered(this.visualTime.max)) return;
+    if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
+    if (options.hidden > 0 && this.scrollNow > this.hiddenTime) return;
+    if (this.scrollCovered) return;
 
     this.render();
   }
@@ -278,7 +279,7 @@ export abstract class FlatNote extends Note {
   }
 
   globalInitialize() {
-    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - note.duration * options.hidden;
+    if (options.hidden > 0) this.hiddenTime = this.visualTime.max - this.scrollDuration * options.hidden;
 
     const rects = this.nativeRects;
     const kind = this.nativeKind;
@@ -330,7 +331,7 @@ export abstract class FlatNote extends Note {
   }
 
   render() {
-    this.y = approach(this.visualTime.min, this.visualTime.max, time.scaled);
+    this.y = approach(this.visualTime.min, this.visualTime.max, this.scrollNow);
 
     this.renderBody();
     this.renderDecoration();
@@ -345,7 +346,7 @@ export abstract class FlatNote extends Note {
   }
 
   drawBodyPart(id: SkinSpriteId, layout: RectLike) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(this.y), [this.z], 1);
+    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(this.y), [this.z], this.scrollAlpha);
   }
 
   get nativeKind() {
@@ -386,9 +387,9 @@ export abstract class FlatNote extends Note {
       : this.import.originalDirection;
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
-      skin.sprites.tapDecoration.draw(layout, [z], 1);
+      skin.sprites.tapDecoration.draw(layout, [z], this.scrollAlpha);
     } else if (this.import.operateType === 20) {
-      skin.sprites.slideDecoration.draw(layout, [z], 1);
+      skin.sprites.slideDecoration.draw(layout, [z], this.scrollAlpha);
     } else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
@@ -396,11 +397,11 @@ export abstract class FlatNote extends Note {
       this.import.operateType === 102
     ) {
       if (direction === 1) {
-        skin.sprites.flickLeftDecoration.draw(layout, [z], 1);
+        skin.sprites.flickLeftDecoration.draw(layout, [z], this.scrollAlpha);
       } else if (direction === 2) {
-        skin.sprites.flickRightDecoration.draw(layout, [z], 1);
+        skin.sprites.flickRightDecoration.draw(layout, [z], this.scrollAlpha);
       } else {
-        skin.sprites.flickDecoration.draw(layout, [z], 1);
+        skin.sprites.flickDecoration.draw(layout, [z], this.scrollAlpha);
       }
     }
   }

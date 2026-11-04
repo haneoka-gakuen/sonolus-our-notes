@@ -1,3 +1,5 @@
+import { forcedScrollDuration } from "../../../../../shared/src/engine/data/scroll.js";
+import { currentScrollTime } from "../scroll.js";
 import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
 import { options } from "../../configuration/options.js";
@@ -30,8 +32,8 @@ export class SimLine extends Archetype {
     this.visualTime.copyFrom(Range.l.mul(note.duration).add(timeScaleChanges.at(this.targetTime).scaledTime));
   }
 
-  spawnTime() {
-    return this.visualTime.min;
+  spawnTime(): number {
+    return this.customScroll ? Math.min(this.aImport.scrollSpawn, this.bImport.scrollSpawn) : this.visualTime.min;
   }
 
   despawnTime(): number {
@@ -48,6 +50,7 @@ export class SimLine extends Archetype {
   }
 
   updateParallel() {
+    if (this.customScroll) { this.renderScroll(); return; }
     if (options.hidden > 0 && time.scaled > this.hiddenTime) return;
     if (note.isCovered(this.visualTime.max)) return;
 
@@ -79,6 +82,27 @@ export class SimLine extends Archetype {
     this.z = getZ(layer.simLine, this.targetTime, this.left);
   }
 
+  get customScroll(): boolean { return this.aImport.scrollRef > 0 && this.bImport.scrollRef > 0; }
+  renderScroll() {
+    const durationA = this.aImport.forceNoteSpeed > 0 ? forcedScrollDuration(this.aImport.forceNoteSpeed) : note.duration;
+    const durationB = this.bImport.forceNoteSpeed > 0 ? forcedScrollDuration(this.bImport.forceNoteSpeed) : note.duration;
+    const a = this.aImport.scrollTarget - currentScrollTime(this.aImport.scrollRef);
+    const b = this.bImport.scrollTarget - currentScrollTime(this.bImport.scrollRef);
+    const cover = options.laneCover > 0 ? note.coverDuration / note.duration : 1.1;
+    if (a < 0 || b < 0 || a > durationA * cover || b > durationB * cover) return;
+    if (options.hidden > 0 && (a < durationA * options.hidden || b < durationB * options.hidden)) return;
+    let left = this.aImport.lane, right = this.bImport.lane;
+    let yLeft = approach(-durationA, 0, -a), yRight = approach(-durationB, 0, -b);
+    if (left > right) {
+      const x = left, y = yLeft; left = right; yLeft = yRight; right = x; yRight = y;
+    }
+    if (skin.sprites.simLine.exists) skin.sprites.simLine.draw({
+      x1: left * yLeft, y1: yLeft + simLine.h,
+      x2: left * yLeft, y2: yLeft - simLine.h,
+      x3: right * yRight, y3: yRight - simLine.h,
+      x4: right * yRight, y4: yRight + simLine.h,
+    }, [this.z], 1);
+  }
   render() {
     const y = approach(this.visualTime.min, this.visualTime.max, time.scaled);
 

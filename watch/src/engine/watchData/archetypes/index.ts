@@ -1,3 +1,5 @@
+import { ScrollRibbon } from "./ScrollRibbon.js";
+import { ScrollClock } from "./ScrollClock.js";
 import { EmptyEffect } from "./EmptyEffect.js";
 import { Initialization } from "./Initialization.js";
 import { SimLine } from "./SimLine.js";
@@ -97,4 +99,6 @@ export const archetypes = defineArchetypes({
   SlideSlotGlowEffect,
   FlickSlotGlowEffect,
   CriticalSlotGlowEffect,
+  ScrollClock,
+  ScrollRibbon,
 });
