@@ -2,7 +2,7 @@ import { getNativeSlideSpriteId } from "../../../../../../shared/src/engine/data
 import { EaseType, ease } from "../../../../../../shared/src/engine/data/EaseType.js";
 import { options } from "../../../configuration/options.js";
 import { panel } from "../../panel.js";
-import { getZ, layer, skin } from "../../skin.js";
+import { drawClippedRibbon, getZ, layer, skin } from "../../skin.js";
 import { archetypes } from "../index.js";
 
 export abstract class SlideConnector extends Archetype {
@@ -92,9 +92,9 @@ export abstract class SlideConnector extends Archetype {
 
         if (this.nativeLine) {
           const progress = Math.unlerpClamped(ft.min, ft.max, (st.min + st.max) / 2);
-          const id = getNativeSlideSpriteId(skin.sprites, progress, 0);
-          if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [z], a);
-        } else this.sprites.normal.draw(layout, [z], a);
+          const id = getNativeSlideSpriteId(skin.sprites.lineNormal0.id, progress, 0);
+          if (skin.sprites.exists(id)) drawClippedRibbon(id, layout, [z], a, x);
+        } else drawClippedRibbon(this.sprites.normal.id, layout, [z], a, x);
       }
     }
   }

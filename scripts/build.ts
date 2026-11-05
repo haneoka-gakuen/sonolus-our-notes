@@ -1,10 +1,14 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { verifyInstalledCompiler } from "./verify-compiler.ts";
 import { isDeepStrictEqual } from "node:util";
-import { gunzipSync } from "node:zlib";
+import { gunzipSync, gzipSync } from "node:zlib";
+import {
+  appendLaneClipSprites,
+  type LaneClipSpriteReference,
+} from "../shared/src/engine/data/nativeLaneClipContract.ts";
 import { SIMPLE_LOOP_WORLD_ROM as sourceLoopRomAbi } from "../shared/src/engine/data/simpleLoopWorldRomAbi.ts";
 const engineRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(engineRoot, "dist");
@@ -63,6 +67,7 @@ async function buildFacet(name: string, dev: string, dist: string): Promise<void
   const facet = FACETS.find((value) => value.name === name)!;
   const data = JSON.parse(gunzipSync(readFileSync(resolve(dist, facet.artifact))).toString("utf8")) as {
     nodes: Array<{ value?: number; func?: string; args?: number[] }>;
+    skin: { sprites: LaneClipSpriteReference[] };
   };
   const maxima = { level: -1, temporary: -1 };
   for (const node of data.nodes) {
@@ -79,6 +84,8 @@ async function buildFacet(name: string, dev: string, dist: string): Promise<void
     maxima[memory] = Math.max(maxima[memory], index);
   }
   console.log(`${facet.artifact}: constant memory addresses level=${maxima.level}, temporary=${maxima.temporary}`);
+  data.skin.sprites = appendLaneClipSprites(data.skin.sprites);
+  writeFileSync(resolve(dist, facet.artifact), gzipSync(JSON.stringify(data)));
 }
 
 function verifyEngineRom(): void {

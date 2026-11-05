@@ -1,3 +1,4 @@
+import { drawLaneClipped, drawLaneNoteClipped } from "../../../../shared/src/engine/data/nativeLaneClip.js";
 import { nativeSlideSprites } from "../../../../shared/src/engine/data/nativeSlideSkin.js";
 import { nativeNoteCapSprites } from "../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
 export const skin = defineSkin({
@@ -69,7 +70,7 @@ export const skin = defineSkin({
     nativeArrowAnimationSkin002: "Our Notes Native Flick Arrow Animation Skin 002",
     nativeArrowAnimationSkin003: "Our Notes Native Flick Arrow Animation Skin 003",
 
-    // Append after every existing import to preserve note/arrow IDs.
+    // Stage lines keep their own unclipped drawing path.
     guideline: "Our Notes Guideline",
     guidelineSpace: "Our Notes Guideline Space",
     outsideLine: "Our Notes Outside Line",
@@ -88,3 +89,11 @@ export const layer = {
   judgmentLine: 1,
   stage: 0,
 };
+
+export function drawClipped(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number, progress: number) {
+  drawLaneNoteClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, -6 * progress, 6 * progress, skin.sprites.length);
+}
+
+export function drawClippedRibbon(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number) {
+  drawLaneClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, 0, 0, -6, 6, skin.sprites.length);
+}

@@ -11,13 +11,19 @@ pnpm run build
 
 The workspace applies `patches/sonolus.js-compiler@1.8.4.patch` to exactly
 `@sonolus/sonolus.js-compiler@1.8.4`. It improves the compiler's FIFO work queue
-and indexes read-only propagation states. Key identity, first-match lookup,
-NaN handling, insertion order, and Value/T comparison remain intact.
-The compiler's optimizer levels and engine behavior are unchanged.
+and stores propagation states with target-indexed bitsets and shared immutable
+blocks of 32 constant values. This avoids copying and scanning a full variable
+map at each control-flow node. Key identity, first-match lookup, NaN-key
+non-matches, NaN-value comparisons, and Value/T joins retain their semantics.
+State entry order is internal; replacements still follow collected IR order.
+Count and definition joins index targets once per input state, preserving first-match lookup and join order. Compiler decisions retain their original semantics.
 
 Backward analyses start with reversed compiler postorder so successor states
 reach predecessors earlier. Internal count-entry order may differ; optimizer
 decisions use target identity and set membership.
+
+CI compiles all four facets with high optimization. The build checks constant
+level and temporary memory addresses against the native 0–4095 range.
 
 `scripts/build.ts` verifies the reviewed patch and installed files before
 generating or compiling facets. It checks both direct imports and the CLI

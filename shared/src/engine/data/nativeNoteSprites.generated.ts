@@ -139,88 +139,13 @@ export const nativeNoteCapSprites = {
     nativeNodeMainRight: 'Our Notes Native Node Main Right',
 } as const
 
-export const getNativeNoteCapId = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number, tilt: number, right: boolean): SkinSpriteId => {
-    if (kind === 0) {
-        if (tilt === 0) return right ? sprites.nativeTapRight0.id : sprites.nativeTapLeft0.id
-        if (tilt === 1) return right ? sprites.nativeTapRight1.id : sprites.nativeTapLeft1.id
-        if (tilt === 2) return right ? sprites.nativeTapRight2.id : sprites.nativeTapLeft2.id
-        if (tilt === 3) return right ? sprites.nativeTapRight3.id : sprites.nativeTapLeft3.id
-        if (tilt === 4) return right ? sprites.nativeTapRight4.id : sprites.nativeTapLeft4.id
-        if (tilt === 5) return right ? sprites.nativeTapRight5.id : sprites.nativeTapLeft5.id
-        return right ? sprites.nativeTapRight6.id : sprites.nativeTapLeft6.id
-    }
-    if (kind === 1) {
-        if (tilt === 0) return right ? sprites.nativeSlideRight0.id : sprites.nativeSlideLeft0.id
-        if (tilt === 1) return right ? sprites.nativeSlideRight1.id : sprites.nativeSlideLeft1.id
-        if (tilt === 2) return right ? sprites.nativeSlideRight2.id : sprites.nativeSlideLeft2.id
-        if (tilt === 3) return right ? sprites.nativeSlideRight3.id : sprites.nativeSlideLeft3.id
-        if (tilt === 4) return right ? sprites.nativeSlideRight4.id : sprites.nativeSlideLeft4.id
-        if (tilt === 5) return right ? sprites.nativeSlideRight5.id : sprites.nativeSlideLeft5.id
-        return right ? sprites.nativeSlideRight6.id : sprites.nativeSlideLeft6.id
-    }
-    if (kind === 2) {
-        if (tilt === 0) return right ? sprites.nativeEndRight0.id : sprites.nativeEndLeft0.id
-        if (tilt === 1) return right ? sprites.nativeEndRight1.id : sprites.nativeEndLeft1.id
-        if (tilt === 2) return right ? sprites.nativeEndRight2.id : sprites.nativeEndLeft2.id
-        if (tilt === 3) return right ? sprites.nativeEndRight3.id : sprites.nativeEndLeft3.id
-        if (tilt === 4) return right ? sprites.nativeEndRight4.id : sprites.nativeEndLeft4.id
-        if (tilt === 5) return right ? sprites.nativeEndRight5.id : sprites.nativeEndLeft5.id
-        return right ? sprites.nativeEndRight6.id : sprites.nativeEndLeft6.id
-    }
-    if (kind === 3) {
-        if (tilt === 0) return right ? sprites.nativeFlickRight0.id : sprites.nativeFlickLeft0.id
-        if (tilt === 1) return right ? sprites.nativeFlickRight1.id : sprites.nativeFlickLeft1.id
-        if (tilt === 2) return right ? sprites.nativeFlickRight2.id : sprites.nativeFlickLeft2.id
-        if (tilt === 3) return right ? sprites.nativeFlickRight3.id : sprites.nativeFlickLeft3.id
-        if (tilt === 4) return right ? sprites.nativeFlickRight4.id : sprites.nativeFlickLeft4.id
-        if (tilt === 5) return right ? sprites.nativeFlickRight5.id : sprites.nativeFlickLeft5.id
-        return right ? sprites.nativeFlickRight6.id : sprites.nativeFlickLeft6.id
-    }
-    if (kind === 4) {
-        if (tilt === 0) return right ? sprites.nativeFlickLeftRight0.id : sprites.nativeFlickLeftLeft0.id
-        if (tilt === 1) return right ? sprites.nativeFlickLeftRight1.id : sprites.nativeFlickLeftLeft1.id
-        if (tilt === 2) return right ? sprites.nativeFlickLeftRight2.id : sprites.nativeFlickLeftLeft2.id
-        if (tilt === 3) return right ? sprites.nativeFlickLeftRight3.id : sprites.nativeFlickLeftLeft3.id
-        if (tilt === 4) return right ? sprites.nativeFlickLeftRight4.id : sprites.nativeFlickLeftLeft4.id
-        if (tilt === 5) return right ? sprites.nativeFlickLeftRight5.id : sprites.nativeFlickLeftLeft5.id
-        return right ? sprites.nativeFlickLeftRight6.id : sprites.nativeFlickLeftLeft6.id
-    }
-    if (kind === 5) {
-        if (tilt === 0) return right ? sprites.nativeFlickRightRight0.id : sprites.nativeFlickRightLeft0.id
-        if (tilt === 1) return right ? sprites.nativeFlickRightRight1.id : sprites.nativeFlickRightLeft1.id
-        if (tilt === 2) return right ? sprites.nativeFlickRightRight2.id : sprites.nativeFlickRightLeft2.id
-        if (tilt === 3) return right ? sprites.nativeFlickRightRight3.id : sprites.nativeFlickRightLeft3.id
-        if (tilt === 4) return right ? sprites.nativeFlickRightRight4.id : sprites.nativeFlickRightLeft4.id
-        if (tilt === 5) return right ? sprites.nativeFlickRightRight5.id : sprites.nativeFlickRightLeft5.id
-        return right ? sprites.nativeFlickRightRight6.id : sprites.nativeFlickRightLeft6.id
-    }
-    if (kind === 6) {
-        if (tilt === 0) return right ? sprites.nativeTraceRight0.id : sprites.nativeTraceLeft0.id
-        if (tilt === 1) return right ? sprites.nativeTraceRight1.id : sprites.nativeTraceLeft1.id
-        if (tilt === 2) return right ? sprites.nativeTraceRight2.id : sprites.nativeTraceLeft2.id
-        if (tilt === 3) return right ? sprites.nativeTraceRight3.id : sprites.nativeTraceLeft3.id
-        if (tilt === 4) return right ? sprites.nativeTraceRight4.id : sprites.nativeTraceLeft4.id
-        if (tilt === 5) return right ? sprites.nativeTraceRight5.id : sprites.nativeTraceLeft5.id
-        return right ? sprites.nativeTraceRight6.id : sprites.nativeTraceLeft6.id
-    }
-    {
-        if (tilt === 0) return right ? sprites.nativeNodeRight0.id : sprites.nativeNodeLeft0.id
-        if (tilt === 1) return right ? sprites.nativeNodeRight1.id : sprites.nativeNodeLeft1.id
-        if (tilt === 2) return right ? sprites.nativeNodeRight2.id : sprites.nativeNodeLeft2.id
-        if (tilt === 3) return right ? sprites.nativeNodeRight3.id : sprites.nativeNodeLeft3.id
-        if (tilt === 4) return right ? sprites.nativeNodeRight4.id : sprites.nativeNodeLeft4.id
-        if (tilt === 5) return right ? sprites.nativeNodeRight5.id : sprites.nativeNodeLeft5.id
-        return right ? sprites.nativeNodeRight6.id : sprites.nativeNodeLeft6.id
-    }
+// defineSkin preserves this contiguous cap/main declaration order.
+const kindIndex = (kind: number) => kind === 0 ? 0 : kind === 1 ? 1 : kind === 2 ? 2 : kind === 3 ? 3 : kind === 4 ? 4 : kind === 5 ? 5 : kind === 6 ? 6 : 7
+export const getNativeNoteCapId = (first: SkinSpriteId, kind: number, tilt: number, right: boolean): SkinSpriteId => {
+    const tiltIndex = tilt === 0 ? 0 : tilt === 1 ? 1 : tilt === 2 ? 2 : tilt === 3 ? 3 : tilt === 4 ? 4 : tilt === 5 ? 5 : 6
+    return (first + kindIndex(kind) * 14 + (right ? 7 : 0) + tiltIndex) as SkinSpriteId
 }
-const mainId = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number, part: number): SkinSpriteId => {
-    if (kind === 0) return part === 0 ? sprites.nativeTapMainLeft.id : part === 1 ? sprites.nativeTapMainMiddle.id : sprites.nativeTapMainRight.id
-    if (kind === 1) return part === 0 ? sprites.nativeSlideMainLeft.id : part === 1 ? sprites.nativeSlideMainMiddle.id : sprites.nativeSlideMainRight.id
-    if (kind === 2) return part === 0 ? sprites.nativeEndMainLeft.id : part === 1 ? sprites.nativeEndMainMiddle.id : sprites.nativeEndMainRight.id
-    if (kind === 3) return part === 0 ? sprites.nativeFlickMainLeft.id : part === 1 ? sprites.nativeFlickMainMiddle.id : sprites.nativeFlickMainRight.id
-    if (kind === 4) return part === 0 ? sprites.nativeFlickLeftMainLeft.id : part === 1 ? sprites.nativeFlickLeftMainMiddle.id : sprites.nativeFlickLeftMainRight.id
-    if (kind === 5) return part === 0 ? sprites.nativeFlickRightMainLeft.id : part === 1 ? sprites.nativeFlickRightMainMiddle.id : sprites.nativeFlickRightMainRight.id
-    if (kind === 6) return part === 0 ? sprites.nativeTraceMainLeft.id : part === 1 ? sprites.nativeTraceMainMiddle.id : sprites.nativeTraceMainRight.id
-    return part === 0 ? sprites.nativeNodeMainLeft.id : part === 1 ? sprites.nativeNodeMainMiddle.id : sprites.nativeNodeMainRight.id
+export const getNativeNoteMainIds = (first: SkinSpriteId, kind: number) => {
+    const left = first + 112 + kindIndex(kind) * 3
+    return { left: left as SkinSpriteId, middle: (left + 1) as SkinSpriteId, right: (left + 2) as SkinSpriteId }
 }
-export const getNativeNoteMainIds = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number) => ({ left: mainId(sprites, kind, 0), middle: mainId(sprites, kind, 1), right: mainId(sprites, kind, 2) })

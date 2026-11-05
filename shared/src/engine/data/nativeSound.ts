@@ -23,6 +23,23 @@ export const nativeSoundClips = {
     criticalTrace: 'Our Notes Trace',
 } as const
 
+/** LiveSoundPlayer.GetTapSeType, outside deck-driven Gekisou activation. */
+export function nativeNoteSoundType(operateType: number, direction: number, judgment: number): number {
+    if (judgment < 3 || judgment > 6) return 0
+    if (operateType === 40 || operateType === 41 || operateType === 42 || operateType === 102)
+        return direction === 0 ? 5 : 6
+    if (operateType === 21) return 10
+    if (operateType === 60 || operateType === 61 || operateType === 62 || operateType === 63 || operateType === 104 || operateType === 105) return 9
+    if (operateType !== 1 && operateType !== 20 && operateType !== 22 && operateType !== 101) return 0
+    return judgment === 6 ? 8 : judgment - 1
+}
+
+/** Legacy Sonolus flat notes omit the original operateType field. */
+export function nativePlaybackSoundType(operateType: number, direction: number, judgment: number): number {
+    if (operateType !== 0) return nativeNoteSoundType(operateType, direction, judgment)
+    return judgment < 3 || judgment > 6 ? 0 : judgment === 6 ? 8 : judgment - 1
+}
+
 export const nativeSoundGroups = [
     { id: 1, name: 'Our Notes', prefix: 'default', holdGains: [0.85 * 0.35, 0.75 * 0.35] },
     { id: 2, name: 'Solid', prefix: 'solid', holdGains: [0.45] },

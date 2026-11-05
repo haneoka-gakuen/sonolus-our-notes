@@ -17,7 +17,7 @@ import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/na
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, particle } from "../../../particle.js";
-import { getZ, layer, skin } from "../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 import { LOOP_FX_PARTS, moveLoopFx, spawnLoopFx } from "../../../hitFx.js";
 
@@ -145,15 +145,15 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
     const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
-    this.drawSlidePart(getNativeNoteCapId(skin.sprites, 1, parts.leftTilt, parts.leftRight), rects.left);
+    this.drawSlidePart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.leftTilt, parts.leftRight), rects.left);
     this.drawSlidePart(skin.sprites.nativeSlideMainLeft.id, rects.mainLeft);
     this.drawSlidePart(skin.sprites.nativeSlideMainMiddle.id, rects.middle);
     this.drawSlidePart(skin.sprites.nativeSlideMainRight.id, rects.mainRight);
-    this.drawSlidePart(getNativeNoteCapId(skin.sprites, 1, parts.rightTilt, parts.rightRight), rects.right);
+    this.drawSlidePart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.rightTilt, parts.rightRight), rects.right);
   }
 
   drawSlidePart(id: SkinSpriteId, rect: RectLike) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(rect), [this.slideZ], 1);
+    if (skin.sprites.exists(id)) drawClipped(id, nativeNoteLayout(rect), [this.slideZ], 1, 1);
   }
 
   // effect001 hold loop: one looping instance per part, re-projected every frame.

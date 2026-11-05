@@ -6,7 +6,7 @@ import { EaseType, ease } from "../../../../../../shared/src/engine/data/EaseTyp
 import { approach } from "../../../../../../shared/src/engine/data/note.js";
 import { options } from "../../../configuration/options.js";
 import { note } from "../../note.js";
-import { getZ, layer, skin } from "../../skin.js";
+import { drawClippedRibbon, getZ, layer, skin } from "../../skin.js";
 import { SlideStartNote } from "../notes/flatNotes/slideStartNotes/SlideStartNote.js";
 
 export enum VisualType {
@@ -204,14 +204,14 @@ export abstract class SlideConnector extends Archetype {
 
       if (this.nativeLine) {
         const progress = Math.unlerpClamped(this.start.scaledTime, this.end.scaledTime, (scaledMin + scaledMax) / 2);
-        const id = getNativeSlideSpriteId(skin.sprites, progress, this.visual);
-        if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [this.z], a);
+        const id = getNativeSlideSpriteId(skin.sprites.lineNormal0.id, progress, this.visual);
+        if (skin.sprites.exists(id)) drawClippedRibbon(id, layout, [this.z], a);
       } else if (this.visual === VisualType.Activated) {
-        this.sprites.pressed.draw(layout, [this.z], a);
+        drawClippedRibbon(this.sprites.pressed.id, layout, [this.z], a);
       } else if (this.visual === VisualType.NotActivated) {
-        this.sprites.missed.draw(layout, [this.z], a);
+        drawClippedRibbon(this.sprites.missed.id, layout, [this.z], a);
       } else {
-        this.sprites.normal.draw(layout, [this.z], a);
+        drawClippedRibbon(this.sprites.normal.id, layout, [this.z], a);
       }
       scaledMin = scaledMax;
       leftMin = edgeMax.l;

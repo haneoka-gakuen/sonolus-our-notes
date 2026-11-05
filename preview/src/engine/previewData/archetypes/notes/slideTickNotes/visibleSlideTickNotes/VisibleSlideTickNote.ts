@@ -8,7 +8,7 @@ import {
 } from "../../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
 import { panel } from "../../../../panel.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
-import { getZ, layer, skin } from "../../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../../skin.js";
 import { SlideTickNote } from "../SlideTickNote.js";
 
 export abstract class VisibleSlideTickNote extends SlideTickNote {
@@ -32,18 +32,18 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
       skin.sprites.nativeArrowAnimationSkin003.exists,
       true,
     );
-    const main = getNativeNoteMainIds(skin.sprites, 7);
-    this.drawBody(getNativeNoteCapId(skin.sprites, 7, 0, false), rects.left, pos, z);
+    const main = getNativeNoteMainIds(skin.sprites.nativeTapLeft0.id, 7);
+    this.drawBody(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 7, 0, false), rects.left, pos, z);
     this.drawBody(main.left, rects.mainLeft, pos, z);
     this.drawBody(main.middle, rects.middle, pos, z);
     this.drawBody(main.right, rects.mainRight, pos, z);
-    this.drawBody(getNativeNoteCapId(skin.sprites, 7, 0, true), rects.right, pos, z);
-    this.sprites.tick.draw(new Rect(getNativePreviewNoteRect(rects.mark, scaledScreen.wToH)).add(pos), [z], 1);
+    this.drawBody(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 7, 0, true), rects.right, pos, z);
+    drawClipped(this.sprites.tick.id, new Rect(getNativePreviewNoteRect(rects.mark, scaledScreen.wToH)).add(pos).toQuad(), [z], 1, pos.x);
   }
 
   drawBody(id: SkinSpriteId, rect: RectLike, pos: Vec, z: number) {
     if (skin.sprites.exists(id))
-      skin.sprites.draw(id, new Rect(getNativePreviewNoteRect(rect, scaledScreen.wToH)).add(pos), [z - 1], 1);
+      drawClipped(id, new Rect(getNativePreviewNoteRect(rect, scaledScreen.wToH)).add(pos).toQuad(), [z - 1], 1, pos.x);
   }
 
   get useFallbackSprite() {

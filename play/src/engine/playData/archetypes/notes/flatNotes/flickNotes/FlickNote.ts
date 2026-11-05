@@ -14,7 +14,7 @@ import { options } from "../../../../../configuration/options.js";
 import { effect, sfxDistance } from "../../../../effect.js";
 import { sizedEffectId, spawnNativeFlickEffect } from "../../../../particle.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
-import { getZ, layer, skin } from "../../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../../skin.js";
 import { FlatNote } from "../FlatNote.js";
 
 export abstract class FlickNote extends FlatNote {
@@ -131,7 +131,7 @@ export abstract class FlickNote extends FlatNote {
       );
       if (nativeSkin !== NativeArrowAnimationSkin.None) {
         const animation = readNativeArrowFrame(this.flickImport.direction);
-        skin.sprites.draw(
+        drawClipped(
           this.arrow.sprite,
           getNativeArrowAnimationLayout(
             this.arrow.layout,
@@ -144,18 +144,16 @@ export abstract class FlickNote extends FlatNote {
             animation.scaleY,
           ).mul(this.y),
           [this.arrow.z],
-          animation.alpha,
-        );
+          animation.alpha, this.y);
         return;
       }
       const s = Math.mod(time.now, 0.5) / 0.5;
 
-      skin.sprites.draw(
+      drawClipped(
         this.arrow.sprite,
         this.arrow.layout.add(this.arrow.animation.mul(s)).mul(this.y),
         [this.arrow.z],
-        1 - Math.ease("In", "Cubic", s),
-      );
+        1 - Math.ease("In", "Cubic", s), this.y);
     } else {
       const nativeSkin = getNativeArrowAnimationSkin(
         skin.sprites.nativeArrowAnimationSkin001.exists,
@@ -163,10 +161,10 @@ export abstract class FlickNote extends FlatNote {
         skin.sprites.nativeArrowAnimationSkin003.exists,
       );
       if (nativeSkin === NativeArrowAnimationSkin.None) {
-        skin.sprites.draw(this.arrow.sprite, this.arrow.layout.mul(this.y), [this.arrow.z], 1);
+        drawClipped(this.arrow.sprite, this.arrow.layout.mul(this.y), [this.arrow.z], 1, this.y);
       } else {
         const pose = getNativeArrowAnimation(nativeSkin, this.flickImport.direction, 0);
-        skin.sprites.draw(
+        drawClipped(
           this.arrow.sprite,
           getNativeArrowAnimationLayout(
             this.arrow.layout,
@@ -179,8 +177,7 @@ export abstract class FlickNote extends FlatNote {
             pose.scaleY,
           ).mul(this.y),
           [this.arrow.z],
-          pose.alpha,
-        );
+          pose.alpha, this.y);
       }
     }
   }

@@ -40,7 +40,7 @@ jobs:
           - facet: preview
             optimization: high
           - facet: tutorial
-            optimization: low
+            optimization: high
     steps:
       - uses: actions/checkout@v7
       - run: corepack enable

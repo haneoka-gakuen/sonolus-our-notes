@@ -47,53 +47,153 @@ index 9f30b69c1e3d7176c20f9e6c270b2b0ff4fb3ab0..4206271fb79bb0335120976c5afdf606
              workList.push(ir);
          }
      }
+diff --git a/dist/ir/optimize/inline/count/compare.js b/dist/ir/optimize/inline/count/compare.js
+index a970d05567d29a5a6dedf2e1c84c802a511a5224..05d1d17752d75d708c06e3151b4b7b92eda1c2dc 100644
+--- a/dist/ir/optimize/inline/count/compare.js
++++ b/dist/ir/optimize/inline/count/compare.js
+@@ -1,3 +1,2 @@
+-import { myMapCompare } from '../../../../utils/MyMap.js';
+-export const compareCountInlineStates = (a, b) => myMapCompare(a.refs, b.refs, (valueA, valueB) => valueA === valueB) &&
+-    myMapCompare(a.counts, b.counts, (valueA, valueB) => valueA === valueB);
++import { compareCountEntries } from './indexed.js';
++export const compareCountInlineStates = (a, b) => compareCountEntries(a.refs, b.refs) && compareCountEntries(a.counts, b.counts);
+diff --git a/dist/ir/optimize/inline/count/indexed.js b/dist/ir/optimize/inline/count/indexed.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..5ed3b6248151437fcc46f48dc7ed4ed488c9d9c9
+--- /dev/null
++++ b/dist/ir/optimize/inline/count/indexed.js
+@@ -0,0 +1,32 @@
++// MyMap uses the first === key match; Map's NaN-key match must remain absent.
++export const indexEntries = (entries) => {
++    const index = new Map();
++    for (const { k, v } of entries) {
++        if (k !== k || index.has(k)) continue;
++        index.set(k, v);
++    }
++    return index;
++};
++export const compareCountEntries = (a, b) => {
++    if (a === b) return true;
++    if (a.length !== b.length) return false;
++    const index = indexEntries(b);
++    for (const { k, v } of a) {
++        const value = k === k ? index.get(k) : undefined;
++        if (value === undefined || v !== value) return false;
++    }
++    return true;
++};
++export const mergeCountEntries = (a, b) => {
++    if (a === b) return a;
++    const left = indexEntries(a), right = indexEntries(b);
++    const keys = new Set([...a.map(({ k }) => k), ...b.map(({ k }) => k)]);
++    const result = [];
++    for (const k of keys) {
++        const valueA = k === k ? left.get(k) : undefined;
++        const valueB = k === k ? right.get(k) : undefined;
++        const v = valueA === 'T' || valueB === 'T' ? 'T' : valueA ?? valueB;
++        if (v !== undefined) result.push({ k, v });
++    }
++    return result;
++};
+diff --git a/dist/ir/optimize/inline/count/meet.js b/dist/ir/optimize/inline/count/meet.js
+index 5264d626ddbe6935c594ec26875526ff16435ddd..ea2dcbc208edd63ad2e80cf547843a15ac0bcf6a 100644
+--- a/dist/ir/optimize/inline/count/meet.js
++++ b/dist/ir/optimize/inline/count/meet.js
+@@ -1,17 +1,2 @@
+-import { myMapMerge } from '../../../../utils/MyMap.js';
+-export const meetCountInlineStates = (a, b) => ({
+-    refs: a.refs === b.refs
+-        ? a.refs
+-        : myMapMerge(a.refs, b.refs, (valueA, valueB) => {
+-            if (valueA === 'T' || valueB === 'T')
+-                return 'T';
+-            return valueA ?? valueB;
+-        }),
+-    counts: a.counts === b.counts
+-        ? a.counts
+-        : myMapMerge(a.counts, b.counts, (valueA, valueB) => {
+-            if (valueA === 'T' || valueB === 'T')
+-                return 'T';
+-            return valueA ?? valueB;
+-        }),
+-});
++import { mergeCountEntries } from './indexed.js';
++export const meetCountInlineStates = (a, b) => ({ refs: mergeCountEntries(a.refs, b.refs), counts: mergeCountEntries(a.counts, b.counts) });
+diff --git a/dist/ir/optimize/inline/find/compare.js b/dist/ir/optimize/inline/find/compare.js
+index 31daf2eebbec543f09e590e7fe7a51214fec940f..98fedb39bcf158dc612654a20a2bfdea7f755ada 100644
+--- a/dist/ir/optimize/inline/find/compare.js
++++ b/dist/ir/optimize/inline/find/compare.js
+@@ -1,2 +1,2 @@
+-import { myMapCompare } from '../../../../utils/MyMap.js';
+-export const compareFindInlineStates = (a, b) => myMapCompare(a, b, (valueA, valueB) => valueA === valueB);
++import { compareCountEntries } from '../count/indexed.js';
++export const compareFindInlineStates = (a, b) => compareCountEntries(a, b);
+diff --git a/dist/ir/optimize/inline/find/meet.js b/dist/ir/optimize/inline/find/meet.js
+index f39d89bc5840624ec971a07b6716585c162b3920..bb3ac4c41c0cec2aff69516ecd2624862069585b 100644
+--- a/dist/ir/optimize/inline/find/meet.js
++++ b/dist/ir/optimize/inline/find/meet.js
+@@ -1,10 +1,16 @@
+-import { myMapMerge } from '../../../../utils/MyMap.js';
+-export const meetFindInlineStates = (a, b) => a === b
+-    ? a
+-    : myMapMerge(a, b, (valueA, valueB) => {
+-        if (valueA === 'T' || valueB === 'T')
+-            return 'T';
+-        if (!valueA || !valueB)
+-            return valueA ?? valueB;
+-        return valueA === valueB ? valueA : 'T';
+-    });
++import { indexEntries } from '../count/indexed.js';
++export const meetFindInlineStates = (a, b) => {
++    if (a === b) return a;
++    const left = indexEntries(a), right = indexEntries(b);
++    const keys = new Set([...a.map(({ k }) => k), ...b.map(({ k }) => k)]);
++    const result = [];
++    for (const k of keys) {
++        const valueA = k === k ? left.get(k) : undefined;
++        const valueB = k === k ? right.get(k) : undefined;
++        const v = valueA === 'T' || valueB === 'T' ? 'T'
++            : !valueA || !valueB ? valueA ?? valueB
++            : valueA === valueB ? valueA : 'T';
++        if (v !== undefined) result.push({ k, v });
++    }
++    return result;
++};
 diff --git a/dist/ir/optimize/propagate/analyze/compare.js b/dist/ir/optimize/propagate/analyze/compare.js
-index e57ce8497a5f675aa90973e96b36afebdb17019c..1ce0ad90b6db312dd8916c16fe6cae2d9d157c60 100644
+index e57ce8497a5f675aa90973e96b36afebdb17019c..41df9a9213f859a50eb09bfc58444cb5c6fc66d4 100644
 --- a/dist/ir/optimize/propagate/analyze/compare.js
 +++ b/dist/ir/optimize/propagate/analyze/compare.js
-@@ -1,6 +1,14 @@
+@@ -1,6 +1 @@
 -import { myMapCompare } from '../../../../utils/MyMap.js';
 -export const comparePropagateStates = (a, b) => myMapCompare(a, b, (elementA, elementB) => {
 -    if (elementA === 'T' || elementB === 'T')
 -        return elementA === elementB;
 -    return elementA.value === elementB.value;
 -});
-+import { firstEntryIndex } from './first-entry-index.js';
-+export const comparePropagateStates = (a, b) => {
-+    if (a === b) return true;
-+    if (a.length !== b.length) return false;
-+    const index = firstEntryIndex(b);
-+    for (const { k, v: elementA } of a) {
-+        const elementB = k === k ? index.get(k) : undefined;
-+        if (elementB === undefined) return false;
-+        if (elementA === 'T' || elementB === 'T') {
-+            if (elementA !== elementB) return false;
-+        } else if (elementA.value !== elementB.value) return false;
-+    }
-+    return true;
-+};
-diff --git a/dist/ir/optimize/propagate/analyze/first-entry-index.js b/dist/ir/optimize/propagate/analyze/first-entry-index.js
-new file mode 100644
-index 0000000000000000000000000000000000000000..fc3b04a7c38a04ed52e6659156134da7b8e77f1f
---- /dev/null
-+++ b/dist/ir/optimize/propagate/analyze/first-entry-index.js
-@@ -0,0 +1,11 @@
-+/** Local index for an immutable propagation state. Keep the first === match.
-+ * Map uses SameValueZero, so NaN keys must remain absent as in myMapGet.
-+ */
-+export const firstEntryIndex = (state) => {
-+    const index = new Map();
-+    for (const { k, v } of state) {
-+        if (k !== k || index.has(k)) continue;
-+        index.set(k, v);
-+    }
-+    return index;
-+};
++export { comparePropagateStates } from './state.js';
+diff --git a/dist/ir/optimize/propagate/analyze/index.js b/dist/ir/optimize/propagate/analyze/index.js
+index 9114ca614e63c9533ccd4c1577ff201a6777e63f..b3ddf36adb03f5bb5e721b2faf726252b1cd104d 100644
+--- a/dist/ir/optimize/propagate/analyze/index.js
++++ b/dist/ir/optimize/propagate/analyze/index.js
+@@ -1,10 +1,11 @@
++import { createPropagateState } from './state.js';
+ import { dataAnalysisForwardIR } from '../../../dataflowAnalysis/forward/index.js';
+ import { comparePropagateStates } from './compare.js';
+ import { meetPropagateStates } from './meet.js';
+ import { transferPropagateIR } from './transfer/index.js';
+ export const analyzePropagateIR = (ir, irs) => {
+-    const initial = [];
+-    const states = new Map(irs.map((ir) => [ir, []]));
++    const initial = createPropagateState(irs);
++    const states = new Map(irs.map((ir) => [ir, initial]));
+     dataAnalysisForwardIR(ir, irs, initial, states, {
+         transfer: transferPropagateIR,
+         meet: meetPropagateStates,
 diff --git a/dist/ir/optimize/propagate/analyze/meet.js b/dist/ir/optimize/propagate/analyze/meet.js
-index cc461ed393043c7a5a67e6c54b7a05ec4f080c54..d4611a0b1d8910ceeea6d38e0a9b03a5283e60d0 100644
+index cc461ed393043c7a5a67e6c54b7a05ec4f080c54..5db3cb8a2f572b87c2db30abe0e224b9f7f1cf06 100644
 --- a/dist/ir/optimize/propagate/analyze/meet.js
 +++ b/dist/ir/optimize/propagate/analyze/meet.js
-@@ -1,10 +1,18 @@
+@@ -1,10 +1 @@
 -import { myMapMerge } from '../../../../utils/MyMap.js';
 -export const meetPropagateStates = (a, b) => a === b
 -    ? a
@@ -104,21 +204,160 @@ index cc461ed393043c7a5a67e6c54b7a05ec4f080c54..d4611a0b1d8910ceeea6d38e0a9b03a5
 -            return elementA ?? elementB;
 -        return elementA.value === elementB.value ? elementA : 'T';
 -    });
-+import { firstEntryIndex } from './first-entry-index.js';
++export { meetPropagateStates } from './state.js';
+diff --git a/dist/ir/optimize/propagate/analyze/state.js b/dist/ir/optimize/propagate/analyze/state.js
+index cb0ff5c3b541f646105198ee23ac0fc3d805023e..de7db723930e29b06afd1e2de3d2566a7fec49a9 100644
+--- a/dist/ir/optimize/propagate/analyze/state.js
++++ b/dist/ir/optimize/propagate/analyze/state.js
+@@ -1 +1,119 @@
+-export {};
++// Each analysis owns one key index. States share unchanged 32-entry value blocks.
++const maskAt = (id) => 1 << (id & 31);
++const bitCount = (value) => {
++    value -= (value >>> 1) & 0x55555555;
++    value = (value & 0x33333333) + ((value >>> 2) & 0x33333333);
++    value = (value + (value >>> 4)) & 0x0f0f0f0f;
++    return Math.imul(value, 0x01010101) >>> 24;
++};
++export const createPropagateState = (irs) => {
++    const keys = new Map();
++    for (const ir of irs) {
++        if (ir.type !== 'Get' && ir.type !== 'Set') continue;
++        const key = ir.target;
++        if (key !== key || keys.has(key)) continue;
++        keys.set(key, keys.size);
++    }
++    const words = Math.ceil(keys.size / 32);
++    return { keys, defined: new Uint32Array(words), top: new Uint32Array(words), values: [], size: 0, nanKeys: 0, nanValues: 0 };
++};
++export const readPropagateEntry = (state, key) => {
++    if (key !== key) return undefined;
++    const id = state.keys.get(key);
++    if (id === undefined) return undefined;
++    const word = id >>> 5, mask = maskAt(id);
++    if (!(state.defined[word] & mask)) return undefined;
++    return state.top[word] & mask ? 'T' : state.values[word][id & 31];
++};
++export const setPropagateEntry = (state, key, value) => {
++    // A NaN key never matches === lookup; every assignment appends an entry.
++    if (key !== key) return { ...state, size: state.size + 1, nanKeys: state.nanKeys + 1 };
++    const id = state.keys.get(key), word = id >>> 5, mask = maskAt(id);
++    const present = (state.defined[word] & mask) !== 0;
++    const previous = !present ? undefined : state.top[word] & mask ? 'T' : state.values[word][id & 31];
++    if (previous === value && !state.nanKeys && !state.nanValues) return state;
++    let defined = state.defined;
++    if (!present) {
++        defined = defined.slice();
++        defined[word] |= mask;
++    }
++    let top = state.top;
++    const isTop = value === 'T';
++    if (((top[word] & mask) !== 0) !== isTop) {
++        top = top.slice();
++        if (isTop) top[word] |= mask;
++        else top[word] &= ~mask;
++    }
++    let values = state.values;
++    if (!isTop) {
++        values = values.slice();
++        const block = values[word]?.slice() ?? new Array(32);
++        block[id & 31] = value;
++        values[word] = block;
++    }
++    const wasNaN = previous !== undefined && previous !== 'T' && Number.isNaN(previous.value);
++    const isNaN = !isTop && Number.isNaN(value.value);
++    return { ...state, defined, top, values, size: state.size + (present ? 0 : 1), nanValues: state.nanValues - Number(wasNaN) + Number(isNaN) };
++};
++export const comparePropagateStates = (a, b) => {
++    if (a === b) return true;
++    if (a.size !== b.size || a.nanKeys || b.nanKeys || a.nanValues || b.nanValues) return false;
++    for (let word = 0; word < a.defined.length; word++) {
++        if (a.defined[word] !== b.defined[word] || a.top[word] !== b.top[word]) return false;
++        if (a.values[word] === b.values[word]) continue;
++        let constants = a.defined[word] & ~a.top[word];
++        while (constants) {
++            const slot = 31 - Math.clz32(constants & -constants);
++            if (a.values[word][slot].value !== b.values[word][slot].value) return false;
++            constants &= constants - 1;
++        }
++    }
++    return true;
++};
 +export const meetPropagateStates = (a, b) => {
 +    if (a === b) return a;
-+    const left = firstEntryIndex(a);
-+    const right = firstEntryIndex(b);
-+    // The existing Set defines insertion order and normalizes -0 keys.
-+    const keys = new Set([...a.map(({ k }) => k), ...b.map(({ k }) => k)]);
-+    const result = [];
-+    for (const k of keys) {
-+        const elementA = k === k ? left.get(k) : undefined;
-+        const elementB = k === k ? right.get(k) : undefined;
-+        const v = elementA === 'T' || elementB === 'T' ? 'T'
-+            : !elementA || !elementB ? elementA ?? elementB
-+            : elementA.value === elementB.value ? elementA : 'T';
-+        if (v !== undefined) result.push({ k, v });
++    if (!a.size && !b.nanKeys && !b.nanValues) return b;
++    if (!b.size && !a.nanKeys && !a.nanValues) return a;
++    const defined = new Uint32Array(a.defined.length), top = new Uint32Array(a.top.length);
++    const values = a.values.slice();
++    let size = 0, nanValues = 0;
++    for (let word = 0; word < defined.length; word++) {
++        const ad = a.defined[word], bd = b.defined[word];
++        const ac = ad & ~a.top[word], bc = bd & ~b.top[word];
++        const d = ad | bd;
++        let t = a.top[word] | b.top[word];
++        let both = ac & bc;
++        if (a.values[word] !== b.values[word] || a.nanValues || b.nanValues) {
++            while (both) {
++                const mask = both & -both, slot = 31 - Math.clz32(mask);
++                if (a.values[word][slot].value !== b.values[word][slot].value) t |= mask;
++                both &= both - 1;
++            }
++        }
++        let rightOnly = bc & ~ad;
++        if (rightOnly) {
++            if (!ac) values[word] = b.values[word];
++            else {
++                const block = a.values[word].slice();
++                while (rightOnly) {
++                    const slot = 31 - Math.clz32(rightOnly & -rightOnly);
++                    block[slot] = b.values[word][slot];
++                    rightOnly &= rightOnly - 1;
++                }
++                values[word] = block;
++            }
++        }
++        defined[word] = d;
++        top[word] = t;
++        size += bitCount(d);
++        if (a.nanValues || b.nanValues) {
++            let constants = d & ~t;
++            while (constants) {
++                const slot = 31 - Math.clz32(constants & -constants);
++                if (Number.isNaN(values[word][slot].value)) nanValues++;
++                constants &= constants - 1;
++            }
++        }
 +    }
-+    return result;
++    return { keys: a.keys, defined, top, values, size, nanKeys: 0, nanValues };
 +};
+diff --git a/dist/ir/optimize/propagate/analyze/transfer/Set.js b/dist/ir/optimize/propagate/analyze/transfer/Set.js
+index 69de1fb13e484486afef92a61d07034f9de998a8..4a374f026dd723ca3d6c03daa89f7c8fd3bc5d79 100644
+--- a/dist/ir/optimize/propagate/analyze/transfer/Set.js
++++ b/dist/ir/optimize/propagate/analyze/transfer/Set.js
+@@ -1,7 +1,2 @@
+-import { myMapSet } from '../../../../../utils/MyMap.js';
+-export const transferPropagateSet = (ir, input) => {
+-    const output = [...input];
+-    const element = ir.value.type === 'Value' ? ir.value : 'T';
+-    myMapSet(output, ir.target, element);
+-    return output;
+-};
++import { setPropagateEntry } from '../state.js';
++export const transferPropagateSet = (ir, input) => setPropagateEntry(input, ir.target, ir.value.type === 'Value' ? ir.value : 'T');
+diff --git a/dist/ir/optimize/propagate/apply/index.js b/dist/ir/optimize/propagate/apply/index.js
+index 1b0c80b4da5dcc56573f11a5d6f8a71684d0f109..16408a78d313d12267aa5bc2100865bff379ccdb 100644
+--- a/dist/ir/optimize/propagate/apply/index.js
++++ b/dist/ir/optimize/propagate/apply/index.js
+@@ -1,10 +1,10 @@
+-import { myMapGet } from '../../../../utils/MyMap.js';
++import { readPropagateEntry } from '../analyze/state.js';
+ import { replaceIR } from '../../../replace/index.js';
+ export const applyPropagateIR = (ir, states) => {
+     const replacements = new Map([...states.entries()].flatMap(([ir, state]) => {
+         if (ir.type !== 'Get')
+             return [];
+-        const element = myMapGet(state, ir.target);
++        const element = readPropagateEntry(state, ir.target);
+         if (!element || element === 'T')
+             return [];
+         return [[ir, { ...element }]];

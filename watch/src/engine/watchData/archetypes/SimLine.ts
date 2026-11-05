@@ -4,7 +4,7 @@ import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
 import { options } from "../../configuration/options.js";
 import { note } from "../note.js";
-import { getZ, layer, skin } from "../skin.js";
+import { drawClippedRibbon, getZ, layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 
 export class SimLine extends Archetype {
@@ -96,7 +96,7 @@ export class SimLine extends Archetype {
     if (left > right) {
       const x = left, y = yLeft; left = right; yLeft = yRight; right = x; yRight = y;
     }
-    if (skin.sprites.simLine.exists) skin.sprites.simLine.draw({
+    if (skin.sprites.simLine.exists) drawClippedRibbon(skin.sprites.simLine.id, {
       x1: left * yLeft, y1: yLeft + simLine.h,
       x2: left * yLeft, y2: yLeft - simLine.h,
       x3: right * yRight, y3: yRight - simLine.h,
@@ -117,6 +117,6 @@ export class SimLine extends Archetype {
 
     if (!skin.sprites.simLine.exists) return;
 
-    skin.sprites.simLine.draw(layout, [this.z], 1);
+    drawClippedRibbon(skin.sprites.simLine.id, layout.toQuad(), [this.z], 1);
   }
 }

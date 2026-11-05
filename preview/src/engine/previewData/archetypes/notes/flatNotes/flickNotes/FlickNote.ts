@@ -9,7 +9,7 @@ import {
 } from "../../../../../../../../shared/src/engine/data/nativeArrowAnimation.js";
 import { options } from "../../../../../configuration/options.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
-import { getZ, layer, skin } from "../../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../../skin.js";
 import { FlatNote } from "../FlatNote.js";
 
 export abstract class FlickNote extends FlatNote {
@@ -44,7 +44,7 @@ export abstract class FlickNote extends FlatNote {
     const arrowSpriteId = getArrowSpriteId(this.arrowSprites, this.import.size, this.flickImport.direction, nativeSkin);
 
     if (skin.sprites.exists(arrowSpriteId)) {
-      skin.sprites.draw(
+      drawClipped(
         arrowSpriteId,
         getPreviewArrowLayout(
           this.import.size,
@@ -56,6 +56,7 @@ export abstract class FlickNote extends FlatNote {
         ).add(pos),
         [z],
         getNativeArrowAnimation(nativeSkin, this.flickImport.direction, 0).alpha,
+        pos.x,
       );
     }
 

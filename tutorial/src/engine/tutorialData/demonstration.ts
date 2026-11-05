@@ -32,7 +32,7 @@ import {
   spawnHoldEffect,
 } from "./particle.js";
 import { segment } from "./segment.js";
-import { layer, skin } from "./skin.js";
+import { drawClipped, drawClippedRibbon, layer, skin } from "./skin.js";
 import { effect, playTutorialSound, startHeldSound, stopHeldSound } from "./sound.js";
 
 const state = tutorialMemory({ hit: Boolean, holding: Boolean, ended: Boolean });
@@ -76,7 +76,7 @@ const arrows = {
 };
 
 function drawPart(id: SkinSpriteId, rect: RectLike, y: number, z: number) {
-  if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(rect).mul(y), [z], 1);
+  if (skin.sprites.exists(id)) drawClipped(id, nativeNoteLayout(rect).mul(y), [z], 1, y);
 }
 
 function drawNote(operateType: number, direction: number, lane: number, y: number) {
@@ -89,12 +89,12 @@ function drawNote(operateType: number, direction: number, lane: number, y: numbe
     skin.sprites.nativeArrowAnimationSkin003.exists,
   );
   const parts = getNativeNoteParts(lane, tutorialNoteSize, false);
-  const main = getNativeNoteMainIds(skin.sprites, kind);
-  drawPart(getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight), rects.left, y, layer.note.body);
+  const main = getNativeNoteMainIds(skin.sprites.nativeTapLeft0.id, kind);
+  drawPart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.leftTilt, parts.leftRight), rects.left, y, layer.note.body);
   drawPart(main.left, rects.mainLeft, y, layer.note.body);
   drawPart(main.middle, rects.middle, y, layer.note.body);
   drawPart(main.right, rects.mainRight, y, layer.note.body);
-  drawPart(getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight), rects.right, y, layer.note.body);
+  drawPart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.rightTilt, parts.rightRight), rects.right, y, layer.note.body);
   const decoration =
     kind === 0
       ? skin.sprites.tapDecoration.id
@@ -124,9 +124,9 @@ function drawArrow(direction: number, lane: number, y: number) {
   if (!skin.sprites.exists(id)) return;
   const base = getArrowLayout(tutorialNoteSize, flickDirection, lane, 1, nativeSkin);
   const animation = getNativeArrowAnimation(nativeSkin, flickDirection, segment.time);
-  if (nativeSkin === NativeArrowAnimationSkin.None) skin.sprites.draw(id, base.mul(y), [layer.note.arrow], 1);
+  if (nativeSkin === NativeArrowAnimationSkin.None) drawClipped(id, base.mul(y), [layer.note.arrow], 1, y);
   else
-    skin.sprites.draw(
+    drawClipped(
       id,
       getNativeArrowAnimationLayout(
         base,
@@ -139,8 +139,7 @@ function drawArrow(direction: number, lane: number, y: number) {
         animation.scaleY,
       ).mul(y),
       [layer.note.arrow],
-      animation.alpha,
-    );
+      animation.alpha, y);
 }
 
 function drawRibbon(lesson: TutorialLesson, first: number, clock: number, active: boolean) {
@@ -152,9 +151,9 @@ function drawRibbon(lesson: TutorialLesson, first: number, clock: number, active
     const t = approach(0, 2, clock - max * 2);
     const nearLane = Math.lerp(lesson.startLane, lesson.endLane, min);
     const farLane = Math.lerp(lesson.startLane, lesson.endLane, max);
-    const id = getNativeSlideSpriteId(skin.sprites, (min + max) / 2, active ? 2 : 0);
+    const id = getNativeSlideSpriteId(skin.sprites.lineNormal0.id, (min + max) / 2, active ? 2 : 0);
     if (skin.sprites.exists(id))
-      skin.sprites.draw(
+      drawClippedRibbon(
         id,
         new Quad({
           x1: (nearLane - tutorialNoteSize) * b,
@@ -167,8 +166,7 @@ function drawRibbon(lesson: TutorialLesson, first: number, clock: number, active
           y4: b,
         }),
         [layer.note.connector],
-        1,
-      );
+        1);
   }
 }
 

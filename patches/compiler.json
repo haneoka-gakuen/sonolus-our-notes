@@ -1,13 +1,21 @@
 {
   "version": "1.8.4",
   "patchFile": "sonolus.js-compiler@1.8.4.patch",
-  "patchSha256": "f935b96016d1888110fbc05c7f6241405874471814f953d6c917934a1b20ffb7",
+  "patchSha256": "b4092411ca8732214adbdda1d1166b1677a4e0614101e6f26a91f6c45fdbde5b",
   "files": {
-    "ir/optimize/propagate/analyze/compare.js": "5ba107769760808927b2d5417bd125657a251c51d90955a82ec1f1db5acf17d2",
-    "ir/optimize/propagate/analyze/meet.js": "3751b551d74c74367618503e01a28c809b07c050ab2d748ba07aa3357b07c8ea",
-    "ir/optimize/propagate/analyze/first-entry-index.js": "56530400b427187c81cedd5b3605b53a603982cb73e968d2cafe751ff9ce8b76",
     "ir/dataflowAnalysis/forward/index.js": "ecd2008beea7dc2d6a5b278ef20fe6e380758872ae47469e460f90bb1137a47c",
-    "ir/dataflowAnalysis/backward/index.js": "55f103af9012ace45b3e82d0818b4c6fbf1c8dd07d36787751fa7fa3ec1bad5f"
+    "ir/dataflowAnalysis/backward/index.js": "55f103af9012ace45b3e82d0818b4c6fbf1c8dd07d36787751fa7fa3ec1bad5f",
+    "ir/optimize/propagate/analyze/index.js": "24fb6c8e02bb3a665b9f7a0c0bac91911d72bd830737ab66811af54400c96e3f",
+    "ir/optimize/propagate/analyze/compare.js": "c3a28f01515a79945b1e48d3128dfc1ef6355a01565620eae5c9eb76cf0ff079",
+    "ir/optimize/propagate/analyze/meet.js": "8c8123a2f1e86892393db6244cb22458c9d15bd94845bbbed533e1b66ab581fd",
+    "ir/optimize/propagate/analyze/state.js": "c6d75bc98579de42f8862494de566c782d73cb6111087925018eaf5dc23f8e8a",
+    "ir/optimize/propagate/analyze/transfer/Set.js": "4e2d9d529eeb61047e758496d051d0c01aa0c41f23d32dc588e901354beac528",
+    "ir/optimize/propagate/apply/index.js": "4f4bfd63c390298581f64f97c8f203158296fd6da7a09194a68763160b5c24a7",
+    "ir/optimize/inline/count/compare.js": "32c98239a5d31b68b3d7ae7db1e84125cc8c33db736eaf6f26e045b576667a58",
+    "ir/optimize/inline/count/meet.js": "26817f0838e2812e3015dc0a3a84d1826abf6b0e13da43fc059d9b6d166fedff",
+    "ir/optimize/inline/count/indexed.js": "597acfe8272645cd4c0406e697b0c1a13d9901c19c8df7728cdb730947f8cd2f",
+    "ir/optimize/inline/find/compare.js": "59aff55b1943e581714c85d4688a8275909025925ebc6231f744f42496b0ca89",
+    "ir/optimize/inline/find/meet.js": "e6e29262a6d155bac01f32d5dd2d6373ae629ec0f971ced70a04901fb4a39081"
   },
-  "reviewedUnifiedDiffSha256": "c0752abaecc5b56f97bccd2124696407c8aedcf0b325372363e08d3c629d871e"
+  "reviewedUnifiedDiffSha256": "b4092411ca8732214adbdda1d1166b1677a4e0614101e6f26a91f6c45fdbde5b"
 }

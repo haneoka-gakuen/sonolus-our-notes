@@ -14,7 +14,7 @@ import { options } from "../../../../../configuration/options.js";
 import { sfxDistance } from "../../../../effect.js";
 import { note } from "../../../../note.js";
 
-import { getZ, layer, skin } from "../../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../../skin.js";
 import { SlideTickNote } from "../SlideTickNote.js";
 
 export abstract class VisibleSlideTickNote extends SlideTickNote {
@@ -69,9 +69,9 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
       skin.sprites.nativeArrowAnimationSkin003.exists,
     );
     const parts = getNativeNoteParts(this.import.lane, this.import.size, false);
-    const main = getNativeNoteMainIds(skin.sprites, 7);
-    this.bodyIds.left = getNativeNoteCapId(skin.sprites, 7, parts.leftTilt, parts.leftRight);
-    this.bodyIds.right = getNativeNoteCapId(skin.sprites, 7, parts.rightTilt, parts.rightRight);
+    const main = getNativeNoteMainIds(skin.sprites.nativeTapLeft0.id, 7);
+    this.bodyIds.left = getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 7, parts.leftTilt, parts.leftRight);
+    this.bodyIds.right = getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 7, parts.rightTilt, parts.rightRight);
     this.bodyIds.mainLeft = main.left;
     this.bodyIds.middle = main.middle;
     this.bodyIds.mainRight = main.right;
@@ -133,11 +133,11 @@ export abstract class VisibleSlideTickNote extends SlideTickNote {
     this.drawBody(this.bodyIds.middle, this.bodyLayouts.middle, this.y);
     this.drawBody(this.bodyIds.mainRight, this.bodyLayouts.mainRight, this.y);
     this.drawBody(this.bodyIds.right, this.bodyLayouts.right, this.y);
-    this.sprites.tick.draw(this.spriteLayout.mul(this.y), [this.z], this.scrollAlpha);
+    drawClipped(this.sprites.tick.id, this.spriteLayout.mul(this.y), [this.z], this.scrollAlpha, this.y);
   }
 
   drawBody(id: SkinSpriteId, layout: RectLike, y: number) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(y), [this.z - 1], 1);
+    if (skin.sprites.exists(id)) drawClipped(id, nativeNoteLayout(layout).mul(y), [this.z - 1], 1, y);
   }
 
   playHitEffects() {

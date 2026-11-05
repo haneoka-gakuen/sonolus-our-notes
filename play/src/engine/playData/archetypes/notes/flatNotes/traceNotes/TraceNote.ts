@@ -1,4 +1,4 @@
-import { getZ, layer } from "../../../../skin.js";
+import { drawClipped, getZ, layer } from "../../../../skin.js";
 import { disallowEmpty } from "../../../InputManager.js";
 import { getTraceHit } from "../../../../trace.js";
 import { sizedEffectId, spawnNativeConnectEffect } from "../../../../particle.js";
@@ -70,7 +70,7 @@ export abstract class TraceNote extends FlatNote {
     super.render();
 
     if (!this.useFallbackSprites) {
-      this.sprites.diamond.draw(this.diamondLayout.mul(this.y), [this.diamondZ], 1);
+      drawClipped(this.sprites.diamond.id, this.diamondLayout.mul(this.y).toQuad(), [this.diamondZ], 1, this.y);
     }
   }
 

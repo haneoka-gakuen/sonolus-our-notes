@@ -53,22 +53,9 @@ export const nativeSlideSprites = {
     lineMissed15: 'Our Notes Native Line Missed 15',
 } as const
 
-export const getNativeSlideSpriteId = (sprites: { [Key in keyof typeof nativeSlideSprites]: { id: SkinSpriteId } }, progress: number, state: number): SkinSpriteId => {
+/** Cells are declared as contiguous Normal, Pressed and Missed ranges. */
+export const getNativeSlideSpriteId = (firstNormal: SkinSpriteId, progress: number, state: number): SkinSpriteId => {
     const cell = Math.clamp(Math.floor(progress * 16), 0, 15)
-    if (cell === 0) return state === 2 ? sprites.linePressed0.id : state === 1 ? sprites.lineMissed0.id : sprites.lineNormal0.id
-    if (cell === 1) return state === 2 ? sprites.linePressed1.id : state === 1 ? sprites.lineMissed1.id : sprites.lineNormal1.id
-    if (cell === 2) return state === 2 ? sprites.linePressed2.id : state === 1 ? sprites.lineMissed2.id : sprites.lineNormal2.id
-    if (cell === 3) return state === 2 ? sprites.linePressed3.id : state === 1 ? sprites.lineMissed3.id : sprites.lineNormal3.id
-    if (cell === 4) return state === 2 ? sprites.linePressed4.id : state === 1 ? sprites.lineMissed4.id : sprites.lineNormal4.id
-    if (cell === 5) return state === 2 ? sprites.linePressed5.id : state === 1 ? sprites.lineMissed5.id : sprites.lineNormal5.id
-    if (cell === 6) return state === 2 ? sprites.linePressed6.id : state === 1 ? sprites.lineMissed6.id : sprites.lineNormal6.id
-    if (cell === 7) return state === 2 ? sprites.linePressed7.id : state === 1 ? sprites.lineMissed7.id : sprites.lineNormal7.id
-    if (cell === 8) return state === 2 ? sprites.linePressed8.id : state === 1 ? sprites.lineMissed8.id : sprites.lineNormal8.id
-    if (cell === 9) return state === 2 ? sprites.linePressed9.id : state === 1 ? sprites.lineMissed9.id : sprites.lineNormal9.id
-    if (cell === 10) return state === 2 ? sprites.linePressed10.id : state === 1 ? sprites.lineMissed10.id : sprites.lineNormal10.id
-    if (cell === 11) return state === 2 ? sprites.linePressed11.id : state === 1 ? sprites.lineMissed11.id : sprites.lineNormal11.id
-    if (cell === 12) return state === 2 ? sprites.linePressed12.id : state === 1 ? sprites.lineMissed12.id : sprites.lineNormal12.id
-    if (cell === 13) return state === 2 ? sprites.linePressed13.id : state === 1 ? sprites.lineMissed13.id : sprites.lineNormal13.id
-    if (cell === 14) return state === 2 ? sprites.linePressed14.id : state === 1 ? sprites.lineMissed14.id : sprites.lineNormal14.id
-    return state === 2 ? sprites.linePressed15.id : state === 1 ? sprites.lineMissed15.id : sprites.lineNormal15.id
+    const offset = state === 2 ? 16 : state === 1 ? 32 : 0
+    return (firstNormal + offset + (cell >= 0 ? cell : 15)) as SkinSpriteId
 }

@@ -13,7 +13,7 @@ import {
 import { options } from "../../../../configuration/options.js";
 import { scaledScreen } from "../../../scaledScreen.js";
 import { panel } from "../../../panel.js";
-import { getZ, layer, skin } from "../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../skin.js";
 import { Note } from "../Note.js";
 
 export abstract class FlatNote extends Note {
@@ -57,17 +57,17 @@ export abstract class FlatNote extends Note {
       getNativeNoteDirection(this.import.originalDirection, options.mirror),
     );
     const parts = getNativeNoteParts(this.import.lane, this.import.size, true);
-    const main = getNativeNoteMainIds(skin.sprites, kind);
-    this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight), rects.left, pos, z);
+    const main = getNativeNoteMainIds(skin.sprites.nativeTapLeft0.id, kind);
+    this.drawBodySprite(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.leftTilt, parts.leftRight), rects.left, pos, z);
     this.drawBodySprite(main.left, rects.mainLeft, pos, z);
     this.drawBodySprite(main.middle, rects.middle, pos, z);
     this.drawBodySprite(main.right, rects.mainRight, pos, z);
-    this.drawBodySprite(getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight), rects.right, pos, z);
+    this.drawBodySprite(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.rightTilt, parts.rightRight), rects.right, pos, z);
   }
 
   drawBodySprite(id: SkinSpriteId, rect: RectLike, pos: Vec, z: number) {
     if (skin.sprites.exists(id))
-      skin.sprites.draw(id, new Rect(getNativePreviewNoteRect(rect, scaledScreen.wToH)).add(pos), [z], 1);
+      drawClipped(id, new Rect(getNativePreviewNoteRect(rect, scaledScreen.wToH)).add(pos).toQuad(), [z], 1, pos.x);
   }
 
   get nativeMarkRect() {
@@ -82,9 +82,9 @@ export abstract class FlatNote extends Note {
   renderDecoration(pos: Vec, z: number) {
     const layout = new Rect(getNativePreviewNoteRect(this.nativeMarkRect, scaledScreen.wToH)).add(pos);
     if (this.import.operateType === 1 || this.import.operateType === 101) {
-      skin.sprites.tapDecoration.draw(layout, [z], 1);
+      drawClipped(skin.sprites.tapDecoration.id, layout.toQuad(), [z], 1, pos.x);
     } else if (this.import.operateType === 20) {
-      skin.sprites.slideDecoration.draw(layout, [z], 1);
+      drawClipped(skin.sprites.slideDecoration.id, layout.toQuad(), [z], 1, pos.x);
     } else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
@@ -99,9 +99,9 @@ export abstract class FlatNote extends Note {
             ? 1
             : 0
         : this.import.originalDirection;
-      if (direction === 1) skin.sprites.flickLeftDecoration.draw(layout, [z], 1);
-      else if (direction === 2) skin.sprites.flickRightDecoration.draw(layout, [z], 1);
-      else skin.sprites.flickDecoration.draw(layout, [z], 1);
+      if (direction === 1) drawClipped(skin.sprites.flickLeftDecoration.id, layout.toQuad(), [z], 1, pos.x);
+      else if (direction === 2) drawClipped(skin.sprites.flickRightDecoration.id, layout.toQuad(), [z], 1, pos.x);
+      else drawClipped(skin.sprites.flickDecoration.id, layout.toQuad(), [z], 1, pos.x);
     }
   }
 

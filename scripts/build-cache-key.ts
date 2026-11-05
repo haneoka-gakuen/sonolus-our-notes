@@ -33,6 +33,8 @@ export async function facetCacheIdentity(facet: string, optimization: string) {
   const inputs = new Set(Object.keys(result.metafile.inputs));
   for (const path of [
     "scripts/build-cache-key.ts",
+    "scripts/build.ts",
+    "shared/src/engine/data/nativeLaneClipContract.ts",
     "scripts/verify-compiler.ts",
     "esbuild.config.ts",
     `${facet}/sonolus-cli.config.ts`,

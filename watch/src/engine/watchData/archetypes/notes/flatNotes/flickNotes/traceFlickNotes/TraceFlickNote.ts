@@ -1,4 +1,4 @@
-import { getZ, layer } from "../../../../../skin.js";
+import { drawClipped, getZ, layer } from "../../../../../skin.js";
 import { FlickNote } from "../FlickNote.js";
 
 export abstract class TraceFlickNote extends FlickNote {
@@ -37,7 +37,7 @@ export abstract class TraceFlickNote extends FlickNote {
     super.render();
 
     if (!this.useFallbackSprites) {
-      this.sprites.diamond.draw(this.diamondLayout.mul(this.y), [this.diamondZ], 1);
+      drawClipped(this.sprites.diamond.id, this.diamondLayout.mul(this.y).toQuad(), [this.diamondZ], 1, this.y);
     }
   }
 

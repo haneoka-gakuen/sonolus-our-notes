@@ -1,3 +1,4 @@
+import { nativePlaybackSoundType } from "../../../../../../../shared/src/engine/data/nativeSound.js";
 import {
   NativeLaneEffectType,
   nativeLaneFeedbackFirst,
@@ -31,7 +32,7 @@ import {
   spawnNativeEffect,
   spawnNativeSlideEffect,
 } from "../../../particle.js";
-import { getZ, layer, skin } from "../../../skin.js";
+import { drawClipped, getZ, layer, skin } from "../../../skin.js";
 import { InputNote } from "../InputNote.js";
 import { containsInputAccuracy } from "../../../inputClock.js";
 
@@ -79,11 +80,12 @@ export abstract class FlatNote extends InputNote {
     mainRight: Rect,
     right: Rect,
   });
+  // Negative cached IDs mark body layouts wholly inside the lanes.
   bodyIds = this.entityMemory({
-    left: SkinSpriteId,
-    mainLeft: SkinSpriteId,
-    mainRight: SkinSpriteId,
-    right: SkinSpriteId,
+    left: Number,
+    mainLeft: Number,
+    mainRight: Number,
+    right: Number,
   });
   z = this.entityMemory(Number);
 
@@ -132,9 +134,9 @@ export abstract class FlatNote extends InputNote {
     const rects = this.nativeRects;
     const kind = this.nativeKind;
     const parts = getNativeNoteParts(this.import.lane, this.import.size, false);
-    this.bodyIds.left = getNativeNoteCapId(skin.sprites, kind, parts.leftTilt, parts.leftRight);
-    this.bodyIds.right = getNativeNoteCapId(skin.sprites, kind, parts.rightTilt, parts.rightRight);
-    const main = getNativeNoteMainIds(skin.sprites, kind);
+    this.bodyIds.left = getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.leftTilt, parts.leftRight);
+    this.bodyIds.right = getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, kind, parts.rightTilt, parts.rightRight);
+    const main = getNativeNoteMainIds(skin.sprites.nativeTapLeft0.id, kind);
     this.bodyIds.mainLeft = main.left;
     this.bodyIds.mainRight = main.right;
     new Rect(rects.left).copyTo(this.spriteLayouts.left);
@@ -142,6 +144,12 @@ export abstract class FlatNote extends InputNote {
     new Rect(rects.mainRight).copyTo(this.spriteLayouts.mainRight);
     new Rect(rects.middle).copyTo(this.spriteLayouts.middle);
     new Rect(rects.right).copyTo(this.spriteLayouts.right);
+    if (Math.min(rects.left.l, rects.left.r, rects.mainLeft.l, rects.mainLeft.r, rects.middle.l, rects.middle.r, rects.mainRight.l, rects.mainRight.r, rects.right.l, rects.right.r) >= -6 && Math.max(rects.left.l, rects.left.r, rects.mainLeft.l, rects.mainLeft.r, rects.middle.l, rects.middle.r, rects.mainRight.l, rects.mainRight.r, rects.right.l, rects.right.r) <= 6) {
+      this.bodyIds.left = -this.bodyIds.left - 1;
+      this.bodyIds.mainLeft = -this.bodyIds.mainLeft - 1;
+      this.bodyIds.mainRight = -this.bodyIds.mainRight - 1;
+      this.bodyIds.right = -this.bodyIds.right - 1;
+    }
 
     this.z = getZ(this.layer, this.targetTime, this.import.lane);
     this.result.accuracy = this.windows.input.max;
@@ -257,6 +265,7 @@ export abstract class FlatNote extends InputNote {
   }
 
   scheduleSFX() {
+    if (nativePlaybackSoundType(this.import.operateType, this.import.originalDirection, 5) === 0) return;
     // Sonolus auto SFX is scheduled before an input result exists. Ordinary
     // play has no Just/Gekisou activation, so schedule the native Perfect cue.
     if ("fallback" in this.clips && this.useFallbackClip) {
@@ -276,13 +285,17 @@ export abstract class FlatNote extends InputNote {
   renderBody() {
     this.drawBodyPart(this.bodyIds.left, this.spriteLayouts.left);
     this.drawBodyPart(this.bodyIds.mainLeft, this.spriteLayouts.mainLeft);
-    this.drawBodyPart(getNativeNoteMainIds(skin.sprites, this.nativeKind).middle, this.spriteLayouts.middle);
+    this.drawBodyPart(this.bodyIds.mainLeft < 0 ? this.bodyIds.mainLeft - 1 : this.bodyIds.mainLeft + 1, this.spriteLayouts.middle);
     this.drawBodyPart(this.bodyIds.mainRight, this.spriteLayouts.mainRight);
     this.drawBodyPart(this.bodyIds.right, this.spriteLayouts.right);
   }
 
-  drawBodyPart(id: SkinSpriteId, layout: RectLike) {
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, nativeNoteLayout(layout).mul(this.y), [this.z], this.scrollAlpha);
+  drawBodyPart(cachedId: number, layout: RectLike) {
+    const id = (cachedId < 0 ? -cachedId - 1 : cachedId) as SkinSpriteId;
+    if (!skin.sprites.exists(id)) return;
+    const quad = nativeNoteLayout(layout).mul(this.y);
+    if (cachedId < 0) native.Draw(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, this.z, this.scrollAlpha, 0, 0, 0);
+    else drawClipped(id, quad, [this.z], this.scrollAlpha, this.y);
   }
 
   get nativeKind() {
@@ -323,9 +336,9 @@ export abstract class FlatNote extends InputNote {
       : this.import.originalDirection;
 
     if (this.import.operateType === 1 || this.import.operateType === 101) {
-      skin.sprites.tapDecoration.draw(layout, [z], this.scrollAlpha);
+      drawClipped(skin.sprites.tapDecoration.id, layout, [z], this.scrollAlpha, this.y);
     } else if (this.import.operateType === 20) {
-      skin.sprites.slideDecoration.draw(layout, [z], this.scrollAlpha);
+      drawClipped(skin.sprites.slideDecoration.id, layout, [z], this.scrollAlpha, this.y);
     } else if (
       this.import.operateType === 40 ||
       this.import.operateType === 41 ||
@@ -333,11 +346,11 @@ export abstract class FlatNote extends InputNote {
       this.import.operateType === 102
     ) {
       if (direction === 1) {
-        skin.sprites.flickLeftDecoration.draw(layout, [z], this.scrollAlpha);
+        drawClipped(skin.sprites.flickLeftDecoration.id, layout, [z], this.scrollAlpha, this.y);
       } else if (direction === 2) {
-        skin.sprites.flickRightDecoration.draw(layout, [z], this.scrollAlpha);
+        drawClipped(skin.sprites.flickRightDecoration.id, layout, [z], this.scrollAlpha, this.y);
       } else {
-        skin.sprites.flickDecoration.draw(layout, [z], this.scrollAlpha);
+        drawClipped(skin.sprites.flickDecoration.id, layout, [z], this.scrollAlpha, this.y);
       }
     }
   }
@@ -392,10 +405,10 @@ export abstract class FlatNote extends InputNote {
 
   playSFX() {
     // IsEnableSeJudgement gates note SE on judgements 3..6 (Good..Just).
-    // Bad and Miss play nothing; a Just plays the dedicated two-layer Just
-    // cue instead of the Perfect waveform.
-    if (this.nativeJudgment <= 2) return;
-    if (this.nativeJudgment === 6 && effect.clips.just.exists) {
+    // Tap Just uses its dedicated cue; Trace and connection sounds retain their own type.
+    const type = nativePlaybackSoundType(this.import.operateType, this.import.originalDirection, this.nativeJudgment);
+    if (type === 0) return;
+    if (type === 8 && effect.clips.just.exists) {
       effect.clips.just.play(sfxDistance);
       return;
     }

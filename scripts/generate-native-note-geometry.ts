@@ -94,19 +94,14 @@ for (const kind of kinds)
   for (const side of ["Left", "Middle", "Right"])
     sprites += `    native${kind}Main${side}: 'Our Notes Native ${kind} Main ${side}',\n`;
 sprites += "} as const\n\n";
-sprites += `export const getNativeNoteCapId = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number, tilt: number, right: boolean): SkinSpriteId => {\n`;
-for (const [kind, label] of kinds.entries()) {
-  sprites += `    ${kind === 7 ? "" : `if (kind === ${kind}) `}{\n`;
-  for (let tilt = 0; tilt <= 6; tilt++)
-    sprites += `        ${tilt === 6 ? "" : `if (tilt === ${tilt}) `}return right ? sprites.native${label}Right${tilt}.id : sprites.native${label}Left${tilt}.id\n`;
-  sprites += "    }\n";
-}
-sprites += "}\n";
-sprites += `const mainId = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number, part: number): SkinSpriteId => {\n`;
-for (const [kind, label] of kinds.entries())
-  sprites += `    ${kind === 7 ? "" : `if (kind === ${kind}) `}return part === 0 ? sprites.native${label}MainLeft.id : part === 1 ? sprites.native${label}MainMiddle.id : sprites.native${label}MainRight.id\n`;
-sprites += "}\n";
-sprites += `export const getNativeNoteMainIds = (sprites: { [Key in keyof typeof nativeNoteCapSprites]: { id: SkinSpriteId } }, kind: number) => ({ left: mainId(sprites, kind, 0), middle: mainId(sprites, kind, 1), right: mainId(sprites, kind, 2) })\n`;
+sprites += `// defineSkin preserves this contiguous cap/main declaration order.\n`;
+sprites += `const kindIndex = (kind: number) => ${kinds.slice(0, -1).map((_, index) => `kind === ${index} ? ${index} : `).join("")}${kinds.length - 1}\n`;
+sprites += `export const getNativeNoteCapId = (first: SkinSpriteId, kind: number, tilt: number, right: boolean): SkinSpriteId => {\n`;
+sprites += `    const tiltIndex = ${Array.from({ length: 6 }, (_, index) => `tilt === ${index} ? ${index} : `).join("")}6\n`;
+sprites += `    return (first + kindIndex(kind) * 14 + (right ? 7 : 0) + tiltIndex) as SkinSpriteId\n}\n`;
+sprites += `export const getNativeNoteMainIds = (first: SkinSpriteId, kind: number) => {\n`;
+sprites += `    const left = first + ${kinds.length * 14} + kindIndex(kind) * 3\n`;
+sprites += `    return { left: left as SkinSpriteId, middle: (left + 1) as SkinSpriteId, right: (left + 2) as SkinSpriteId }\n}\n`;
 writeFileSync(resolve(root, "shared/src/engine/data/nativeNoteSprites.generated.ts"), sprites);
 
 // Tutorials display a fixed centred size=2 note. Precompute that authored

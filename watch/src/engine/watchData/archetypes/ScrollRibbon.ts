@@ -5,7 +5,7 @@ import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { options } from "../../configuration/options.js";
 import { currentScrollTime } from "../scroll.js";
 import { note } from "../note.js";
-import { getZ, layer, skin } from "../skin.js";
+import { drawClippedRibbon, getZ, layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 
 export class ScrollRibbon extends Archetype {
@@ -54,14 +54,14 @@ export class ScrollRibbon extends Archetype {
     let alpha = options.connectorAlpha;
     const progress = Math.unlerpClamped(this.import.lineStart, this.import.lineEnd,
       Math.lerp(realA, realB, (ratioA + ratioB) / 2));
-    let id = getNativeSlideSpriteId(skin.sprites, progress, this.visual);
+    let id = getNativeSlideSpriteId(skin.sprites.lineNormal0.id, progress, this.visual);
     if (this.import.guide) {
       id = this.import.critical ? skin.sprites.criticalSlideConnectorNormal.id : skin.sprites.normalSlideConnectorNormal.id;
       const t = Math.clamp((time.now - this.import.lineEnd + .1) / .1, 0, 1);
       const t2 = t * t, t3 = t2 * t;
       alpha *= Math.clamp(2 * t3 - 3 * t2 + 1 + (t3 - 2 * t2 + t) * -.9501662254333496 + (t3 - t2) * -.8831168413162231, 0, 1);
     }
-    if (skin.sprites.exists(id)) skin.sprites.draw(id, layout, [this.z], alpha);
+    if (skin.sprites.exists(id)) drawClippedRibbon(id, layout, [this.z], alpha);
   }
   spawnTime(): number { return this.import.spawn; }
   despawnTime(): number { return this.import.bTime; }

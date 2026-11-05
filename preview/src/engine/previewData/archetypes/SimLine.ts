@@ -3,7 +3,7 @@ import { note as nativeNote } from "../../../../../shared/src/engine/data/note.j
 import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
 import { note } from "../note.js";
 import { panel } from "../panel.js";
-import { getZ, layer, skin } from "../skin.js";
+import { drawClipped, getZ, layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 
 export class SimLine extends Archetype {
@@ -32,7 +32,7 @@ export class SimLine extends Archetype {
 
     if (!skin.sprites.simLine.exists) return;
 
-    skin.sprites.simLine.draw(new Rect({ l, r, b, t }).add(pos), [z], 1);
+    drawClipped(skin.sprites.simLine.id, new Rect({ l, r, b, t }).add(pos).toQuad(), [z], 1, pos.x);
   }
 
   get aImport() {

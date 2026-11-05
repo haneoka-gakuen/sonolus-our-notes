@@ -1,3 +1,4 @@
+import { drawLaneClipped, drawLaneNoteClipped } from "../../../../shared/src/engine/data/nativeLaneClip.js";
 import {
   connectWallDrawSpriteTable,
   connectFrameDrawSpriteTable,
@@ -204,3 +205,11 @@ export const layer = {
 };
 
 export const getZ = (layer: number, time: number, lane: number) => layer - time / 1000 - lane / 100000;
+
+export function drawClipped(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number, progress: number) {
+  drawLaneNoteClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, -6 * progress, 6 * progress, skin.sprites.length);
+}
+
+export function drawClippedRibbon(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number) {
+  drawLaneClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, 0, 0, -6, 6, skin.sprites.length);
+}

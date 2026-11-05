@@ -1,3 +1,4 @@
+import { drawLaneClipped, drawLaneNoteClipped } from "../../../../shared/src/engine/data/nativeLaneClip.js";
 import { nativeSlideSprites } from "../../../../shared/src/engine/data/nativeSlideSkin.js";
 import { nativeNoteCapSprites } from "../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
 import { SkinSpriteName } from "@sonolus/core";
@@ -182,3 +183,11 @@ export const line = (sprite: SkinSprite, beat: number, a: number) => {
 };
 
 export const getZ = (layer: number, time: number, lane: number) => layer - time / 1000 - lane / 100000;
+
+export function drawClipped(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number, center: number) {
+  drawLaneNoteClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, center - 6, center + 6, skin.sprites.length);
+}
+
+export function drawClippedRibbon(id: SkinSpriteId, quad: QuadLike, z: [number], alpha: number, center: number) {
+  drawLaneClipped(id, quad.x1, quad.y1, quad.x2, quad.y2, quad.x3, quad.y3, quad.x4, quad.y4, z[0], alpha, center - 6, center + 6, 0, 0, skin.sprites.length);
+}
