@@ -44,6 +44,8 @@ export abstract class ActiveSlideConnector extends SlideConnector {
   slideZ = this.entityMemory(Number);
   liveBounds = this.entityMemory({ l: Number, r: Number });
 
+  heldAudioLinks = this.defineSharedMemory({ next: Number, start: Number, end: Number });
+
   // Resource selection and engine options are fixed for this entity's run.
   // Dynamic lane/width and the width-bucket restart remain per-frame.
   resources = this.entityMemory({
@@ -221,11 +223,17 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
     const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
     const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
-    this.drawSlidePart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.leftTilt, parts.leftRight), rects.left);
+    this.drawSlidePart(
+      getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.leftTilt, parts.leftRight),
+      rects.left,
+    );
     this.drawSlidePart(skin.sprites.nativeSlideMainLeft.id, rects.mainLeft);
     this.drawSlidePart(skin.sprites.nativeSlideMainMiddle.id, rects.middle);
     this.drawSlidePart(skin.sprites.nativeSlideMainRight.id, rects.mainRight);
-    this.drawSlidePart(getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.rightTilt, parts.rightRight), rects.right);
+    this.drawSlidePart(
+      getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.rightTilt, parts.rightRight),
+      rects.right,
+    );
   }
 
   drawSlidePart(id: SkinSpriteId, rect: RectLike) {

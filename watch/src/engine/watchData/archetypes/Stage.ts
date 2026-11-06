@@ -25,6 +25,7 @@ import { effect, sfxDistance } from "../effect.js";
 import { scheduleHeldSound } from "../sound.js";
 import { layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
+import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
 export class Stage extends Archetype {
   heldConnectorHead = this.entityMemory(Number);
@@ -50,8 +51,13 @@ export class Stage extends Archetype {
         cached.start = -999999;
         if (!this.readNextHeldInterval(info.index)) continue;
       } else if (cached.end <= cached.start) continue;
-      this.insertHeldConnector(info.index);
+      cached.next = this.heldConnectorHead;
+      this.heldConnectorHead = info.index;
     }
+    this.heldConnectorHead = sortHeldIntervals(
+      this.heldConnectorHead,
+      archetypes.NormalActiveSlideConnector.heldAudioLinks,
+    );
   }
 
   readNextHeldInterval(index: number) {

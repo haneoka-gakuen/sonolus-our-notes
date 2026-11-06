@@ -30,6 +30,7 @@ import { particle, restartNativeLaneEffect } from "../particle.js";
 import { layer, skin } from "../skin.js";
 import { canEmpty } from "./InputManager.js";
 import { archetypes } from "./index.js";
+import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
 export class Stage extends Archetype {
   hitbox = this.entityMemory(Rect);
@@ -117,60 +118,38 @@ export class Stage extends Archetype {
   }
 
   scheduleHeldSFX() {
-    let hasPrevious = false;
-    let previousEnd = 0;
-
-    while (true) {
-      const start = this.scanHeldIntervals(hasPrevious ? previousEnd : -999999, 0, false);
-      if (start === 999999) return;
-
-      let end = start;
-      while (true) {
-        const nextEnd = this.scanHeldIntervals(0, end, true);
-        if (nextEnd === end) break;
-        end = nextEnd;
-      }
-
-      scheduleHeldSound(start, end);
-
-      previousEnd = end;
-      hasPrevious = true;
-    }
-  }
-
-  scanHeldIntervals(previousEnd: number, currentEnd: number, extending: boolean) {
-    let value = extending ? currentEnd : 999999;
-
-    for (const entityInfo of entityInfos) {
-      let intervalStart = 0;
-      let intervalEnd = 0;
-
-      if (entityInfo.archetype === archetypes.NormalActiveSlideConnector.index) {
-        const connectorImport = archetypes.NormalActiveSlideConnector.import.get(entityInfo.index);
-        const headImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-        const tailImport = archetypes.NormalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-        intervalStart = bpmChanges.at(headImport.beat).time;
-        intervalEnd = bpmChanges.at(tailImport.beat).time;
-      } else if (entityInfo.archetype === archetypes.CriticalActiveSlideConnector.index) {
-        const connectorImport = archetypes.CriticalActiveSlideConnector.import.get(entityInfo.index);
-        const headImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.headRef);
-        const tailImport = archetypes.CriticalActiveSlideConnector.slideStartNote.import.get(connectorImport.tailRef);
-        intervalStart = bpmChanges.at(headImport.beat).time;
-        intervalEnd = bpmChanges.at(tailImport.beat).time;
-      } else {
+    const links = archetypes.NormalActiveSlideConnector.heldAudioLinks;
+    const imports = archetypes.NormalActiveSlideConnector.import;
+    const notes = archetypes.NormalActiveSlideConnector.slideStartNote.import;
+    let head = -1;
+    for (const info of entityInfos) {
+      if (
+        info.archetype !== archetypes.NormalActiveSlideConnector.index &&
+        info.archetype !== archetypes.CriticalActiveSlideConnector.index
+      )
         continue;
-      }
-
-      if (intervalEnd <= intervalStart) continue;
-
-      if (extending) {
-        if (intervalStart <= currentEnd && intervalEnd > value) value = intervalEnd;
-      } else if (intervalStart > previousEnd && intervalStart < value) {
-        value = intervalStart;
-      }
+      const connector = imports.get(info.index);
+      const cached = links.get(info.index);
+      cached.start = bpmChanges.at(notes.get(connector.headRef).beat).time;
+      cached.end = bpmChanges.at(notes.get(connector.tailRef).beat).time;
+      if (cached.end <= cached.start) continue;
+      cached.next = head;
+      head = info.index;
     }
-
-    return value;
+    head = sortHeldIntervals(head, links);
+    while (head >= 0) {
+      const first = links.get(head);
+      const start = first.start;
+      let end = first.end;
+      head = first.next;
+      while (head >= 0) {
+        const next = links.get(head);
+        if (next.start > end) break;
+        end = Math.max(end, next.end);
+        head = next.next;
+      }
+      scheduleHeldSound(start, end);
+    }
   }
 
   xToL(x: number) {
