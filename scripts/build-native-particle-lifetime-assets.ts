@@ -13,6 +13,32 @@ import {
   NATIVE_SHORT_EFFECTS,
 } from "../shared/src/engine/data/nativeEffects.ts";
 
+/** Keep the original playback times when a short alias retires sooner. */
+export function retimeShortParticleEffect<
+  T extends { name: string; groups: { particles: { start: number; duration: number }[] }[] },
+>(source: T, name: string) {
+  const sourceDuration = NATIVE_PARTICLE_TIMINGS.simpleFlick[0];
+  const aliasDuration = NATIVE_SHORT_EFFECT_DURATION;
+  const ratio = sourceDuration / aliasDuration;
+  const effect = structuredClone(source);
+  effect.name = name;
+  let maxTimingError = 0, lastVisibleSeconds = 0, definitions = 0;
+  for (const { particles } of effect.groups) {
+    for (const particle of particles) {
+      const { start, duration } = particle;
+      particle.start *= ratio;
+      particle.duration *= ratio;
+      lastVisibleSeconds = Math.max(lastVisibleSeconds, (start + duration) * sourceDuration);
+      maxTimingError = Math.max(maxTimingError,
+        Math.abs(particle.start * aliasDuration - start * sourceDuration),
+        Math.abs(particle.duration * aliasDuration - duration * sourceDuration));
+      definitions++;
+    }
+  }
+  if (lastVisibleSeconds > aliasDuration) throw new Error(`particle-support-exceeds-alias:${source.name}`);
+  return { effect, definitions, lastVisibleSeconds, maxTimingError };
+}
+
 export function buildNativeParticleLifetimeAssets(options: {
   destination: string;
   baseline: string;
@@ -49,37 +75,8 @@ export function buildNativeParticleLifetimeAssets(options: {
         const name = `${prefix} ${baseName} W${width} ${plane}`;
         const source = data.effects.find((effect) => effect.name === name);
         if (!source) continue;
-        const effect = structuredClone(source);
-        effect.name = `${prefix} ${baseName} Short W${width} ${plane}`;
-        let maxTimingError = 0,
-          lastVisibleSeconds = 0,
-          definitions = 0;
-        for (const group of effect.groups) {
-          for (const particle of group.particles) {
-            const start = particle.start,
-              duration = particle.duration;
-            particle.start *= ratio;
-            particle.duration *= ratio;
-            lastVisibleSeconds = Math.max(
-              lastVisibleSeconds,
-              (start + duration) * sourceDuration,
-            );
-            maxTimingError = Math.max(
-              maxTimingError,
-              Math.abs(
-                particle.start * NATIVE_SHORT_EFFECT_DURATION -
-                  start * sourceDuration,
-              ),
-              Math.abs(
-                particle.duration * NATIVE_SHORT_EFFECT_DURATION -
-                  duration * sourceDuration,
-              ),
-            );
-            definitions++;
-          }
-        }
-        if (lastVisibleSeconds > NATIVE_SHORT_EFFECT_DURATION)
-          throw new Error(`particle-support-exceeds-alias:${name}`);
+        const { effect, definitions, lastVisibleSeconds, maxTimingError } =
+          retimeShortParticleEffect(source, `${prefix} ${baseName} Short W${width} ${plane}`);
         data.effects.push(effect);
         entries.push({
           source: name,

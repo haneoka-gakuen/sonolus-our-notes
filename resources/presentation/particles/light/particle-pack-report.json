@@ -125,22 +125,22 @@
     "texelsBefore": 783515,
     "texelsAfter": 749435
   },
-  "groups": 3904,
-  "instances": 3904,
-  "definitions": 29939,
+  "groups": 2295,
+  "instances": 2295,
+  "definitions": 29533,
   "atlas": {
     "width": 1024,
-    "height": 1792,
-    "sprites": 1535
+    "height": 1824,
+    "sprites": 1542
   },
   "artifacts": {
     "data": {
-      "bytes": 869414,
-      "sha1": "842e6da9302009f385ce74f4b0e312495244aa25"
+      "bytes": 865413,
+      "sha1": "c4a94228ae22e13a286ad4390e78ff3803024554"
     },
     "texture": {
-      "bytes": 1167442,
-      "sha1": "ff2874d3515200397622e35d0111f59525413c78"
+      "bytes": 1223569,
+      "sha1": "933da201577c3e6ae1444d86e0b99da8d672df40"
     }
   },
   "provenance": {

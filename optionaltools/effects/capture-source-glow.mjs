@@ -1,22 +1,11 @@
 import { planeEffectLayout, stageToPixel, stageTransform } from "/sonolus-preview.mjs";
 
-const stageColor = [10, 22, 49];
+const stageColors = [[10, 22, 49], [54, 40, 38]];
 const screenWidth = 640;
 const screenHeight = 360;
 const frameCount = 25;
 
-function encodeStageLight(target, background, rgba, offset) {
-  const opacity = Math.ceil(255 * Math.max(...target.map((value, index) => value / (255 - background[index]))));
-  if (!opacity) return;
-  for (let channel = 0; channel < 3; channel += 1) {
-    rgba[offset + channel] = Math.round(background[channel] + 255 * target[channel] / opacity);
-  }
-  rgba[offset + 3] = opacity;
-}
-
-/** Recover the light needed behind the native foreground without raising its opacity. */
-function readLightField(source, background, black, white, plane) {
-  const field = new Float32Array(screenWidth * screenHeight * 3);
+function lightBounds(samples, black, white, plane) {
   const [bottomLeft, topLeft, topRight, bottomRight] = plane;
   let x0 = Infinity;
   let y0 = Infinity;
@@ -28,17 +17,14 @@ function readLightField(source, background, black, white, plane) {
     const right = bottomRight[0] + v * (topRight[0] - bottomRight[0]);
     if (right - left < 1) continue;
     for (let x = 0; x < screenWidth; x += 1) {
-      const i = y * screenWidth + x;
+      const offset = (y * screenWidth + x) * 4;
       let maximum = 0;
       for (let channel = 0; channel < 3; channel += 1) {
-        const offset = i * 4 + channel;
-        const transmission = (white[offset] - black[offset]) / 255;
-        const deficit = source[offset] - background[offset];
-        const value = deficit > 2 && transmission > 0.04
-          ? Math.min(255 - stageColor[channel], deficit / transmission)
-          : 0;
-        field[i * 3 + channel] = value;
-        maximum = Math.max(maximum, value);
+        const index = offset + channel;
+        if (white[index] - black[index] <= 10) continue;
+        for (const [source, foreground] of samples) {
+          maximum = Math.max(maximum, source[index] - foreground[index]);
+        }
       }
       if (maximum > 5) {
         const u = (x + 0.5 - left) / (right - left);
@@ -50,10 +36,59 @@ function readLightField(source, background, black, white, plane) {
     }
   }
   if (!(x1 > x0 && y1 > y0)) return undefined;
-  return { field, bounds: [x0 - 0.03, y0 - 0.02, x1 + 0.03, y1 + 0.02] };
+  return [x0 - 0.03, y0 - 0.02, x1 + 0.03, y1 + 0.02];
 }
 
-function encodeField({ field, bounds }, plane, sampleWidth, sampleHeight) {
+/** Fit one source-over texel through the foreground on several stage colors. */
+function fitLightTexel(samples, black, white, offsets, pixels, destination) {
+  // Displayed light is T × (premultiplied color − opacity × underlay).
+  // Black and white foreground passes recover T and the color beneath the halo.
+  const fit = Array.from({ length: 3 }, () => ({ t2: 0, t2u: 0, t2uu: 0, td: 0, tdu: 0, maxUnderlay: 0 }));
+  for (const offset of offsets) {
+    for (let channel = 0; channel < 3; channel += 1) {
+      const i = offset + channel;
+      const transmission = (white[i] - black[i]) / 255;
+      if (transmission <= 0.04) continue;
+      const stats = fit[channel];
+      for (const [source, foreground] of samples) {
+        const underlay = Math.max(0, Math.min(1, (foreground[i] - black[i]) / (255 * transmission)));
+        const delta = Math.max(0, source[i] - foreground[i]) / 255;
+        const t2 = transmission ** 2;
+        stats.t2 += t2;
+        stats.t2u += t2 * underlay;
+        stats.t2uu += t2 * underlay ** 2;
+        stats.td += transmission * delta;
+        stats.tdu += transmission * delta * underlay;
+        stats.maxUnderlay = Math.max(stats.maxUnderlay, underlay);
+      }
+    }
+  }
+  // A glow should lift the underlay on every captured plate.
+  const premultiplied = (s, a) =>
+    s.t2 ? Math.max(a * s.maxUnderlay, Math.min(a, (s.td + a * s.t2u) / s.t2)) : 0;
+  const error = (a) => {
+    let score = 0.015 * a * a;
+    for (const s of fit) {
+      const c = premultiplied(s, a);
+      score += s.t2 * c * c + s.t2uu * a * a - 2 * s.t2u * c * a - 2 * s.td * c + 2 * s.tdu * a;
+    }
+    return score;
+  };
+  let low = 0, high = 1;
+  for (let i = 0; i < 14; i += 1) {
+    const a = (2 * low + high) / 3, b = (low + 2 * high) / 3;
+    if (error(a) <= error(b)) high = b;
+    else low = a;
+  }
+  const opacity = Math.round(255 * (low + high) / 2);
+  if (!opacity || fit.every(({ td }) => !td)) return;
+  for (let c = 0; c < 3; c++) {
+    pixels[destination + c] = Math.round(255 * premultiplied(fit[c], opacity / 255) / (opacity / 255));
+  }
+  pixels[destination + 3] = opacity;
+}
+
+function encodeField(bounds, samples, black, white, plane, sampleWidth, sampleHeight) {
   const [bottomLeft, topLeft, topRight, bottomRight] = plane;
   const [x0, y0, x1, y1] = bounds;
   const pixelPoint = (x, y) => {
@@ -70,7 +105,7 @@ function encodeField({ field, bounds }, plane, sampleWidth, sampleHeight) {
   const pixels = new Uint8Array(sampleWidth * sampleHeight * 4);
   for (let y = 0; y < sampleHeight; y += 1) {
     for (let x = 0; x < sampleWidth; x += 1) {
-      const light = [0, 0, 0];
+      const offsets = [];
       for (const dy of [0.25, 0.75]) {
         for (const dx of [0.25, 0.75]) {
           const u = (x + dx) / sampleWidth;
@@ -81,12 +116,10 @@ function encodeField({ field, bounds }, plane, sampleWidth, sampleHeight) {
             : u * (tr[axis] - tl[axis]) + v * (br[axis] - tr[axis])));
           const sx = map(0), sy = map(1);
           if (sx < 0 || sx >= screenWidth || sy < 0 || sy >= screenHeight) continue;
-          for (let channel = 0; channel < 3; channel += 1) {
-            light[channel] += field[(sy * screenWidth + sx) * 3 + channel] / 4;
-          }
+          offsets.push((sy * screenWidth + sx) * 4);
         }
       }
-      encodeStageLight(light, stageColor, pixels, (y * sampleWidth + x) * 4);
+      fitLightTexel(samples, black, white, offsets, pixels, (y * sampleWidth + x) * 4);
     }
   }
   return pixels;
@@ -114,7 +147,7 @@ export async function captureSourceGlow({ previewEffect, previewSonolus, widths,
       if (simple && !sideFlick) throw Error("Simple glow capture requires a side flick");
       const frames = [];
       for (let frame = 0; frame < frameCount; frame += 1) {
-        const source = await previewEffect({
+        const source = (backgroundRgb) => previewEffect({
           kind: note === "Normal" ? "tap" : "flick",
           direction,
           judgement: "perfect",
@@ -123,7 +156,7 @@ export async function captureSourceGlow({ previewEffect, previewSonolus, widths,
           age: frame / 60,
           screenWidth,
           screenHeight,
-          backgroundRgb: stageColor,
+          backgroundRgb,
           renderingScale: lowQuality ? 0.71 : 1,
           bloomQuality: lowQuality ? 2 : 0,
           sourceSeed: 4660,
@@ -139,13 +172,18 @@ export async function captureSourceGlow({ previewEffect, previewSonolus, widths,
           backgroundRgb,
           seed: 4660,
         })).png);
-        const [background, black, white] = await Promise.all([native(stageColor), native([0, 0, 0], true), native([255, 255, 255], true)]);
-        const field = readLightField(await pixels(source.png), background, black, white, plane);
-        if (!field) continue;
+        const [black, white] = await Promise.all([native([0, 0, 0], true), native([255, 255, 255], true)]);
+        const samples = [];
+        for (const color of stageColors) {
+          const reference = await source(color);
+          samples.push([await pixels(reference.png), await native(color)]);
+        }
+        const bounds = lightBounds(samples, black, white, plane);
+        if (!bounds) continue;
         frames.push({
           frame,
-          bounds: field.bounds,
-          pixels: Array.from(encodeField(field, plane, sampleWidth, sampleHeight)),
+          bounds,
+          pixels: Array.from(encodeField(bounds, samples, black, white, plane, sampleWidth, sampleHeight)),
         });
       }
       effects.push({ name: `${base} ${sideFlick ? "P0" : "B0"}`, frames });

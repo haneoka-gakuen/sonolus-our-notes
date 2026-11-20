@@ -98,4 +98,5 @@ const server = createServer(async (req, res) => {
     res.end(error.message);
   }
 });
-server.listen(4323, "127.0.0.1", () => console.log("Effect capture: http://127.0.0.1:4323"));
+const port = Number(process.env.EFFECT_CAPTURE_PORT ?? 4323);
+server.listen(port, "127.0.0.1", () => console.log(`Effect capture: http://127.0.0.1:${port}`));

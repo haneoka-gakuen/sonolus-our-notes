@@ -131,22 +131,22 @@
         "texelsBefore": 854891,
         "texelsAfter": 787025
       },
-      "groups": 4199,
-      "instances": 4199,
-      "definitions": 31415,
+      "groups": 2595,
+      "instances": 2595,
+      "definitions": 31008,
       "atlas": {
         "width": 1024,
-        "height": 1776,
-        "sprites": 1659
+        "height": 1760,
+        "sprites": 1663
       },
       "artifacts": {
         "data": {
-          "bytes": 908891,
-          "sha1": "aa3aa0b7dc6e8a430d4765413211ed7426ff3912"
+          "bytes": 916038,
+          "sha1": "a2c6568beaf4f5b5f9e77e2312e1b233ba5e79a5"
         },
         "texture": {
-          "bytes": 1187637,
-          "sha1": "bcac3240363208e5ab2c9c9639d13bb6e8f1dcd3"
+          "bytes": 1156774,
+          "sha1": "c46046ae10ffc6a23dc4cae3518315bdc4461840"
         }
       },
       "provenance": {
@@ -291,22 +291,22 @@
         "texelsBefore": 783515,
         "texelsAfter": 749435
       },
-      "groups": 3904,
-      "instances": 3904,
-      "definitions": 29939,
+      "groups": 2295,
+      "instances": 2295,
+      "definitions": 29533,
       "atlas": {
         "width": 1024,
-        "height": 1792,
-        "sprites": 1535
+        "height": 1824,
+        "sprites": 1542
       },
       "artifacts": {
         "data": {
-          "bytes": 869414,
-          "sha1": "842e6da9302009f385ce74f4b0e312495244aa25"
+          "bytes": 865413,
+          "sha1": "c4a94228ae22e13a286ad4390e78ff3803024554"
         },
         "texture": {
-          "bytes": 1167442,
-          "sha1": "ff2874d3515200397622e35d0111f59525413c78"
+          "bytes": 1223569,
+          "sha1": "933da201577c3e6ae1444d86e0b99da8d672df40"
         }
       },
       "provenance": {
@@ -551,22 +551,22 @@
         "texelsBefore": 615675,
         "texelsAfter": 539933
       },
-      "groups": 1886,
-      "instances": 1886,
-      "definitions": 20489,
+      "groups": 1525,
+      "instances": 1525,
+      "definitions": 23192,
       "atlas": {
         "width": 1024,
-        "height": 1696,
-        "sprites": 884
+        "height": 1616,
+        "sprites": 908
       },
       "artifacts": {
         "data": {
-          "bytes": 549196,
-          "sha1": "a1c90c51ce5e935b8470979adcbb206491afa83e"
+          "bytes": 648631,
+          "sha1": "a7363e04f4b2127758701bbc2be48eb3c8a6a42b"
         },
         "texture": {
-          "bytes": 919058,
-          "sha1": "4fdf034281011a37979dca4ddfca5042493e7338"
+          "bytes": 794336,
+          "sha1": "8146c494353d7572e9ad04873db8b663a406a403"
         }
       },
       "provenance": {
