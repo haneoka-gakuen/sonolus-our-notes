@@ -1,0 +1,25 @@
+{
+  "schema": "our-notes-particle-source-empty-v1",
+  "sourceId": "v25-c0b6a1541e45-3a5d2eec9935-n653c6392",
+  "releaseId": "r-1244fcc37cfe6dab2d91",
+  "source": {
+    "file": "source-empty-particle.data",
+    "bytes": 563531,
+    "sha256": "f9941af8b537741d4f21a7329fc1ce4c8cbb7f547f6bfbe2b10902d414156d00",
+    "jsonSha256": "b47671e45ca5735532c2ffd902e0dd0dadf68f937af20362d702f13f316ddea5"
+  },
+  "profiles": [
+    {
+      "key": "standard",
+      "sourcePrefix": "Our Notes Native"
+    },
+    {
+      "key": "light",
+      "sourcePrefix": "Our Notes Light"
+    },
+    {
+      "key": "simple",
+      "sourcePrefix": "Our Notes Simple"
+    }
+  ]
+}

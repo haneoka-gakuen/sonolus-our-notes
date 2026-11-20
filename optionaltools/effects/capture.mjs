@@ -1,3 +1,4 @@
+import { captureSourceGlow } from "/capture-source-glow.mjs";
 import { WebGLRenderer, PerspectiveCamera, Scene, Vector3, SRGBColorSpace, Mesh, PlaneGeometry, ShaderMaterial, Texture, NoColorSpace, LinearFilter } from "three";
 import {
   ParticleLayer,
@@ -6,6 +7,8 @@ import {
   LiveUrpBloomPipeline,
 } from "@haneoka/cassiopeia-renderer-three";
 import { createOurNotesAssetManifest, nativeParticleEffectLifetime } from "@haneoka/cassiopeia-plugin-our-notes";
+import { LOOP_FRAME_DURATION } from "/shared/src/engine/data/loopFrameContract.ts";
+import { NATIVE_EARLY_POINT_EFFECT } from "/shared/src/engine/data/nativeEffects.ts";
 import {
   SonolusParticlePreview,
   readSourceLoopRom,
@@ -466,7 +469,9 @@ const previewEffect = ({
     if (sourceParticles) scene.traverse((object) => {
       if (!object.isMesh || !object.name.startsWith("Effect001Particles:")) return;
       const texture = object.name.slice("Effect001Particles:".length);
-      const entries = sourceTrace.filter(entry => entry.texture === texture);
+      const entries = sourceTrace.filter(entry =>
+        entry.texture === texture && entry.color.a !== 0 && entry.sizeX !== 0 && entry.sizeY !== 0,
+      );
       const colour = object.geometry.attributes.aColor;
       for (let i = 0; i < object.geometry.instanceCount; i++) {
         const entry = entries[i];
@@ -545,7 +550,7 @@ window.previewSonolus = async ({
   screenHeight = 1080,
   seed = 1,
   loop = false,
-  planeOrder = [0, 1, 2, 3],
+  planeOrder = [1, 2, 3, 0],
   sourceLoopTime,
   sourceLoopFrameRate = 60,
   sourceLoopLayout,
@@ -587,20 +592,35 @@ window.previewSonolus = async ({
   let drawn = 0;
   for (const name of names) {
     // Layered native effects: "<name> P0".."P3", each on its own plane.
-    if (sonolusPreview.byName.has(`${name} P0`)) {
+    if (planeOrder.some((plane) => sonolusPreview.byName.has(`${name} P${plane}`))) {
       for (const plane of planeOrder) {
-        if (!sonolusPreview.byName.has(`${name} P${plane}`)) continue;
+        const shortFrame = plane === 3 && sourceLoopTime !== undefined
+          ? /^Our Notes Native Slide Loop (W\d+)$/.exec(name)?.[1]
+          : undefined;
+        const alias = shortFrame && `Our Notes Source Slide Loop Frame ${shortFrame}`;
+        const useAlias = alias && sonolusPreview.byName.has(alias);
+        const effect = useAlias ? alias : `${name} P${plane}`;
+        const layout = planeEffectLayout(tr, plane, lane, size);
+        const early = `${name} P0 Early`;
+        if (plane === 0 && progress < NATIVE_EARLY_POINT_EFFECT.durationRatio && sonolusPreview.byName.has(early)) {
+          drawn += sonolusPreview.draw(ctx, early, layout, progress / NATIVE_EARLY_POINT_EFFECT.durationRatio,
+            toPixel, seed, loop);
+        }
+        if (!sonolusPreview.byName.has(effect)) continue;
         drawn += sonolusPreview.draw(
           ctx,
-          `${name} P${plane}`,
-          planeEffectLayout(tr, plane, lane, size),
-          progress,
+          effect,
+          layout,
+          useAlias ? (sourceLoopTime % LOOP_FRAME_DURATION) / LOOP_FRAME_DURATION : progress,
           toPixel,
           seed + plane * 7919,
           loop,
         );
       }
-    } else drawn += sonolusPreview.draw(ctx, name, name.endsWith(" B0") ? planeEffectLayout(tr, 0, lane, size) : linearEffectLayout(tr, lane, size), progress, toPixel, seed, loop);
+    } else if (sonolusPreview.byName.has(name)) {
+      const layout = name.endsWith(" B0") ? planeEffectLayout(tr, 0, lane, size) : linearEffectLayout(tr, lane, size);
+      drawn += sonolusPreview.draw(ctx, name, layout, progress, toPixel, seed, loop);
+    }
   }
   for (const name of ground)
     drawn += sonolusPreview.draw(ctx, name, groundEffectLayout(tr, lane, size), progress, toPixel, seed, loop);
@@ -650,3 +670,11 @@ window.reloadSonolus = () => {
   sonolusSourceRom = undefined;
   return true;
 };
+
+window.captureSourceGlow = (options) => captureSourceGlow({
+  ...options,
+  previewEffect: window.previewEffect,
+  previewSonolus: window.previewSonolus,
+  lowQuality: quality === 2,
+  simple: noteEffectSkin === "effect001Simple",
+});

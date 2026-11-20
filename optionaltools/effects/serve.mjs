@@ -25,6 +25,7 @@ const mounts = {
   "/core/": resolve(kernel, "dist"),
   "/our-notes/": resolve(rules, "dist"),
   "/renderer/": resolve(rendererRoot, "dist"),
+  "/render-shaders/": resolve(rendererRoot, "node_modules/@haneoka/render-shaders/src"),
   "/three/": dirname(require.resolve("three")),
   "/runtime/": runtime,
   "/shared/": resolve(root, "shared"),
@@ -64,7 +65,8 @@ const server = createServer(async (req, res) => {
     }
     let file;
     if (path === "/") file = resolve(root, "optionaltools/effects/capture.html");
-    else if (path === "/capture.mjs") file = resolve(root, "optionaltools/effects/capture.mjs");
+    else if (path === "/capture.mjs" || path === "/capture-source-glow.mjs")
+      file = resolve(root, "optionaltools/effects", path.slice(1));
     else if (path === "/sonolus-preview.mjs") file = resolve(root, "optionaltools/effects/sonolus-preview.mjs");
     else if (/^\/output\/(particle\.texture\.png|particle\.json|EngineRom)$/.test(path))
       file = safe(output, path.slice(8));

@@ -11,6 +11,12 @@
   "type": "module",
   "files": [
     "dist",
+    "resources/engine",
+    "resources/presentation",
+    "scripts/engine-resources.mjs",
+    "scripts/engine-resources.d.mts",
+    "scripts/serve.ts",
+    "scripts/example-level.ts",
     "contract",
     "optionaltools",
     "shared/src/engine/data/nativeLaneEffectLayout.ts",
@@ -25,7 +31,9 @@
     "NOTICE.txt",
     "README.md",
     "patches",
+    "docs/brand/icon-512.png",
     "docs/COMPILER.md",
+    "docs/SERVER.md",
     "LICENSE.sonolus-compiler.txt",
     "releases",
     "shared/src/engine/data/connectWallContract.ts",
@@ -35,6 +43,7 @@
   ],
   "scripts": {
     "build": "pnpm run typecheck:tools && node ./scripts/build.ts",
+    "serve": "node ./scripts/serve.ts",
     "typecheck:tools": "tsc --project ./tsconfig.tools.json",
     "check": "pnpm run typecheck:tools && pnpm run verify:compiler && pnpm run verify:contract",
     "verify:contract": "node ./scripts/verify-contract.ts",
@@ -45,16 +54,18 @@
     "format:check": "prettier --check . --ignore-unknown"
   },
   "dependencies": {
-    "@sonolus/core": "7.15.4"
+    "@sonolus/core": "7.15.4",
+    "@sonolus/express": "7.5.4",
+    "express": "^4.22.2",
+    "multer": "2.2.0",
+    "typebox": "1.3.7"
   },
   "devDependencies": {
-    "@sonolus/express": "7.5.4",
     "@sonolus/free-pack": "1.2.0",
     "@sonolus/sonolus.js": "9.7.4",
     "@sonolus/sonolus.js-compiler": "1.8.4",
+    "@types/express": "4.17.25",
     "@types/node": "22.20.1",
-    "multer": "2.2.0",
-    "typebox": "1.3.7",
     "typescript": "5.8.3",
     "prettier": "3.7.4"
   },
@@ -70,7 +81,8 @@
   "exports": {
     "./package.json": "./package.json",
     "./contract/native-effects.json": "./contract/native-effects.json",
-    "./dist/*": "./dist/*"
+    "./dist/*": "./dist/*",
+    "./engine-resources": "./scripts/engine-resources.mjs"
   },
   "keywords": [
     "sonolus",

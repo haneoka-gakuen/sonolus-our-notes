@@ -274,12 +274,13 @@ export class SonolusParticlePreview {
       for (let instance = 0; instance < group.count; instance += 1) {
         const r = Array.from({ length: 8 }, rand);
         for (const particle of group.particles) {
-          let p = progress;
-          const start = particle.start;
-          const end = particle.start + particle.duration;
-          if (loop && p < start) p += 1;
+          let p = Math.fround(progress);
+          const start = Math.fround(particle.start);
+          const duration = Math.fround(particle.duration);
+          const end = Math.fround(start + duration);
+          if (loop && p < start) p = Math.fround(p + 1);
           if (p < start || p > end) continue;
-          const q = (p - start) / Math.max(1e-9, end - start);
+          const q = (p - start) / Math.max(1e-9, duration);
           const x = prop(particle.x, r, q);
           const y = prop(particle.y, r, q);
           const w = prop(particle.w, r, q);
