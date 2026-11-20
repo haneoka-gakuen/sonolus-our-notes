@@ -141,5 +141,16 @@ if (!levelPack) {
 }
 
 const app = express();
+// The 1.1.5 SDK serves the same item JSON as 1.1.4. Negotiate the header
+// at the HTTP boundary while the engine uses its pinned compiler peers.
+const sendJson = app.response.json;
+app.response.json = function (this: express.Response, body?: unknown) {
+  if (this.hasHeader("Sonolus-Version")) {
+    const legacy = /(?:^|\s)Sonolus\/1\.1\.4(?=[\s;(]|$)/iu.test(this.req.get("User-Agent") ?? "");
+    this.set("Sonolus-Version", legacy ? "1.1.4" : "1.1.5");
+    this.vary("User-Agent");
+  }
+  return sendJson.call(this, body);
+};
 app.use(sonolus.router);
 app.listen(port, () => console.log(`Our Notes Sonolus listening on ${address ?? `http://localhost:${port}`}`));

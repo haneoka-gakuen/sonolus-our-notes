@@ -46,7 +46,13 @@ const quality = Number(new URLSearchParams(location.search).get("quality") ?? "0
 const noteEffectSkin =
   new URLSearchParams(location.search).get("skin") === "effect001Simple" ? "effect001Simple" : "effect001";
 const assets = createOurNotesAssetManifest(
-  { noteAtlasTextureUrl: placeholder, hud, currentQuality: Number.isInteger(quality) ? quality : 0, noteEffectSkin },
+  {
+    noteAtlasTextureUrl: placeholder,
+    hud,
+    currentQuality: Number.isInteger(quality) ? quality : 0,
+    noteEffectSkin,
+    gekisouLaneAvailable: sourceInfo.gekisouLaneAvailable,
+  },
   {
     asset: (path) => "/asset/" + path,
     runtime: (path) => "/runtime/" + path,
@@ -93,6 +99,7 @@ const floorTileWidth = 190,
   floorTileHeight = 254;
 const sample = document.createElement("canvas");
 const sampleCtx = sample.getContext("2d", { willReadFrequently: true });
+const laneLifetime = (kind) => Math.fround(kind === "lane-effect-gekisou" ? 0.45 : 0.225);
 const specs = [];
 for (const [kind, label, direction] of [
   ["tap", "Normal", "none"],
@@ -452,13 +459,13 @@ const previewEffect = ({
     particles.updateLaneInput([]);
     const effect = {
       id: 1, kind, direction, judgement, lane, width, age,
-      ...(kind === "slide-loop" ? {} : { lifetime: kind.startsWith("lane-") ? 0.45 / 2 : 1 }),
+      ...(kind === "slide-loop" ? {} : { lifetime: kind.startsWith("lane-") ? laneLifetime(kind) : 1 }),
       seed: sourceSeed,
     };
     const laneFeedback = laneInstances !== undefined || kind.startsWith("lane-");
     if (laneFeedback) particles.updateLaneInput(laneInstances === undefined ? [effect] : laneInstances.map((entry, i) => ({
       id: `lane-instance-${i}`, kind: entry.kind, direction: "none", judgement: "perfect",
-      lane: entry.chartLane, width: 1, age: entry.age, lifetime: Math.fround(.225), seed: 1,
+      lane: entry.chartLane, width: 1, age: entry.age, lifetime: laneLifetime(entry.kind), seed: 1,
     })));
     else {
       for (let frame = 0; frame / sourceFrameRate < age; frame++)

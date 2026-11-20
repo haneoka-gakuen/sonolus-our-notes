@@ -19,6 +19,9 @@ const sourceInfo = {
   build: basename(dirname(runtime)),
   rendererSha256: sha256(resolve(rendererRoot, "dist/index.js")),
   captureScriptSha256: sha256(resolve(root, "optionaltools/effects/capture.mjs")),
+  gekisouLaneAvailable: existsSync(
+    resolve(runtime, "unity-json/Assets/AddressableResources/Effect/Live/LaneEffect/effect001/lane_tap_excellenet_view.prefab/ParticleSystem_2.json"),
+  ),
 };
 mkdirSync(output, { recursive: true });
 const mounts = {
