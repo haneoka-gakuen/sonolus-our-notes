@@ -140,7 +140,8 @@ export const optionsDefinition = {
     title: officialOptionText.ui_option_display2_lane_guideline_opacity,
     scope: "Our Notes",
     type: "slider",
-    def: 0.4,
+    // MasterOptionDefault preset 1 stores GuidelineOpacity=25.
+    def: 0.25,
     min: 0,
     max: 1,
     step: 0.05,

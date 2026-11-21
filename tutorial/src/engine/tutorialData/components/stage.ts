@@ -51,10 +51,10 @@ export const stage = {
   },
 
   drawGuidelines() {
-    // Tutorial uses the fresh-user six-lane/.4 opacity preset. Match
+    // Tutorial uses the fresh-user six-lane/.25 opacity preset. Match
     // Play's ground geometry and source textures, without reading input options.
     if (!skin.sprites.guideline.exists) return;
-    const opacity = 0.4;
+    const opacity = 0.25;
     for (let index = 1; index < 24; index++) {
       const main = index % 4 === 0;
       const space = !main && index % 2 === 0;
