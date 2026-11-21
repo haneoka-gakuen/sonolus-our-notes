@@ -84,11 +84,13 @@ export const stage = {
         );
       }
     }
+    // The native outside lines keep their authored gradient regardless of the
+    // guideline opacity preset; their near-to-far fade is baked into the strip.
     if (!skin.sprites.outsideLine.exists) return;
     const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
     const outsideX = 6 + halfWidth;
     for (const x of [-outsideX, outsideX]) {
-      skin.sprites.outsideLine.draw(nativeLaneLineLayout(x, halfWidth, halfWidth, true), [layer.judgmentLine], opacity);
+      skin.sprites.outsideLine.draw(nativeLaneLineLayout(x, halfWidth, halfWidth, true), [layer.judgmentLine], 1);
     }
   },
 };

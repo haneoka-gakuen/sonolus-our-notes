@@ -304,6 +304,8 @@ export class Stage extends Archetype {
   }
 
   drawGuidelines() {
+    this.drawOutsideLines();
+
     if (!skin.sprites.guideline.exists || options.guidelineOpacity <= 0) return;
 
     const count =
@@ -342,10 +344,6 @@ export class Stage extends Archetype {
         this.drawFullLaneLine(x, 0.15, 0.3, options.guidelineOpacity);
       }
     }
-
-    const outsideX = 6 + (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
-    this.drawOutsideLine(-outsideX, options.guidelineOpacity);
-    this.drawOutsideLine(outsideX, options.guidelineOpacity);
   }
 
   drawFullLaneLine(x: number, nearWidth: number, farWidth: number, alpha: number) {
@@ -358,14 +356,20 @@ export class Stage extends Archetype {
     );
   }
 
-  drawOutsideLine(x: number, alpha: number) {
+  // The native outside lines keep their authored gradient: no alpha
+  // controller writes them, so the guideline opacity option must not either.
+  // Their near-to-far fade is baked into the packed strip.
+  drawOutsideLines() {
     if (!skin.sprites.outsideLine.exists) return;
 
     const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
-    skin.sprites.outsideLine.draw(
-      nativeLaneLineLayout(x, halfWidth, halfWidth, options.lockStageAspectRatio),
-      [layer.guideline],
-      alpha,
-    );
+    const outsideX = 6 + halfWidth;
+    for (const x of [-outsideX, outsideX]) {
+      skin.sprites.outsideLine.draw(
+        nativeLaneLineLayout(x, halfWidth, halfWidth, options.lockStageAspectRatio),
+        [layer.guideline],
+        1,
+      );
+    }
   }
 }
