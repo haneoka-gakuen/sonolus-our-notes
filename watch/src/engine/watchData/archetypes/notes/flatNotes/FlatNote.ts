@@ -329,17 +329,9 @@ export abstract class FlatNote extends Note {
     if ("fallback" in this.clips && this.useFallbackClip) {
       this.clips.fallback.schedule(this.hitTime, sfxDistance);
     } else if ("great" in this.clips && "good" in this.clips) {
-      switch (this.import.judgment) {
-        case Judgment.Perfect:
-          this.clips.perfect.schedule(this.hitTime, sfxDistance);
-          break;
-        case Judgment.Great:
-          this.clips.great.schedule(this.hitTime, sfxDistance);
-          break;
-        case Judgment.Good:
-          this.clips.good.schedule(this.hitTime, sfxDistance);
-          break;
-      }
+      if (this.nativeJudgment >= 5) this.clips.perfect.schedule(this.hitTime, sfxDistance);
+      else if (this.nativeJudgment === 4) this.clips.great.schedule(this.hitTime, sfxDistance);
+      else if (this.nativeJudgment === 3) this.clips.good.schedule(this.hitTime, sfxDistance);
     } else {
       this.clips.perfect.schedule(this.hitTime, sfxDistance);
     }

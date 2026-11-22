@@ -9,7 +9,7 @@ export const skin = defineSkin({
     ...nativeNoteCapSprites,
     ...nativeSlideSprites,
     previewStage: "Our Notes Preview Stage",
-    previewBorder: "Our Notes Outside Line",
+    previewBorder: "Our Notes Preview Border",
     previewDivider: "Our Notes Guideline Space",
 
     simLine: "Our Notes Simultaneous Line",

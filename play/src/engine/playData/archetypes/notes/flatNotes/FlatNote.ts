@@ -99,6 +99,8 @@ export abstract class FlatNote extends InputNote {
     super.preprocess();
 
     this.bucket.set(toBucketWindows(this.windows));
+    // MasterLiveJudgementParameter gives native Bad 50 damage and Miss 100.
+    this.archetypeLife.good = -50;
     this.archetypeLife.miss = -100;
 
     this.visualTime.copyFrom(Range.l.mul(this.scrollDuration).add(this.scrollTarget));
@@ -388,16 +390,14 @@ export abstract class FlatNote extends InputNote {
     if (containsInputAccuracy(this.windows.good, accuracy)) {
       this.nativeJudgment = 3;
       this.originalExport("judgment", 3);
-      return Judgment.Good;
+      return Judgment.Great;
     }
     if (containsInputAccuracy(this.windows.bad, accuracy)) {
       this.nativeJudgment = 2;
       this.originalExport("judgment", 2);
-      return Judgment.Miss;
+      return Judgment.Good;
     }
 
-    // Our Notes Bad has no Sonolus result enum. Map it to Miss instead of
-    // inflating it to Good; the original judgementType remains in LevelData.
     this.nativeJudgment = 1;
     this.originalExport("judgment", 1);
     return Judgment.Miss;
@@ -415,17 +415,9 @@ export abstract class FlatNote extends InputNote {
     if ("fallback" in this.clips && this.useFallbackClip) {
       this.clips.fallback.play(sfxDistance);
     } else if ("great" in this.clips && "good" in this.clips) {
-      switch (this.result.judgment) {
-        case Judgment.Perfect:
-          this.clips.perfect.play(sfxDistance);
-          break;
-        case Judgment.Great:
-          this.clips.great.play(sfxDistance);
-          break;
-        case Judgment.Good:
-          this.clips.good.play(sfxDistance);
-          break;
-      }
+      if (this.nativeJudgment >= 5) this.clips.perfect.play(sfxDistance);
+      else if (this.nativeJudgment === 4) this.clips.great.play(sfxDistance);
+      else if (this.nativeJudgment === 3) this.clips.good.play(sfxDistance);
     } else {
       this.clips.perfect.play(sfxDistance);
     }

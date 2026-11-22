@@ -3,7 +3,7 @@ import { updateConnectWalls } from "../connectWalls.js";
 import { particle } from "../particle.js";
 import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
 import { updateNativeLaneFeedback } from "../laneFeedback.js";
-import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import { nativeLaneLineLayout, nativeOutsideLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -230,6 +230,7 @@ export class Stage extends Archetype {
 
   drawLaneDetails() {
     this.drawGuidelines();
+    this.drawOutsideLines();
     this.drawTapArea();
     this.drawJudgmentLine();
     this.drawBarLines();
@@ -304,8 +305,6 @@ export class Stage extends Archetype {
   }
 
   drawGuidelines() {
-    this.drawOutsideLines();
-
     if (!skin.sprites.guideline.exists || options.guidelineOpacity <= 0) return;
 
     const count =
@@ -362,14 +361,7 @@ export class Stage extends Archetype {
   drawOutsideLines() {
     if (!skin.sprites.outsideLine.exists) return;
 
-    const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
-    const outsideX = 6 + halfWidth;
-    for (const x of [-outsideX, outsideX]) {
-      skin.sprites.outsideLine.draw(
-        nativeLaneLineLayout(x, halfWidth, halfWidth, options.lockStageAspectRatio),
-        [layer.guideline],
-        1,
-      );
-    }
+    skin.sprites.outsideLine.draw(nativeOutsideLineLayout(-1), [layer.guideline], 1);
+    skin.sprites.outsideLine.draw(nativeOutsideLineLayout(1), [layer.guideline], 1);
   }
 }

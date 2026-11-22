@@ -11,8 +11,14 @@ const ms = (before: number, after = before) => new Range(-before / 1000, after /
 
 export const toBucketWindows = (windows: Windows) => ({
     perfect: new Range(Math.round(windows.perfect.min * 1000), Math.round(windows.perfect.max * 1000)),
-    great: new Range(Math.round(windows.great.min * 1000), Math.round(windows.great.max * 1000)),
-    good: new Range(Math.round(windows.good.min * 1000), Math.round(windows.good.max * 1000)),
+    great: new Range(
+        Math.round(Math.min(windows.perfect.min, windows.great.min, windows.good.min) * 1000),
+        Math.round(Math.max(windows.perfect.max, windows.great.max, windows.good.max) * 1000),
+    ),
+    good: new Range(
+        Math.round(Math.min(windows.perfect.min, windows.great.min, windows.good.min, windows.bad.min) * 1000),
+        Math.round(Math.max(windows.perfect.max, windows.great.max, windows.good.max, windows.bad.max) * 1000),
+    ),
 })
 
 // MasterLiveJudgementTiming, assist level 0. Sonolus exposes only

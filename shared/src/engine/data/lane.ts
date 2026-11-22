@@ -17,8 +17,8 @@ export const nativeStage = {
     laneWidth: 19.12000084,
     laneLength: 217.6000061,
     judgmentZ: 9.62,
-    // LiveLaneLineView derives this from out_side_line's 16 px width / 100.
-    outsideLineWidth: 0.16,
+    // LiveLaneLineView reads the 15 px transverse texture dimension.
+    outsideLineWidth: 0.15,
 
     tapAreaWidth: 19.6,
     tapAreaLength: 1.7,
@@ -43,6 +43,16 @@ const judgmentDepth =
 export const projectLaneZ = (z: number) =>
     judgmentDepth /
     (nativeStage.cameraHeight * nativeStage.cameraPitchSin + z * nativeStage.cameraPitchCos)
+
+/** A flat atlas strip samples the authored vertex gradient in projected space. */
+export const nativeOutsideLineAlpha = (progressFromFar: number) => {
+    const far = projectLaneZ(nativeStage.laneLength)
+    const near = projectLaneZ(0)
+    const scale = far + (near - far) * progressFromFar
+    const z = (judgmentDepth / scale - nativeStage.cameraHeight * nativeStage.cameraPitchSin) /
+        nativeStage.cameraPitchCos
+    return 1 - z / nativeStage.laneLength
+}
 
 // These are the Unity camera's horizontal/vertical NDC coordinates at the
 // ground-plane vanishing point and judgment root. They are equivalent to:
@@ -101,5 +111,6 @@ export const laneBase = {
         t: 0.029649429224918766,
         b: 1.8240224624020942,
     },
+    materialColor: [0.035294119, 0.074509792, 0.180392116] as const,
     materialOpacity: 0.749019623,
 }

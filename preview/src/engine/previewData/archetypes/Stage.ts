@@ -68,7 +68,7 @@ export class Stage extends Archetype {
           t,
         }),
         [layer.stage + 2],
-        options.guidelineOpacity,
+        1,
       );
       skin.sprites.previewBorder.draw(
         new Rect({
@@ -78,7 +78,7 @@ export class Stage extends Archetype {
           t,
         }),
         [layer.stage + 2],
-        options.guidelineOpacity,
+        1,
       );
     }
   }

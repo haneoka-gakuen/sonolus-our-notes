@@ -1,4 +1,4 @@
-import { nativeLaneLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import { nativeLaneLineLayout, nativeOutsideLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   laneBase,
   nativeJudgmentLineHalfHeight,
@@ -21,6 +21,7 @@ export const stage = {
 
     this.drawSekaiStage();
     this.drawGuidelines();
+    this.drawOutsideLines();
     this.drawJudgmentLine();
   },
 
@@ -84,13 +85,11 @@ export const stage = {
         );
       }
     }
-    // The native outside lines keep their authored gradient regardless of the
-    // guideline opacity preset; their near-to-far fade is baked into the strip.
+  },
+
+  drawOutsideLines() {
     if (!skin.sprites.outsideLine.exists) return;
-    const halfWidth = (nativeStage.outsideLineWidth / 2 / nativeStage.laneWidth) * 12;
-    const outsideX = 6 + halfWidth;
-    for (const x of [-outsideX, outsideX]) {
-      skin.sprites.outsideLine.draw(nativeLaneLineLayout(x, halfWidth, halfWidth, true), [layer.judgmentLine], 1);
-    }
+    skin.sprites.outsideLine.draw(nativeOutsideLineLayout(-1), [layer.judgmentLine], 1);
+    skin.sprites.outsideLine.draw(nativeOutsideLineLayout(1), [layer.judgmentLine], 1);
   },
 };
