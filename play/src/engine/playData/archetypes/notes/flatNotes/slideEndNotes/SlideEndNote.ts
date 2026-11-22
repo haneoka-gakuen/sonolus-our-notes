@@ -10,16 +10,17 @@ export abstract class SlideEndNote extends FlatNote {
   });
 
   updateSequential() {
+    super.updateSequential();
     if (!this.canReceiveInput) return;
 
     claimEnd(
       this.info.index,
       this.targetTime,
       this.hitbox,
-      this.fullHitbox,
+      this.activeFullHitbox,
       this.startSharedMemory.lastActiveTime === time.now ? this.targetTime : 99999,
       this.import.originalTimeMs,
-      this.windows.input,
+      this.activeInputWindow,
     );
   }
 

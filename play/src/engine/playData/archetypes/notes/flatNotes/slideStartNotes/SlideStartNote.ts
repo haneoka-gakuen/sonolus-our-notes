@@ -5,15 +5,16 @@ export abstract class SlideStartNote extends FlatNote {
   leniency = 1;
 
   updateSequential() {
+    super.updateSequential();
     if (!this.canReceiveInput) return;
 
     claimStart(
       this.info.index,
       this.targetTime,
       this.hitbox,
-      this.fullHitbox,
+      this.activeFullHitbox,
       this.import.originalTimeMs,
-      this.windows.input,
+      this.activeInputWindow,
     );
   }
 

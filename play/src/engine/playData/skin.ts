@@ -5,6 +5,7 @@ import {
 } from "../../../../shared/src/engine/data/connectWallDrawContract.js";
 import { nativeSlideSprites } from "../../../../shared/src/engine/data/nativeSlideSkin.js";
 import { nativeNoteCapSprites } from "../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
+import { soloHudSpriteNames } from "../../../../shared/src/engine/data/soloModeHudSprites.js";
 import { SkinSpriteName } from "@sonolus/core";
 
 export const skin = defineSkin({
@@ -183,6 +184,7 @@ export const skin = defineSkin({
     ...connectFrameDrawSpriteTable(),
     sourceConnectFrameDraw0: "Our Notes Source Connect Frame Draw standard 00",
     sourceConnectFrameDraw287: "Our Notes Source Connect Frame Draw simple 95",
+    ...soloHudSpriteNames,
   },
 });
 

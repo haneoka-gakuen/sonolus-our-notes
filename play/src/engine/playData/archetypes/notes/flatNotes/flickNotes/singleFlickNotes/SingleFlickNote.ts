@@ -1,6 +1,7 @@
 import { consumeFlickTouch, isFlickLatchReady, scanFlickLatch } from "../../../../../flick.js";
 import { claimStart, disallowEmpty, getClaimedStart } from "../../../../InputManager.js";
 import { FlickNote } from "../FlickNote.js";
+import { options } from "../../../../../../configuration/options.js";
 
 // FTLiveSimulator judges flick notes from the current-frame flick input of
 // any pressed finger (GetUseSimulateInputUnitPair pairs flicks by BeginLane,
@@ -18,40 +19,48 @@ export abstract class SingleFlickNote extends FlickNote {
     if (this.despawn) return;
     if (!this.canReceiveInput) return;
 
+    let hitTime = -9999;
     if (!this.hasReservedTap) {
       const index = getClaimedStart(this.info.index);
       if (index !== -1) {
+        const touch = touches.get(index);
         this.hasReservedTap = true;
-        disallowEmpty(touches.get(index));
+        disallowEmpty(touch);
+        if (options.assistMode) hitTime = touch.startTime;
       }
     }
 
-    const latched = scanFlickLatch(
-      this.fullHitbox.l,
-      this.fullHitbox.r,
-      this.flickImport.direction,
-      this.import.originalTimeMs,
-      this.windows.input,
-    );
-    if (latched.time !== -9999) {
-      this.flickLatchedTime = latched.time;
-      this.flickLatchedTouchId = latched.touchId;
-    }
-    if (
-      isFlickLatchReady(
-        this.flickLatchedTime,
-        this.targetTime,
-        this.flickLatchedTouchId,
+    if (hitTime === -9999) {
+      const hitbox = this.activeFullHitbox;
+      const latched = scanFlickLatch(
+        hitbox.l,
+        hitbox.r,
+        this.flickImport.direction,
         this.import.originalTimeMs,
-        this.windows.input,
-      )
-    ) {
-      consumeFlickTouch(this.flickLatchedTouchId);
-      this.completeAt(this.flickLatchedTime);
+        this.activeInputWindow,
+      );
+      if (latched.time !== -9999) {
+        this.flickLatchedTime = latched.time;
+        this.flickLatchedTouchId = latched.touchId;
+      }
+      if (
+        isFlickLatchReady(
+          this.flickLatchedTime,
+          this.targetTime,
+          this.flickLatchedTouchId,
+          this.import.originalTimeMs,
+          this.activeInputWindow,
+        )
+      ) {
+        consumeFlickTouch(this.flickLatchedTouchId);
+        hitTime = this.flickLatchedTime;
+      }
     }
+    if (hitTime !== -9999) this.completeAt(hitTime, false);
   }
 
   updateSequential() {
+    super.updateSequential();
     if (this.despawn) return;
 
     if (!this.hasReservedTap && this.flickLatchedTime === -9999 && this.isWithinInputWindow) {
@@ -59,9 +68,9 @@ export abstract class SingleFlickNote extends FlickNote {
         this.info.index,
         this.targetTime,
         new Rect(this.hitbox),
-        new Rect(this.fullHitbox),
+        this.activeFullHitbox,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       );
     }
     if (touches.count) return;
@@ -74,10 +83,10 @@ export abstract class SingleFlickNote extends FlickNote {
         this.targetTime,
         this.flickLatchedTouchId,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       )
     ) {
-      this.completeAt(this.flickLatchedTime);
+      this.completeAt(this.flickLatchedTime, false);
     }
   }
 }

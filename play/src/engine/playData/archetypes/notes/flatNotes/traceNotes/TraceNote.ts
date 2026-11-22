@@ -38,11 +38,11 @@ export abstract class TraceNote extends FlatNote {
     for (const touch of touches) {
       const hit = getTraceHit(
         touch,
-        this.fullHitbox,
+        this.activeFullHitbox,
         this.inputTime,
         this.targetTime,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       );
       if (hit.time === -9999) continue;
 
@@ -53,12 +53,13 @@ export abstract class TraceNote extends FlatNote {
   }
 
   updateSequential() {
+    super.updateSequential();
     if (this.despawn) return;
     if (!this.hasInputTargetArrived || this.hasInputWindowEnded) return;
 
     for (const touch of touches) {
       if (touch.started || touch.ended) continue;
-      if (!this.fullHitbox.contains(touch.position)) continue;
+      if (!this.activeFullHitbox.contains(touch.position)) continue;
 
       disallowEmpty(touch);
       this.complete(this.targetTime, true);

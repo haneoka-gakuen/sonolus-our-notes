@@ -40,6 +40,9 @@ export abstract class Note extends Archetype {
     lastActiveTime: Number,
     exportStartTime: Number,
     heldSoundCandidateTime: Number,
+    modeNext: Number,
+    modeJudgement: Number,
+    modeEventAt: Number,
   });
 
   get scrollNow(): number { return this.import.scrollRef > 0 ? currentScrollTime(this.import.scrollRef) : time.scaled; }

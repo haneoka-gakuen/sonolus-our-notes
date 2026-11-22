@@ -28,32 +28,39 @@ export abstract class TraceFlickNote extends FlickNote {
   touch() {
     if (!this.canReceiveInput) return;
 
-    const latched = scanFlickLatch(
-      this.fullHitbox.l,
-      this.fullHitbox.r,
-      this.flickImport.direction,
-      this.import.originalTimeMs,
-      this.windows.input,
-    );
-    if (latched.time !== -9999) {
-      this.flickLatchedTime = latched.time;
-      this.flickLatchedTouchId = latched.touchId;
-    }
-    if (
-      isFlickLatchReady(
-        this.flickLatchedTime,
-        this.targetTime,
-        this.flickLatchedTouchId,
+    const assisted = this.assistedContact();
+    let hitTime = assisted.hitTime;
+    if (hitTime === -9999) {
+      const hitbox = this.activeFullHitbox;
+      const latched = scanFlickLatch(
+        hitbox.l,
+        hitbox.r,
+        this.flickImport.direction,
         this.import.originalTimeMs,
-        this.windows.input,
-      )
-    ) {
-      consumeFlickTouch(this.flickLatchedTouchId);
-      this.completeTraceFlick(this.flickLatchedTime);
+        this.activeInputWindow,
+      );
+      if (latched.time !== -9999) {
+        this.flickLatchedTime = latched.time;
+        this.flickLatchedTouchId = latched.touchId;
+      }
+      if (
+        isFlickLatchReady(
+          this.flickLatchedTime,
+          this.targetTime,
+          this.flickLatchedTouchId,
+          this.import.originalTimeMs,
+          this.activeInputWindow,
+        )
+      ) {
+        consumeFlickTouch(this.flickLatchedTouchId);
+        hitTime = this.flickLatchedTime;
+      }
     }
+    if (hitTime !== -9999) this.completeTraceFlick(hitTime, assisted.atTarget);
   }
 
-  updateParallel() {
+  updateSequential() {
+    super.updateSequential();
     if (this.despawn) return;
 
     // touch() only fires on touch events; complete a latched swipe once
@@ -64,13 +71,12 @@ export abstract class TraceFlickNote extends FlickNote {
         this.targetTime,
         this.flickLatchedTouchId,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       )
     ) {
-      this.completeTraceFlick(this.flickLatchedTime);
+      this.completeTraceFlick(this.flickLatchedTime, false);
     }
 
-    super.updateParallel();
   }
 
   render() {
@@ -93,8 +99,8 @@ export abstract class TraceFlickNote extends FlickNote {
     // removed
   }
 
-  completeTraceFlick(hitTime: number) {
-    this.result.judgment = this.judge(hitTime, false);
+  completeTraceFlick(hitTime: number, atTarget: boolean) {
+    this.result.judgment = this.judge(hitTime, atTarget);
 
     this.playHitEffects(time.now);
 

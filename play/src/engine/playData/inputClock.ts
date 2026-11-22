@@ -1,3 +1,5 @@
+import type { Windows } from "../../../../shared/src/engine/data/windows.js";
+
 // LevelData opts into the imported music-relative millisecond grid once.
 export const sourceTimingProfile = 1;
 export const sourceTimingProfileDataName = "ourNotesTimingProfile";
@@ -32,6 +34,14 @@ export const isWithinSourceWindow = (musicMs: number, sourceTargetMs: number, wi
 
 export const containsInputAccuracy = (window: Range, accuracy: InputAccuracy) =>
   usesSourceTiming() ? containsMilliseconds(window, accuracy.milliseconds) : window.contains(accuracy.seconds);
+
+export function judgeTiming(windows: Windows, accuracy: InputAccuracy) {
+  if (containsInputAccuracy(windows.perfect, accuracy)) return 5;
+  if (containsInputAccuracy(windows.great, accuracy)) return 4;
+  if (containsInputAccuracy(windows.good, accuracy)) return 3;
+  if (containsInputAccuracy(windows.bad, accuracy)) return 2;
+  return 1;
+}
 
 export const canReceiveInput = (legacyWindow: Range, sourceTargetMs: number, window: Range) =>
   usesSourceTiming() ? containsMilliseconds(window, inputFrameMs() - sourceTargetMs) : time.now >= legacyWindow.min;

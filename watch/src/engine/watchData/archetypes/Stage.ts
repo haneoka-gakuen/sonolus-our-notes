@@ -4,6 +4,8 @@ import { particle } from "../particle.js";
 import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
 import { updateNativeLaneFeedback } from "../laneFeedback.js";
 import { nativeLaneLineLayout, nativeOutsideLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import { soloModeReplay } from "../../../../../shared/src/engine/data/soloMode.js";
+import { drawSoloModeHud } from "../../../../../shared/src/engine/data/soloModeHud.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -177,6 +179,42 @@ export class Stage extends Archetype {
     if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();
 
     this.drawLaneDetails();
+    if (replay.isReplay && (options.gekisouMode || options.assistMode)) this.drawModeHud();
+  }
+
+  drawModeHud() {
+    const data = archetypes.Initialization.import.get(0);
+    const now = Math.floor((time.now - input.offset) * 1000);
+    let mission = 0;
+    let missionValue = 0;
+    let countdown = 0;
+    if (options.gekisouMode) {
+      for (let i = 0; i < 3; i++) {
+        const kind = i === 0 ? data.mission1 : i === 1 ? data.mission2 : data.mission3;
+        const start = i === 0 ? data.start1 : i === 1 ? data.start2 : data.start3;
+        const end = i === 0 ? data.end1 : i === 1 ? data.end2 : data.end3;
+        if (kind === 0 || now < start - 3000 || now >= end) continue;
+        mission = kind;
+        countdown = Math.max(0, Math.ceil((start - now) / 1000));
+        missionValue = this.soloStream(soloModeReplay.mission - i * 2 + (kind === 3 ? 1 : 0));
+        break;
+      }
+    }
+    drawSoloModeHud(skin.sprites, {
+      score: data.weightedNotes > 0 ? this.soloStream(soloModeReplay.score) : -1,
+      countdown,
+      mission,
+      missionValue,
+      assistLevel: options.assistMode ? this.soloStream(soloModeReplay.assistLevel) : -1,
+      result: this.soloStream(soloModeReplay.result),
+      combo: this.soloStream(soloModeReplay.combo),
+    });
+  }
+
+  soloStream(id: number) {
+    if (streams.has(id, time.now)) return streams.getValue(id, time.now);
+    const key = streams.getPreviousKey(id, time.now);
+    return streams.has(id, key) ? streams.getValue(id, key) : 0;
   }
 
   drawSekaiStage() {

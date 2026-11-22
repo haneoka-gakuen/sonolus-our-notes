@@ -5,6 +5,7 @@ import { getTraceHit } from "../../../trace.js";
 import { containsInputAccuracy } from "../../../inputClock.js";
 import { disallowEmpty } from "../../InputManager.js";
 import { InputNote } from "../InputNote.js";
+import { usesSoloMode } from "../../../soloMode.js";
 
 export abstract class SlideTickNote extends InputNote {
   leniency = 1;
@@ -17,7 +18,7 @@ export abstract class SlideTickNote extends InputNote {
 
     if (this.hasInput) this.archetypeLife.miss = -100;
 
-    this.inputTime.copyFrom(this.windows.input.add(this.inputTargetTime).add(input.offset));
+    this.inputTime.copyFrom(this.widestInputWindow.add(this.inputTargetTime).add(input.offset));
 
     this.spawnTime = timeScaleChanges.at(this.inputTime.min).scaledTime;
   }
@@ -48,11 +49,11 @@ export abstract class SlideTickNote extends InputNote {
     for (const touch of touches) {
       const hit = getTraceHit(
         touch,
-        this.fullHitbox,
+        this.activeFullHitbox,
         this.inputTime,
         this.targetTime,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       );
       if (hit.time === -9999) continue;
 
@@ -62,11 +63,12 @@ export abstract class SlideTickNote extends InputNote {
   }
 
   updateSequential() {
+    super.updateSequential();
     if (this.despawn) return;
     if (this.hasInputTargetArrived && !this.hasInputWindowEnded) {
       for (const touch of touches) {
         if (touch.started || touch.ended) continue;
-        if (!this.fullHitbox.contains(touch.position)) continue;
+        if (!this.activeFullHitbox.contains(touch.position)) continue;
 
         this.complete(touch, this.targetTime, true);
         return;
@@ -82,7 +84,10 @@ export abstract class SlideTickNote extends InputNote {
     disallowEmpty(touch);
     const accuracy = this.inputAccuracy(hitTime, atTarget);
     this.result.accuracy = accuracy.seconds;
-    this.result.judgment = containsInputAccuracy(this.windows.perfect, accuracy) ? Judgment.Perfect : Judgment.Miss;
+    const perfect = containsInputAccuracy(this.activeWindows.perfect, accuracy);
+    const rawPerfect = containsInputAccuracy(this.windows.perfect, accuracy);
+    if (usesSoloMode() && this.hasInput) this.recordModeJudgment(perfect ? 5 : 1, rawPerfect ? 5 : 1);
+    this.result.judgment = perfect ? Judgment.Perfect : Judgment.Miss;
     if (this.result.judgment === Judgment.Perfect) {
       if (options.hapticsEnabled) this.result.haptic = HapticType.Medium;
 

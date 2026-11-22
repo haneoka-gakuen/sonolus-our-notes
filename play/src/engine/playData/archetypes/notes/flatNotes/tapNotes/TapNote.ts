@@ -6,15 +6,16 @@ export abstract class TapNote extends FlatNote {
   leniency = 0.75;
 
   updateSequential() {
+    super.updateSequential();
     if (!this.canReceiveInput) return;
 
     claimStart(
       this.info.index,
       this.targetTime,
       this.hitbox,
-      this.fullHitbox,
+      this.activeFullHitbox,
       this.import.originalTimeMs,
-      this.windows.input,
+      this.activeInputWindow,
     );
   }
 

@@ -8,8 +8,11 @@ import {
 import { particle } from "../particle.js";
 import { scaledScreen } from "../scaledScreen.js";
 import { skin } from "../skin.js";
+import { soloModeImports } from "../../../../../shared/src/engine/data/soloMode.js";
 
 export class Initialization extends Archetype {
+  import = this.defineImport(soloModeImports);
+
   preprocess() {
     const targetAspectRatio = nativeStage.targetAspectRatio;
 

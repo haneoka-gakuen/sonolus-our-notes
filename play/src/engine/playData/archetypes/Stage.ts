@@ -29,10 +29,19 @@ import { note } from "../note.js";
 import { particle, restartNativeLaneEffect } from "../particle.js";
 import { layer, skin } from "../skin.js";
 import { canEmpty } from "./InputManager.js";
+import { assistLevel, finishAssistFrame } from "../assist.js";
+import {
+  finishSoloMode, getLuckState, getSoloResult, settleSoloJudgments, soloModeConfig,
+  updateSoloLuck, usesSoloMode,
+} from "../soloMode.js";
+import { luckMemory } from "../gekisouLuck.js";
+import { drawSoloModeHud } from "../../../../../shared/src/engine/data/soloModeHud.js";
+import { inputFrameMs } from "../inputClock.js";
 import { archetypes } from "./index.js";
 import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
 export class Stage extends Archetype {
+  sharedMemory = this.defineSharedMemory({ luck: Tuple(3, luckMemory), modeFirst: Number, modeLast: Number });
   hitbox = this.entityMemory(Rect);
   slotHitbox = this.entityMemory(Rect);
   holdInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
@@ -81,6 +90,12 @@ export class Stage extends Archetype {
   }
 
   updateSequential() {
+    if (usesSoloMode()) {
+      settleSoloJudgments();
+      finishAssistFrame();
+      finishSoloMode();
+      if (options.gekisouMode) updateSoloLuck(inputFrameMs());
+    }
     heldSoundActivity.active = false;
     updateConnectWalls();
     if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, false);
@@ -107,6 +122,35 @@ export class Stage extends Archetype {
     if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();
 
     this.drawLaneDetails();
+    if (usesSoloMode()) this.drawModeHud();
+  }
+
+  drawModeHud() {
+    const result = getSoloResult();
+    const now = inputFrameMs();
+    let mission = 0;
+    let missionValue = 0;
+    let countdown = 0;
+    if (options.gekisouMode) {
+      for (let i = 0; i < 3; i++) {
+        const range = soloModeConfig.ranges.get(i);
+        if (range.mission === 0 || now < range.start - 3000 || now >= range.end) continue;
+        mission = range.mission;
+        countdown = Math.max(0, Math.ceil((range.start - now) / 1000));
+        const stage = result.ranges.get(i);
+        missionValue = mission === 1 ? stage.combo : mission === 3 ? stage.just : getLuckState(i).points;
+        break;
+      }
+    }
+    drawSoloModeHud(skin.sprites, {
+      score: soloModeConfig.weightedNotes > 0 ? result.score : -1,
+      countdown,
+      mission,
+      missionValue,
+      assistLevel: options.assistMode ? assistLevel() : -1,
+      result: result.grade,
+      combo: result.bestCombo,
+    });
   }
 
   updateHeldSFX() {

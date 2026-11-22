@@ -3,6 +3,8 @@ import { consumeFlickTouch, isFlickLatchReady, scanFlickLatch } from "../../../.
 import { getHitbox, getNativeJudgmentLeniency } from "../../../../../lane.js";
 import { archetypes } from "../../../../index.js";
 import { FlickNote } from "../FlickNote.js";
+import { assistLevel } from "../../../../../assist.js";
+import { assistAreaExtra } from "../../../../../../../../../shared/src/engine/data/assist.js";
 
 export abstract class SlideEndFlickNote extends FlickNote {
   slideEndFlickImport = this.defineImport({
@@ -42,27 +44,33 @@ export abstract class SlideEndFlickNote extends FlickNote {
 
     if (this.startInfo.state === EntityState.Active) return;
 
-    if (!this.hasInputTargetArrived) {
-      this.earlyLatch();
-    } else {
-      this.lateLatch();
-    }
+    const assisted = this.assistedContact();
+    let hitTime = assisted.hitTime;
+    if (hitTime === -9999) {
+      if (!this.hasInputTargetArrived) {
+        this.earlyLatch();
+      } else {
+        this.lateLatch();
+      }
 
-    if (
-      isFlickLatchReady(
-        this.flickLatchedTime,
-        this.targetTime,
-        this.flickLatchedTouchId,
-        this.import.originalTimeMs,
-        this.windows.input,
-      )
-    ) {
-      consumeFlickTouch(this.flickLatchedTouchId);
-      this.completeAt(this.flickLatchedTime);
+      if (
+        isFlickLatchReady(
+          this.flickLatchedTime,
+          this.targetTime,
+          this.flickLatchedTouchId,
+          this.import.originalTimeMs,
+          this.activeInputWindow,
+        )
+      ) {
+        consumeFlickTouch(this.flickLatchedTouchId);
+        hitTime = this.flickLatchedTime;
+      }
     }
+    if (hitTime !== -9999) this.completeAt(hitTime, assisted.atTarget);
   }
 
   updateSequential() {
+    super.updateSequential();
     if (this.despawn || touches.count) return;
 
     // touch() only fires on touch events; complete a latched swipe once
@@ -74,11 +82,11 @@ export abstract class SlideEndFlickNote extends FlickNote {
         this.targetTime,
         this.flickLatchedTouchId,
         this.import.originalTimeMs,
-        this.windows.input,
+        this.activeInputWindow,
       ) &&
       this.startInfo.state !== EntityState.Active
     ) {
-      this.completeAt(this.flickLatchedTime);
+      this.completeAt(this.flickLatchedTime, false);
     }
   }
 
@@ -122,7 +130,7 @@ export abstract class SlideEndFlickNote extends FlickNote {
         operateType: this.import.operateType,
         originalCritical: this.import.originalCritical,
         originalSize: this.import.originalSize,
-      }),
+      }) + assistAreaExtra(this.import.operateType, assistLevel()),
     });
 
     const latched = scanFlickLatch(
@@ -130,7 +138,7 @@ export abstract class SlideEndFlickNote extends FlickNote {
       hitbox.r,
       this.flickImport.direction,
       this.import.originalTimeMs,
-      this.windows.input,
+      this.activeInputWindow,
     );
     if (latched.time !== -9999) {
       this.flickLatchedTime = latched.time;
@@ -139,12 +147,13 @@ export abstract class SlideEndFlickNote extends FlickNote {
   }
 
   lateLatch() {
+    const hitbox = this.activeFullHitbox;
     const latched = scanFlickLatch(
-      this.fullHitbox.l,
-      this.fullHitbox.r,
+      hitbox.l,
+      hitbox.r,
       this.flickImport.direction,
       this.import.originalTimeMs,
-      this.windows.input,
+      this.activeInputWindow,
     );
     if (latched.time !== -9999) {
       this.flickLatchedTime = latched.time;

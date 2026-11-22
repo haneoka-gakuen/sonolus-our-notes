@@ -34,7 +34,9 @@ import {
 } from "../../../particle.js";
 import { drawClipped, getZ, layer, skin } from "../../../skin.js";
 import { InputNote } from "../InputNote.js";
-import { containsInputAccuracy } from "../../../inputClock.js";
+import { inputFrameMs, judgeTiming } from "../../../inputClock.js";
+import { canJudgeJust } from "../../../../../../../shared/src/engine/data/soloMode.js";
+import { isGekisouJust, usesSoloMode } from "../../../soloMode.js";
 
 export abstract class FlatNote extends InputNote {
   abstract sprites: {
@@ -105,7 +107,7 @@ export abstract class FlatNote extends InputNote {
 
     this.visualTime.copyFrom(Range.l.mul(this.scrollDuration).add(this.scrollTarget));
 
-    this.inputTime.copyFrom(this.windows.input.add(this.inputTargetTime).add(input.offset));
+    this.inputTime.copyFrom(this.widestInputWindow.add(this.inputTargetTime).add(input.offset));
 
     this.spawnTime = this.import.scrollRef > 0 ? Math.min(this.import.scrollSpawn, this.inputTime.min) : Math.min(this.visualTime.min, timeScaleChanges.at(this.inputTime.min).scaledTime);
 
@@ -377,30 +379,15 @@ export abstract class FlatNote extends InputNote {
     this.result.bucket.value = accuracy.milliseconds;
     this.originalExport("accuracyMs", accuracy.milliseconds);
 
-    if (containsInputAccuracy(this.windows.perfect, accuracy)) {
-      this.nativeJudgment = 5;
-      this.originalExport("judgment", 5);
-      return Judgment.Perfect;
-    }
-    if (containsInputAccuracy(this.windows.great, accuracy)) {
-      this.nativeJudgment = 4;
-      this.originalExport("judgment", 4);
-      return Judgment.Great;
-    }
-    if (containsInputAccuracy(this.windows.good, accuracy)) {
-      this.nativeJudgment = 3;
-      this.originalExport("judgment", 3);
-      return Judgment.Great;
-    }
-    if (containsInputAccuracy(this.windows.bad, accuracy)) {
-      this.nativeJudgment = 2;
-      this.originalExport("judgment", 2);
-      return Judgment.Good;
-    }
-
-    this.nativeJudgment = 1;
-    this.originalExport("judgment", 1);
-    return Judgment.Miss;
+    const raw = judgeTiming(this.windows, accuracy);
+    let judgment = options.assistMode ? Math.max(raw, judgeTiming(this.activeWindows, accuracy)) : raw;
+    if (options.gekisouMode && Math.abs(accuracy.milliseconds) <= 2 &&
+        canJudgeJust(this.import.judgementType) && isGekisouJust(this.import.originalTimeMs, inputFrameMs()))
+      judgment = 6;
+    this.nativeJudgment = judgment;
+    this.originalExport("judgment", judgment);
+    if (usesSoloMode()) this.recordModeJudgment(judgment, raw);
+    return judgment >= 5 ? Judgment.Perfect : judgment >= 3 ? Judgment.Great : judgment === 2 ? Judgment.Good : Judgment.Miss;
   }
 
   playSFX() {

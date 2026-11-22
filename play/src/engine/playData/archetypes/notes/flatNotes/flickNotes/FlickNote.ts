@@ -15,6 +15,8 @@ import { effect, sfxDistance } from "../../../../effect.js";
 import { sizedEffectId, spawnNativeFlickEffect } from "../../../../particle.js";
 import { scaledScreen } from "../../../../scaledScreen.js";
 import { drawClipped, getZ, layer, skin } from "../../../../skin.js";
+import { getTraceHit } from "../../../../trace.js";
+import { disallowEmpty } from "../../../InputManager.js";
 import { FlatNote } from "../FlatNote.js";
 
 export abstract class FlickNote extends FlatNote {
@@ -107,11 +109,29 @@ export abstract class FlickNote extends FlatNote {
   }
 
   complete(touch: Touch) {
-    this.completeAt(touch.time);
+    this.completeAt(touch.time, false);
   }
 
-  completeAt(hitTime: number) {
-    this.result.judgment = this.judge(hitTime, false);
+  assistedContact() {
+    let hitTime = -9999;
+    let atTarget = false;
+    if (options.assistMode) {
+      const hitbox = this.activeFullHitbox;
+      const window = this.activeInputWindow;
+      for (const touch of touches) {
+        const hit = getTraceHit(touch, hitbox, this.inputTime, this.targetTime, this.import.originalTimeMs, window);
+        if (hit.time === -9999) continue;
+        disallowEmpty(touch);
+        hitTime = hit.time;
+        atTarget = hit.atTarget;
+        break;
+      }
+    }
+    return { hitTime, atTarget };
+  }
+
+  completeAt(hitTime: number, atTarget: boolean) {
+    this.result.judgment = this.judge(hitTime, atTarget);
 
     this.playHitEffects(hitTime);
 
