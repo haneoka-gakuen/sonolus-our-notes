@@ -23,6 +23,9 @@ export class ScrollClock extends Archetype {
     const segment = archetypes.ScrollClock.import.get(cursor);
     this.sharedMemory.current = time.now < segment.at ? time.now : segment.value + (time.now - segment.at) * segment.scale;
   }
-  spawnOrder(): number { return -999999999; }
+  spawnOrder(): number {
+    // Continuations are read through their references. Keep them behind all playable entities.
+    return this.import.head === 1 ? -999999999 : 999999;
+  }
   shouldSpawn() { return this.import.head === 1; }
 }
