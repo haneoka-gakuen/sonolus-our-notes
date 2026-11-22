@@ -10,13 +10,6 @@ export class NormalActiveSlideConnector extends ActiveSlideConnector {
     pressed: skin.sprites.normalActiveSlideConnectorActive,
   };
 
-  slideSprites = {
-    left: skin.sprites.slideNoteLeft,
-    middle: skin.sprites.slideNoteMiddle,
-    right: skin.sprites.slideNoteRight,
-    fallback: skin.sprites.slideNoteFallback,
-  };
-
   effects = {
     circular: particle.effects.normalSlideConnectorCircular,
     linear: particle.effects.normalSlideConnectorLinear,

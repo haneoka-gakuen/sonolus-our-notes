@@ -28,8 +28,8 @@ export class Initialization extends Archetype {
     soloModeConfig.bandPower = this.import.power > 0 ? this.import.power : options.soloBandPower;
     const difficulty = sourceFloat(1 + sourceMultiply(this.import.difficulty - 5, 0.005));
     soloModeConfig.multiplier = sourceMultiply(sourceMultiply(3, soloModeConfig.bandPower), difficulty);
-    soloModeConfig.weightedNotes = this.import.weightedNotes;
-    soloModeConfig.noteCount = this.import.noteCount;
+    soloModeConfig.weightedNoteTenths = Math.max(0, this.import.weightedNotes) * 10;
+    soloModeConfig.noteCount = 0;
     soloModeConfig.ranges.get(0).mission = this.import.mission1;
     soloModeConfig.ranges.get(0).start = this.import.start1;
     soloModeConfig.ranges.get(0).end = this.import.end1;

@@ -1,9 +1,15 @@
 import type { Windows } from "../../../../../../shared/src/engine/data/windows.js";
-import { assistAreaExtra, assistInputWindow, assistWindows, nativeAssist } from "../../../../../../shared/src/engine/data/assist.js";
+import {
+  assistAreaExtra,
+  assistInputWindow,
+  assistWindows,
+  nativeAssist,
+} from "../../../../../../shared/src/engine/data/assist.js";
+import { isLightScoreNote } from "../../../../../../shared/src/engine/data/soloMode.js";
 import { assistLevel } from "../../assist.js";
 import { options } from "../../../configuration/options.js";
 import { getHitbox, getNativeJudgmentLeniency } from "../../lane.js";
-import { usesSoloMode } from "../../soloMode.js";
+import { soloModeConfig, usesSoloMode } from "../../soloMode.js";
 import { archetypes } from "../index.js";
 import {
   canReceiveInput,
@@ -21,6 +27,16 @@ export abstract class InputNote extends Note {
   abstract inputTime: Range;
 
   modeJudged = this.entityMemory(Boolean);
+
+  preprocess() {
+    super.preprocess();
+    if (!usesSoloMode() || !this.hasInput) return;
+
+    soloModeConfig.noteCount++;
+    if (archetypes.Initialization.import.get(0).weightedNotes <= 0) {
+      soloModeConfig.weightedNoteTenths += isLightScoreNote(this.import.operateType) ? 1 : 10;
+    }
+  }
 
   updateSequential() {
     if (usesSoloMode() && this.hasInput && !this.modeJudged && this.hasInputWindowEnded) {

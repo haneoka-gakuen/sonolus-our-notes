@@ -8,29 +8,15 @@ import {
 import { scaledScreen } from "../../../scaledScreen.js";
 import { nativeEffectSpawnPlane } from "../../../../../../../shared/src/engine/data/nativeEffects.js";
 import { stableHoldEffectWidthBucket } from "../../../../../../../shared/src/engine/data/stableHoldEffectWidthBucket.js";
-import { getNativeNoteCapId } from "../../../../../../../shared/src/engine/data/nativeNoteSprites.generated.js";
-import {
-  getNativeNoteParts,
-  getNativeNoteRects,
-} from "../../../../../../../shared/src/engine/data/nativeNoteGeometry.js";
-import { nativeNoteLayout } from "../../../../../../../shared/src/engine/data/nativeNoteLayout.js";
 import { options } from "../../../../configuration/options.js";
 import { note } from "../../../note.js";
 import { linearEffectLayout, particle } from "../../../particle.js";
-import { drawClipped, getZ, layer, skin } from "../../../skin.js";
 import { SlideConnector, VisualType } from "../SlideConnector.js";
 import { LOOP_FX_PARTS, moveLoopFx, spawnLoopFx } from "../../../hitFx.js";
 import { heldSoundActivity } from "../../../sound.js";
 
 export abstract class ActiveSlideConnector extends SlideConnector {
   override nativeLine = true;
-  abstract slideSprites: {
-    left: SkinSprite;
-    middle: SkinSprite;
-    right: SkinSprite;
-    fallback: SkinSprite;
-  };
-
   abstract effects: {
     circular: ParticleEffect;
     linear: ParticleEffect;
@@ -41,7 +27,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     linear: ParticleEffectInstanceId,
   });
 
-  slideZ = this.entityMemory(Number);
   liveBounds = this.entityMemory({ l: Number, r: Number });
 
   heldAudioLinks = this.defineSharedMemory({ next: Number, start: Number, end: Number });
@@ -53,25 +38,17 @@ export abstract class ActiveSlideConnector extends SlideConnector {
     linearEnabled: Boolean,
     loopWidthBucket: Number,
     sourceProgram: Boolean,
-    slideAvailable: Boolean,
-    skin002: Boolean,
-    skin003: Boolean,
   });
 
   initialize() {
     super.initialize();
 
-    this.slideZ = getZ(layer.note.slide, this.head.time, this.headImport.lane);
     this.resources.circularEnabled = options.noteEffectEnabled;
     this.resources.linearEnabled = options.noteEffectEnabled && this.effects.linear.exists;
     this.resources.loopWidthBucket = -1;
     this.loopLayoutIsFixed = this.head.l === this.tail.l && this.head.r === this.tail.r;
     this.resources.sourceProgram =
       particle.effects.sourceSimpleLoop.exists && validSimpleLoopRom() && hasSimpleLoopSourceEffects(particle.effects);
-    this.resources.slideAvailable =
-      this.slideSprites.left.exists && this.slideSprites.middle.exists && this.slideSprites.right.exists;
-    this.resources.skin002 = skin.sprites.nativeArrowAnimationSkin002.exists;
-    this.resources.skin003 = skin.sprites.nativeArrowAnimationSkin003.exists;
   }
 
   updateSequential() {
@@ -128,8 +105,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
       if (this.shouldPlayLinearEffect && this.effectInstanceIds.linear) this.destroyLinearEffect();
     }
-
-    this.renderSlide();
   }
 
   terminate() {
@@ -144,10 +119,6 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   get shouldPlayLinearEffect() {
     return this.resources.linearEnabled;
-  }
-
-  get useFallbackSlideSprite() {
-    return !this.resources.slideAvailable;
   }
 
   // effect001 hold loop: one looping instance per part, re-projected every frame.
@@ -212,31 +183,5 @@ export abstract class ActiveSlideConnector extends SlideConnector {
 
   getAlpha() {
     return 1;
-  }
-
-  renderSlide() {
-    // The old single-sprite branch was a PJS compatibility strip. If the
-    // three source-derived slices are unavailable, omit the overlay.
-    if (this.useFallbackSlideSprite) return;
-
-    const { l, r } = this.liveBounds;
-
-    const rects = getNativeNoteRects((l + r) / 2, (r - l) / 2, 1, this.resources.skin002, this.resources.skin003);
-    const parts = getNativeNoteParts((l + r) / 2, (r - l) / 2, false);
-    this.drawSlidePart(
-      getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.leftTilt, parts.leftRight),
-      rects.left,
-    );
-    this.drawSlidePart(skin.sprites.nativeSlideMainLeft.id, rects.mainLeft);
-    this.drawSlidePart(skin.sprites.nativeSlideMainMiddle.id, rects.middle);
-    this.drawSlidePart(skin.sprites.nativeSlideMainRight.id, rects.mainRight);
-    this.drawSlidePart(
-      getNativeNoteCapId(skin.sprites.nativeTapLeft0.id, 1, parts.rightTilt, parts.rightRight),
-      rects.right,
-    );
-  }
-
-  drawSlidePart(id: SkinSpriteId, rect: RectLike) {
-    if (skin.sprites.exists(id)) drawClipped(id, nativeNoteLayout(rect), [this.slideZ], 1, 1);
   }
 }

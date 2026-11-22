@@ -2,7 +2,7 @@ import { FlatNote } from "../FlatNote.js";
 
 export abstract class SlideStartNote extends FlatNote {
   render() {
-    if (time.scaled > this.visualTime.max) return;
+    if (this.scrollNow >= this.scrollTarget) return;
 
     super.render();
   }

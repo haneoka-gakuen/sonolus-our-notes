@@ -16,7 +16,7 @@ import { consumeLuckDraw, recordLuckNote } from "./gekisouLuck.js";
 export const soloModeConfig = levelData({
   bandPower: Number,
   multiplier: Number,
-  weightedNotes: Number,
+  weightedNoteTenths: Number,
   noteCount: Number,
   ranges: Tuple(3, { mission: Number, start: Number, end: Number }),
 });
@@ -91,14 +91,14 @@ function recordSoloNote(operateType: number, noteMs: number, judgment: number, o
   soloMode.bestCombo = Math.max(soloMode.bestCombo, soloMode.combo);
   soloMode.judged++;
 
-  if (soloModeConfig.weightedNotes > 0 && judgment >= 3) {
+  if (soloModeConfig.weightedNoteTenths > 0 && judgment >= 3) {
     const weight = isLightScoreNote(operateType) ? 0.1 : 1;
     let value = soloModeConfig.multiplier;
     value = sourceMultiply(value, weight);
     value = sourceMultiply(value, noteScoreRatio(judgment));
     value = sourceMultiply(value, sourceMultiply(ordinaryComboFactor(soloMode.beforeTimestamp), missionBonus));
     value = sourceMultiply(value, luckBonus);
-    const base = Math.floor(sourceFloat(value / sourceFloat(soloModeConfig.weightedNotes)));
+    const base = Math.floor(sourceFloat(value / sourceFloat(Math.ceil(soloModeConfig.weightedNoteTenths / 10))));
     const lifeFactor = soloMode.life > 0 ? 1 : 0.3;
     const assistFactor = options.assistMode ? sourceFloat(nativeAssist.scorePercent / 100) : 1;
     soloMode.score += Math.floor(sourceMultiply(sourceMultiply(base, lifeFactor), assistFactor));

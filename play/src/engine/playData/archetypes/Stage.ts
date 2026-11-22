@@ -143,7 +143,7 @@ export class Stage extends Archetype {
       }
     }
     drawSoloModeHud(skin.sprites, {
-      score: soloModeConfig.weightedNotes > 0 ? result.score : -1,
+      score: soloModeConfig.weightedNoteTenths > 0 ? result.score : -1,
       countdown,
       mission,
       missionValue,

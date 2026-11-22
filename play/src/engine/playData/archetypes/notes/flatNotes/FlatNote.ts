@@ -160,10 +160,10 @@ export abstract class FlatNote extends InputNote {
   }
 
   updateParallel() {
-    if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
     if (this.hasInputWindowEnded) this.despawn = true;
     if (this.despawn) return;
 
+    if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
     if (this.scrollNow < this.visualTime.min - (this.import.scrollRef > 0 ? this.scrollDuration * .1 : 0)) return;
     if (options.hidden > 0 && this.scrollNow > this.hiddenTime) return;
     if (this.scrollCovered) return;
