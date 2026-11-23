@@ -1,3 +1,4 @@
+import { drawGekisouStageLight, gekisouStageFrame } from "../../../../../shared/src/engine/data/gekisouStage.js";
 import { initializeConnectWallDraw, drawConnectWalls } from "../particle.js";
 import { updateConnectWalls } from "../connectWalls.js";
 import { particle } from "../particle.js";
@@ -30,6 +31,7 @@ import { archetypes } from "./index.js";
 import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
 export class Stage extends Archetype {
+  gekisouFrame = this.entityMemory(Number);
   heldConnectorHead = this.entityMemory(Number);
 
   indexHeldConnectors() {
@@ -163,6 +165,7 @@ export class Stage extends Archetype {
     updateConnectWalls();
     if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, time.skip);
     updateNativeLaneFeedback();
+    if (options.gekisouMode) this.updateGekisouStage();
     if (!options.markerAnimation) return;
     const nativeSkin = getNativeArrowAnimationSkin(
       skin.sprites.nativeArrowAnimationSkin001.exists,
@@ -178,8 +181,23 @@ export class Stage extends Archetype {
     // authored lane_base geometry. Missing native stage data fails closed.
     if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();
 
+    drawGekisouStageLight(skin.sprites.gekisouStage0, this.gekisouFrame, layer.stage + 0.5);
     this.drawLaneDetails();
     if (replay.isReplay && (options.gekisouMode || options.assistMode)) this.drawModeHud();
+  }
+
+  updateGekisouStage() {
+    const mode = options.gekisouEffectMode;
+    if (options.lightweightMode || mode === 0) return;
+    const data = archetypes.Initialization.import.get(0);
+    const now = Math.floor((time.now - input.offset) * 1000);
+    const third = gekisouStageFrame(now, data.mission3, data.start3, data.end3, mode);
+    if (third >= 0) {
+      this.gekisouFrame = third;
+      return;
+    }
+    const second = gekisouStageFrame(now, data.mission2, data.start2, data.end2, mode);
+    this.gekisouFrame = second >= 0 ? second : gekisouStageFrame(now, data.mission1, data.start1, data.end1, mode);
   }
 
   drawModeHud() {

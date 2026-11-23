@@ -10,10 +10,12 @@ import {
   type LaneClipSpriteReference,
 } from "../shared/src/engine/data/nativeLaneClipContract.ts";
 import { SIMPLE_LOOP_WORLD_ROM as sourceLoopRomAbi } from "../shared/src/engine/data/simpleLoopWorldRomAbi.ts";
+import { GEKISOU_STAGE_ROM } from "../shared/src/engine/data/gekisouStageRomAbi.ts";
 const engineRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(engineRoot, "dist");
 /** Existing C producer output, shared by every runtime facet. */
 const engineRomPath = resolve(engineRoot, "assets/EngineRom");
+const gekisouRomPath = resolve(engineRoot, "assets/GekisouStageRom");
 /** Local dev: parallel facets stage here before merging into `dist/`. */
 const stagingRoot = resolve(engineRoot, ".build-parallel");
 /** CI matrix: a single facet's output lands here for caching + artifact upload. */
@@ -88,7 +90,7 @@ async function buildFacet(name: string, dev: string, dist: string): Promise<void
   writeFileSync(resolve(dist, facet.artifact), gzipSync(JSON.stringify(data)));
 }
 
-function verifyEngineRom(): void {
+function loadEngineRom(): Buffer {
   const bytes = readFileSync(engineRomPath);
   const read = (index: number) => bytes.readFloatLE(index * 4);
   if (
@@ -103,6 +105,17 @@ function verifyEngineRom(): void {
     read(28) !== sourceLoopRomAbi.maximumLatePhase
   )
     throw new Error("EngineRom does not match the SourceLoop phase ABI");
+  if (read(GEKISOU_STAGE_ROM.pointerSlot) !== 0)
+    throw new Error("SourceLoop ROM already uses the GEKISO stage pointer");
+  const gekisou = readFileSync(gekisouRomPath);
+  const { magic, headerSize, slotCount, slotStride } = GEKISOU_STAGE_ROM;
+  if (gekisou.length < headerSize * 4 || gekisou.readFloatLE(0) !== magic)
+    throw new Error("GEKISO stage ROM header mismatch");
+  const frames = Math.round(gekisou.readFloatLE(8) * gekisou.readFloatLE(4) / 1000) + gekisou.readFloatLE(12) + gekisou.readFloatLE(16) + gekisou.readFloatLE(20);
+  if (!Number.isSafeInteger(frames) || frames <= 0 || gekisou.length !== (headerSize + 2 * frames * slotCount * slotStride) * 4)
+    throw new Error("GEKISO stage ROM frame count mismatch");
+  bytes.writeFloatLE(bytes.length / 4, GEKISOU_STAGE_ROM.pointerSlot * 4);
+  return Buffer.concat([bytes, gekisou]);
 }
 
 /**
@@ -134,7 +147,7 @@ async function buildRequestedFacets(names: string[]): Promise<void> {
         rmSync(facetRoot, { recursive: true, force: true });
         const facetDist = resolve(facetRoot, "dist");
         await buildFacet(facet.name, resolve(facetRoot, "dev"), facetDist);
-        copyFileSync(engineRomPath, resolve(facetDist, "EngineRom"));
+        writeFileSync(resolve(facetDist, "EngineRom"), loadEngineRom());
       }),
     );
 }
@@ -186,7 +199,7 @@ async function buildAll(): Promise<void> {
   for (const { name, artifact } of FACETS) {
     copyFileSync(resolve(stagingRoot, name, "dist", artifact), resolve(distRoot, artifact));
   }
-  copyFileSync(engineRomPath, resolve(distRoot, "EngineRom"));
+  writeFileSync(resolve(distRoot, "EngineRom"), loadEngineRom());
   rmSync(stagingRoot, { recursive: true, force: true });
 
   // Stamp the distribution with licenses + source pointer (idempotent, standalone script).
@@ -196,7 +209,7 @@ async function buildAll(): Promise<void> {
 // Requested facets share generation and retain independent matrix outputs.
 const requestedFacets = process.argv.slice(2);
 verifyInstalledCompiler();
-verifyEngineRom();
+loadEngineRom();
 if (requestedFacets.length) {
   await buildRequestedFacets(requestedFacets);
 } else {

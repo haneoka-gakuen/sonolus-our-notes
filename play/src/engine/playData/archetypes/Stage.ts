@@ -1,3 +1,4 @@
+import { drawGekisouStageLight, gekisouStageFrame } from "../../../../../shared/src/engine/data/gekisouStage.js";
 import { initializeConnectWallDraw, drawConnectWalls } from "../particle.js";
 import { updateConnectWalls } from "../particle.js";
 import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
@@ -41,6 +42,7 @@ import { archetypes } from "./index.js";
 import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
 export class Stage extends Archetype {
+  gekisouFrame = this.entityMemory(Number);
   sharedMemory = this.defineSharedMemory({ luck: Tuple(3, luckMemory), modeFirst: Number, modeLast: Number });
   hitbox = this.entityMemory(Rect);
   slotHitbox = this.entityMemory(Rect);
@@ -94,7 +96,11 @@ export class Stage extends Archetype {
       settleSoloJudgments();
       finishAssistFrame();
       finishSoloMode();
-      if (options.gekisouMode) updateSoloLuck(inputFrameMs());
+      if (options.gekisouMode) {
+        const now = inputFrameMs();
+        updateSoloLuck(now);
+        this.updateGekisouStage(now);
+      }
     }
     heldSoundActivity.active = false;
     updateConnectWalls();
@@ -121,8 +127,20 @@ export class Stage extends Archetype {
     // must not be presented as an approximation when that asset is absent.
     if (skin.sprites.sekaiStage.exists) this.drawSekaiStage();
 
+    drawGekisouStageLight(skin.sprites.gekisouStage0, this.gekisouFrame, layer.stage + 0.5);
     this.drawLaneDetails();
     if (usesSoloMode()) this.drawModeHud();
+  }
+
+  updateGekisouStage(now: number) {
+    const mode = options.gekisouEffectMode;
+    if (options.lightweightMode || mode === 0) return;
+    this.gekisouFrame = 0;
+    for (let i = 0; i < 3; i++) {
+      const range = soloModeConfig.ranges.get(i);
+      const frame = gekisouStageFrame(now, range.mission, range.start, range.end, mode);
+      if (frame >= 0) this.gekisouFrame = frame;
+    }
   }
 
   drawModeHud() {

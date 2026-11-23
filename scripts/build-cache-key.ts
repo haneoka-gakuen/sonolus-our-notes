@@ -35,6 +35,7 @@ export async function facetCacheIdentity(facet: string, optimization: string) {
     "scripts/build-cache-key.ts",
     "scripts/build.ts",
     "shared/src/engine/data/nativeLaneClipContract.ts",
+    "shared/src/engine/data/gekisouStageRomAbi.ts",
     "scripts/verify-compiler.ts",
     "esbuild.config.ts",
     `${facet}/sonolus-cli.config.ts`,
@@ -43,6 +44,7 @@ export async function facetCacheIdentity(facet: string, optimization: string) {
     "pnpm-workspace.yaml",
     "patches/compiler.json",
     "assets/EngineRom",
+    "assets/GekisouStageRom",
   ])
     inputs.add(path);
   const generatedInputs = [

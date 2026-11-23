@@ -339,6 +339,27 @@ export const optionsDefinition = {
     max: 2000000,
     step: 1000,
   },
+  lightweightMode: {
+    category: "graphics",
+    name: "Lightweight Mode",
+    title: localized({ en: "Lightweight Mode", ja: "軽量モード", ko: "경량 모드", zhs: "轻量模式", zht: "輕量模式" }),
+    scope: "Our Notes",
+    type: "toggle",
+    def: 0,
+  },
+  gekisouEffectMode: {
+    category: "graphics",
+    name: "GEKISO Effects",
+    title: localized({ en: "GEKISO Effects", ja: "激奏エフェクト", ko: "격주 효과", zhs: "激奏特效", zht: "激奏特效" }),
+    scope: "Our Notes",
+    type: "select",
+    def: 2,
+    values: [
+      localized({ en: "Off", ja: "オフ", ko: "끄기", zhs: "关闭", zht: "關閉" }),
+      localized({ en: "Light", ja: "軽量", ko: "간편", zhs: "轻量", zht: "輕量" }),
+      localized({ en: "Standard", ja: "標準", ko: "표준", zhs: "标准", zht: "標準" }),
+    ],
+  },
 } satisfies Record<string, EngineConfigurationOption>;
 
 export const optionCategories = [

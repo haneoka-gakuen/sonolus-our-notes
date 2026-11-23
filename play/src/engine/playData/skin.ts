@@ -1,3 +1,4 @@
+import { gekisouStageSprites } from "../../../../shared/src/engine/data/gekisouStage.js";
 import { drawLaneClipped, drawLaneNoteClipped } from "../../../../shared/src/engine/data/nativeLaneClip.js";
 import {
   connectWallDrawSpriteTable,
@@ -185,6 +186,7 @@ export const skin = defineSkin({
     sourceConnectFrameDraw0: "Our Notes Source Connect Frame Draw standard 00",
     sourceConnectFrameDraw287: "Our Notes Source Connect Frame Draw simple 95",
     ...soloHudSpriteNames,
+    ...gekisouStageSprites,
   },
 });
 
