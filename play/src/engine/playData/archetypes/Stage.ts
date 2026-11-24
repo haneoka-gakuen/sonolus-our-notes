@@ -39,7 +39,7 @@ import {
   getGekisouProgress,
   getLuckState,
   settleSoloJudgments,
-  soloModeConfig,
+  readGekisouRange,
   updateSoloLuck,
   usesSoloMode,
 } from "../soloMode.js";
@@ -145,7 +145,7 @@ export class Stage extends Archetype {
     if (options.lightweightMode || mode === 0) return;
     this.gekisouFrame = 0;
     for (let i = 0; i < 3; i++) {
-      const range = soloModeConfig.ranges.get(i);
+      const range = readGekisouRange(i);
       const frame = gekisouStageFrame(now, range.mission, range.start, range.end, mode);
       if (frame >= 0) this.gekisouFrame = frame;
     }
@@ -158,7 +158,7 @@ export class Stage extends Archetype {
 
     if (!options.gekisouMode) return;
     for (let i = 0; i < 3; i++) {
-      const range = soloModeConfig.ranges.get(i);
+      const range = readGekisouRange(i);
       const mission = range.mission;
       if (!gekisouHudVisible(now, mission, range.start, range.end)) continue;
       const progress = getGekisouProgress(i);

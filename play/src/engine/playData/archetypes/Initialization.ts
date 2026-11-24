@@ -12,7 +12,7 @@ import { archetypes } from "./index.js";
 import { inputClock, sourceTimingProfile, sourceTimingProfileDataName } from "../inputClock.js";
 import { soloModeImports } from "../../../../../shared/src/engine/data/soloMode.js";
 import { assistMemory } from "../assist.js";
-import { gekisouProgressMemory, soloModeConfig } from "../soloMode.js";
+import { gekisouProgressMemory } from "../soloMode.js";
 
 export class Initialization extends Archetype {
   import = this.defineImport({
@@ -25,15 +25,6 @@ export class Initialization extends Archetype {
 
   preprocess() {
     inputClock.profile = this.import.timingProfile === sourceTimingProfile ? sourceTimingProfile : 0;
-    soloModeConfig.ranges.get(0).mission = this.import.mission1;
-    soloModeConfig.ranges.get(0).start = this.import.start1;
-    soloModeConfig.ranges.get(0).end = this.import.end1;
-    soloModeConfig.ranges.get(1).mission = this.import.mission2;
-    soloModeConfig.ranges.get(1).start = this.import.start2;
-    soloModeConfig.ranges.get(1).end = this.import.end2;
-    soloModeConfig.ranges.get(2).mission = this.import.mission3;
-    soloModeConfig.ranges.get(2).start = this.import.start3;
-    soloModeConfig.ranges.get(2).end = this.import.end3;
     this.sharedMemory.assist.resultFrame = -9999;
     const targetAspectRatio = nativeStage.targetAspectRatio;
 

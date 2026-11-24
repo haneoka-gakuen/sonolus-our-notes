@@ -4,9 +4,14 @@ import { getAssistState, recordAssistJudgment } from "./assist.js";
 import { archetypes } from "./archetypes/index.js";
 import { consumeLuckDraw, recordLuckNote } from "../../../../shared/src/engine/data/gekisouLuck.js";
 
-export const soloModeConfig = levelData({
-  ranges: Tuple(3, { mission: Number, start: Number, end: Number }),
-});
+export function readGekisouRange(index: number) {
+  const data = archetypes.Initialization.import.get(0);
+  return {
+    mission: index === 0 ? data.mission1 : index === 1 ? data.mission2 : data.mission3,
+    start: index === 0 ? data.start1 : index === 1 ? data.start2 : data.start3,
+    end: index === 0 ? data.end1 : index === 1 ? data.end2 : data.end3,
+  };
+}
 
 export const gekisouProgressMemory = Tuple(3, { combo: Number, just: Number });
 
@@ -18,7 +23,7 @@ export const usesSoloMode = () => options.assistMode || options.gekisouMode;
 export function gekisouRangeAt(timeMs: number) {
   if (!options.gekisouMode) return -1;
   for (let i = 0; i < 3; i++) {
-    const range = soloModeConfig.ranges.get(i);
+    const range = readGekisouRange(i);
     if (range.mission > 0 && range.start <= timeMs && timeMs <= range.end) return i;
   }
   return -1;
@@ -26,25 +31,30 @@ export function gekisouRangeAt(timeMs: number) {
 
 export function isGekisouJust(noteMs: number, eventMs: number) {
   const index = gekisouRangeAt(noteMs);
-  return index >= 0 && gekisouRangeAt(eventMs) === index && soloModeConfig.ranges.get(index).mission === 3;
+  return index >= 0 && gekisouRangeAt(eventMs) === index && readGekisouRange(index).mission === 3;
 }
 
 function recordGekisouNote(operateType: number, noteMs: number, judgment: number, observedAt: number) {
   const index = gekisouRangeAt(noteMs);
   if (index < 0) return;
-  const mission = soloModeConfig.ranges.get(index).mission;
+  const mission = readGekisouRange(index).mission;
   const progress = getGekisouProgress(index);
   if (mission === 1) {
     progress.combo = judgment >= 3 ? progress.combo + 1 : 0;
+    archetypes.Initialization.sharedMemory.get(0).gekisou.set(index, progress);
     streams.set(soloModeReplay.mission - index * 2, observedAt, progress.combo);
   } else if (mission === 2) {
     const luck = getLuckState(index);
     const oldGauge = luck.gauge;
     recordLuckNote(luck, operateType, judgment, Math.random());
-    if (luck.gauge !== oldGauge)
+    if (luck.gauge !== oldGauge) {
+      archetypes.Stage.sharedMemory.get(1).luck.set(index, luck);
       streams.set(soloModeReplay.luckGauge - index, observedAt, luck.gauge + (luck.rushCombo > 0 ? 256 : 0));
+    }
   } else if (mission === 3) {
-    if (judgment === 6) progress.just++;
+    if (judgment !== 6) return;
+    progress.just++;
+    archetypes.Initialization.sharedMemory.get(0).gekisou.set(index, progress);
     streams.set(soloModeReplay.mission - index * 2 + 1, observedAt, progress.just);
   }
 }
@@ -69,11 +79,12 @@ export function settleSoloJudgments() {
 
 export function updateSoloLuck(nowMs: number) {
   for (let index = 0; index < 3; index++) {
-    const range = soloModeConfig.ranges.get(index);
+    const range = readGekisouRange(index);
     if (range.mission !== 2 || range.end <= range.start || nowMs < range.start || nowMs > range.end + 251) continue;
     const state = getLuckState(index);
     if (state.lots === 0) continue;
     consumeLuckDraw(state, time.now, state.nextDraw === 0 ? Math.random() : 0, Math.random());
+    archetypes.Stage.sharedMemory.get(1).luck.set(index, state);
     streams.set(soloModeReplay.luckDraw - index, time.now, state.lastDraw);
     streams.set(soloModeReplay.luckGauge - index, time.now, state.gauge + (state.rushCombo > 0 ? 256 : 0));
     streams.set(soloModeReplay.mission - index * 2, time.now, state.points);

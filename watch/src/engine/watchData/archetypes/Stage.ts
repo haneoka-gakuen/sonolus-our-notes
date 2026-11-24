@@ -197,8 +197,8 @@ export class Stage extends Archetype {
   updateGekisouDemo(now: number) {
     const links = archetypes.NormalTapNote.gekisouLink;
     for (let i = 0; i < 3; i++) {
-      const progress = this.gekisouDemo.get(i);
       if (now < this.gekisouDemoTime) {
+        const progress = this.gekisouDemo.get(i);
         this.gekisouDemo.set(i, {
           mission: progress.mission,
           head: progress.head,
@@ -208,6 +208,8 @@ export class Stage extends Archetype {
           luck: emptyLuck,
         });
       }
+      const progress = this.gekisouDemo.get(i);
+      if (progress.next < 0 || links.get(progress.next).start > now) continue;
       while (progress.next >= 0) {
         const event = links.get(progress.next);
         if (event.start > now) break;
@@ -229,6 +231,7 @@ export class Stage extends Archetype {
           );
         }
       }
+      this.gekisouDemo.set(i, progress);
     }
     this.gekisouDemoTime = now;
   }
