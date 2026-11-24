@@ -49,7 +49,7 @@ function recordGekisouNote(operateType: number, noteMs: number, judgment: number
     recordLuckNote(luck, operateType, judgment, Math.random());
     if (luck.gauge !== oldGauge) {
       archetypes.Stage.sharedMemory.get(1).luck.set(index, luck);
-      streams.set(soloModeReplay.luckGauge - index, observedAt, luck.gauge + (luck.rushCombo > 0 ? 256 : 0));
+      streams.set(soloModeReplay.luckGauge - index, observedAt, luck.gauge + luck.rushCombo * 256);
     }
   } else if (mission === 3) {
     if (judgment !== 6) return;
@@ -86,7 +86,7 @@ export function updateSoloLuck(nowMs: number) {
     consumeLuckDraw(state, time.now, state.nextDraw === 0 ? Math.random() : 0, Math.random());
     archetypes.Stage.sharedMemory.get(1).luck.set(index, state);
     streams.set(soloModeReplay.luckDraw - index, time.now, state.lastDraw);
-    streams.set(soloModeReplay.luckGauge - index, time.now, state.gauge + (state.rushCombo > 0 ? 256 : 0));
+    streams.set(soloModeReplay.luckGauge - index, time.now, state.gauge + state.rushCombo * 256);
     streams.set(soloModeReplay.mission - index * 2, time.now, state.points);
     break;
   }

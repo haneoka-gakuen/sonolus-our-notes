@@ -1,4 +1,15 @@
-export const soloHudSpriteNames = {
+import { GEKISOU_MISSION_HUD_ROM } from "./gekisouStageRomAbi.js";
+
+type FrameIndices<Count extends number, Frames extends number[] = []> =
+  Frames["length"] extends Count ? Frames[number] : FrameIndices<Count, [...Frames, Frames["length"]]>;
+type SymbolFrame = FrameIndices<typeof GEKISOU_MISSION_HUD_ROM.symbolFrames>;
+
+const symbolSprites = <Prefix extends string>(prefix: Prefix, name: string) =>
+  Object.fromEntries(Array.from({ length: GEKISOU_MISSION_HUD_ROM.symbolFrames }, (_, index) =>
+    [`${prefix}${index}`, `Our Notes GEKISO ${name} ${index}`],
+  )) as Record<`${Prefix}${SymbolFrame}`, string>;
+
+const fixedSprites = {
   digit0: "Our Notes GEKISO Digit 0",
   digit1: "Our Notes GEKISO Digit 1",
   digit2: "Our Notes GEKISO Digit 2",
@@ -22,10 +33,23 @@ export const soloHudSpriteNames = {
   countJust: "Our Notes GEKISO Count Just",
   luckGaugeBase: "Our Notes GEKISO Luck Gauge Base",
   luckGauge: "Our Notes GEKISO Luck Gauge",
+  luckGaugeLeft: "Our Notes GEKISO Luck Gauge Left",
+  luckGaugeRight: "Our Notes GEKISO Luck Gauge Right",
   luckRushGauge: "Our Notes GEKISO Luck Rush Gauge",
   noLuck: "Our Notes GEKISO No Luck",
   luck: "Our Notes GEKISO Lucky",
   superLuck: "Our Notes GEKISO Super Lucky",
   luckRush: "Our Notes GEKISO Luck Rush",
+  luckBase: "Our Notes GEKISO Lucky Backlight",
+  superLuckBase: "Our Notes GEKISO Super Lucky Backlight",
+  luckRushStar: "Our Notes GEKISO Luck Rush Star",
   modeAssist: "Our Notes Assist Title",
 } as const;
+
+const luckSymbols = symbolSprites("luckSymbol", "Luck Symbol");
+const rushSymbols = symbolSprites("rushSymbol", "Rush Symbol");
+export const soloHudSpriteNames = {
+  ...fixedSprites,
+  ...luckSymbols,
+  ...rushSymbols,
+} as typeof fixedSprites & typeof luckSymbols & typeof rushSymbols;

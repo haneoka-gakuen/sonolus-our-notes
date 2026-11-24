@@ -163,14 +163,15 @@ export class Stage extends Archetype {
       if (!gekisouHudVisible(now, mission, range.start, range.end)) continue;
       const progress = getGekisouProgress(i);
       const luck = getLuckState(i);
-      drawGekisouHud(skin.sprites, ratio, {
+      drawGekisouHud(skin.sprites, {
         mission,
         sinceStart: now - range.start,
         sinceEnd: now - range.end,
-        value: mission === 1 ? progress.combo : mission === 3 ? progress.just : luck.points,
+        value: mission === 1 ? progress.combo : progress.just,
         luckGauge: luck.gauge / luckGaugeLimit(luck.rushCombo),
         luckRush: luck.rushCombo,
-        luckDraw: time.now - luck.lastDrawAt < 0.6 ? luck.lastDraw : 0,
+        luckDraw: luck.lastDraw,
+        luckAge: time.now - luck.lastDrawAt,
       });
       break;
     }

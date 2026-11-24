@@ -293,27 +293,22 @@ export class Stage extends Archetype {
       if (!gekisouHudVisible(now, mission, start, end)) continue;
       const demo = this.gekisouDemo.get(i);
       const gauge = replay.isReplay && mission === 2 ? this.soloStream(soloModeReplay.luckGauge - i) : -1;
-      const rush = replay.isReplay ? (gauge >= 256 ? 1 : 0) : demo.luck.rushCombo;
+      const rush = replay.isReplay ? Math.max(0, Math.floor(gauge / 256)) : demo.luck.rushCombo;
       const drawId = soloModeReplay.luckDraw - i;
-      const drawAt = gauge >= 0 ? streams.getPreviousKey(drawId, time.now) : -1;
-      const draw =
-        gauge >= 0 && streams.has(drawId, time.now)
-          ? streams.getValue(drawId, time.now)
-          : gauge >= 0 && time.now - drawAt < 0.6 && streams.has(drawId, drawAt)
-            ? streams.getValue(drawId, drawAt)
-            : 0;
-      drawGekisouHud(skin.sprites, ratio, {
+      const drawAt = gauge >= 0 && !streams.has(drawId, time.now) ? streams.getPreviousKey(drawId, time.now) : time.now;
+      const draw = gauge >= 0 && streams.has(drawId, drawAt) ? streams.getValue(drawId, drawAt) : 0;
+      drawGekisouHud(skin.sprites, {
         mission,
         sinceStart: now - start,
         sinceEnd: now - end,
-        value: replay.isReplay
-          ? this.soloStream(soloModeReplay.mission - i * 2 + (mission === 3 ? 1 : 0))
-          : mission === 2
-            ? demo.luck.points
+        value:
+          mission !== 2 && replay.isReplay
+            ? this.soloStream(soloModeReplay.mission - i * 2 + (mission === 3 ? 1 : 0))
             : demo.count,
         luckGauge: (replay.isReplay ? gauge % 256 : demo.luck.gauge) / luckGaugeLimit(rush),
         luckRush: rush,
-        luckDraw: replay.isReplay ? draw : time.now - demo.luck.lastDrawAt < 0.6 ? demo.luck.lastDraw : 0,
+        luckDraw: replay.isReplay ? draw : demo.luck.lastDraw,
+        luckAge: time.now - (replay.isReplay ? drawAt : demo.luck.lastDrawAt),
       });
       break;
     }
