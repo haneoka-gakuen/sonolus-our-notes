@@ -5,7 +5,6 @@ export const nativeAssist = {
   maxLevel: 5,
   gaugeMax: 100,
   perfectsToLevelDown: 20,
-  scorePercent: 90,
 };
 
 const choose = (level: number, a: number, b: number, c: number, d: number, e: number, f: number) => {

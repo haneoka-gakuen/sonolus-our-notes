@@ -4,9 +4,18 @@ import { updateConnectWalls } from "../connectWalls.js";
 import { particle } from "../particle.js";
 import { retireSimpleLoopSources } from "../../../../../shared/src/engine/data/simpleLoopSource.js";
 import { updateNativeLaneFeedback } from "../laneFeedback.js";
-import { nativeLaneLineLayout, nativeOutsideLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import {
+  nativeLaneLineLayout,
+  nativeOutsideLineLayout,
+} from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import {
+  consumeLuckDraw,
+  luckGaugeLimit,
+  luckMemory,
+  recordLuckNote,
+} from "../../../../../shared/src/engine/data/gekisouLuck.js";
 import { soloModeReplay } from "../../../../../shared/src/engine/data/soloMode.js";
-import { drawSoloModeHud } from "../../../../../shared/src/engine/data/soloModeHud.js";
+import { drawAssistHud, drawGekisouHud, gekisouHudVisible } from "../../../../../shared/src/engine/data/soloModeHud.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -27,13 +36,23 @@ import { readScrollTime } from "../../../../../shared/src/engine/data/scroll.js"
 import { chartExtent } from "../chartExtent.js";
 import { effect, sfxDistance } from "../effect.js";
 import { scheduleHeldSound } from "../sound.js";
+import { scaledScreen } from "../scaledScreen.js";
 import { layer, skin } from "../skin.js";
 import { archetypes } from "./index.js";
 import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
 
+const emptyLuck = { gauge: 0, lots: 0, rushCombo: 0, nextDraw: 0, points: 0, lastDraw: 0, lastDrawAt: 0 };
+const nextLuckSeed = (seed: number) => (seed * 48271) % 2147483647;
+const seedScale = 1 / 2147483647;
+
 export class Stage extends Archetype {
   gekisouFrame = this.entityMemory(Number);
   heldConnectorHead = this.entityMemory(Number);
+  gekisouDemoHeads = this.defineSharedMemory({ ranges: Tuple(3, Number) });
+  gekisouDemo = this.entityMemory(
+    Tuple(3, { mission: Number, head: Number, next: Number, count: Number, seed: Number, luck: luckMemory }),
+  );
+  gekisouDemoTime = this.entityMemory(Number);
 
   indexHeldConnectors() {
     this.heldConnectorHead = -1;
@@ -111,8 +130,10 @@ export class Stage extends Archetype {
     return 999999;
   }
 
+  preprocessOrder = 2;
   preprocess() {
     initializeConnectWallDraw();
+    if (options.gekisouMode && !replay.isReplay) this.initializeGekisouDemo();
     if (options.sfxEnabled && effect.clips.normalHold.exists) {
       this.indexHeldConnectors();
       this.scheduleHeldSFX();
@@ -162,11 +183,64 @@ export class Stage extends Archetype {
     }
   }
 
+  initializeGekisouDemo() {
+    const data = archetypes.Initialization.import.get(0);
+    const links = archetypes.NormalTapNote.gekisouLink;
+    for (let i = 0; i < 3; i++) {
+      const head = this.gekisouDemoHeads.ranges.get(i) - 1;
+      const sorted = head >= 0 ? sortHeldIntervals(head, links) : -1;
+      const mission = i === 0 ? data.mission1 : i === 1 ? data.mission2 : data.mission3;
+      this.gekisouDemo.set(i, { mission, head: sorted, next: sorted, count: 0, seed: sorted + 2, luck: emptyLuck });
+    }
+  }
+
+  updateGekisouDemo(now: number) {
+    const links = archetypes.NormalTapNote.gekisouLink;
+    for (let i = 0; i < 3; i++) {
+      const progress = this.gekisouDemo.get(i);
+      if (now < this.gekisouDemoTime) {
+        this.gekisouDemo.set(i, {
+          mission: progress.mission,
+          head: progress.head,
+          next: progress.head,
+          count: 0,
+          seed: progress.head + 2,
+          luck: emptyLuck,
+        });
+      }
+      while (progress.next >= 0) {
+        const event = links.get(progress.next);
+        if (event.start > now) break;
+        progress.next = event.next;
+        if (progress.mission !== 2) {
+          progress.count++;
+          continue;
+        }
+        progress.seed = nextLuckSeed(progress.seed);
+        recordLuckNote(progress.luck, event.operateType, 5, progress.seed * seedScale);
+        if (progress.luck.lots > 0) {
+          const first = nextLuckSeed(progress.seed);
+          progress.seed = nextLuckSeed(first);
+          consumeLuckDraw(
+            progress.luck,
+            event.start / 1000 + input.offset,
+            first * seedScale,
+            progress.seed * seedScale,
+          );
+        }
+      }
+    }
+    this.gekisouDemoTime = now;
+  }
+
   updateSequential() {
     updateConnectWalls();
     if (particle.effects.sourceSimpleLoop.exists) retireSimpleLoopSources(time.now, time.skip);
     updateNativeLaneFeedback();
-    if (options.gekisouMode) this.updateGekisouStage();
+    if (options.gekisouMode) {
+      this.updateGekisouStage();
+      if (!replay.isReplay) this.updateGekisouDemo(Math.floor((time.now - input.offset) * 1000));
+    }
     if (!options.markerAnimation) return;
     const nativeSkin = getNativeArrowAnimationSkin(
       skin.sprites.nativeArrowAnimationSkin001.exists,
@@ -184,7 +258,7 @@ export class Stage extends Archetype {
 
     drawGekisouStageLight(skin.sprites.gekisouStage0, this.gekisouFrame, layer.stage + 0.5);
     this.drawLaneDetails();
-    if (replay.isReplay && (options.gekisouMode || options.assistMode)) this.drawModeHud();
+    if (options.gekisouMode || (options.assistMode && replay.isReplay)) this.drawModeHud();
   }
 
   updateGekisouStage() {
@@ -202,32 +276,44 @@ export class Stage extends Archetype {
   }
 
   drawModeHud() {
+    const ratio = scaledScreen.wToH;
+    if (options.assistMode && replay.isReplay)
+      drawAssistHud(skin.sprites, ratio, this.soloStream(soloModeReplay.assistLevel), scaledScreen.r, scaledScreen.t);
+
+    if (!options.gekisouMode) return;
     const data = archetypes.Initialization.import.get(0);
     const now = Math.floor((time.now - input.offset) * 1000);
-    let mission = 0;
-    let missionValue = 0;
-    let countdown = 0;
-    if (options.gekisouMode) {
-      for (let i = 0; i < 3; i++) {
-        const kind = i === 0 ? data.mission1 : i === 1 ? data.mission2 : data.mission3;
-        const start = i === 0 ? data.start1 : i === 1 ? data.start2 : data.start3;
-        const end = i === 0 ? data.end1 : i === 1 ? data.end2 : data.end3;
-        if (kind === 0 || now < start - 3000 || now >= end) continue;
-        mission = kind;
-        countdown = Math.max(0, Math.ceil((start - now) / 1000));
-        missionValue = this.soloStream(soloModeReplay.mission - i * 2 + (kind === 3 ? 1 : 0));
-        break;
-      }
+    for (let i = 0; i < 3; i++) {
+      const mission = i === 0 ? data.mission1 : i === 1 ? data.mission2 : data.mission3;
+      const start = i === 0 ? data.start1 : i === 1 ? data.start2 : data.start3;
+      const end = i === 0 ? data.end1 : i === 1 ? data.end2 : data.end3;
+      if (!gekisouHudVisible(now, mission, start, end)) continue;
+      const demo = this.gekisouDemo.get(i);
+      const gauge = replay.isReplay && mission === 2 ? this.soloStream(soloModeReplay.luckGauge - i) : -1;
+      const rush = replay.isReplay ? (gauge >= 256 ? 1 : 0) : demo.luck.rushCombo;
+      const drawId = soloModeReplay.luckDraw - i;
+      const drawAt = gauge >= 0 ? streams.getPreviousKey(drawId, time.now) : -1;
+      const draw =
+        gauge >= 0 && streams.has(drawId, time.now)
+          ? streams.getValue(drawId, time.now)
+          : gauge >= 0 && time.now - drawAt < 0.6 && streams.has(drawId, drawAt)
+            ? streams.getValue(drawId, drawAt)
+            : 0;
+      drawGekisouHud(skin.sprites, ratio, {
+        mission,
+        sinceStart: now - start,
+        sinceEnd: now - end,
+        value: replay.isReplay
+          ? this.soloStream(soloModeReplay.mission - i * 2 + (mission === 3 ? 1 : 0))
+          : mission === 2
+            ? demo.luck.points
+            : demo.count,
+        luckGauge: (replay.isReplay ? gauge % 256 : demo.luck.gauge) / luckGaugeLimit(rush),
+        luckRush: rush,
+        luckDraw: replay.isReplay ? draw : time.now - demo.luck.lastDrawAt < 0.6 ? demo.luck.lastDraw : 0,
+      });
+      break;
     }
-    drawSoloModeHud(skin.sprites, {
-      score: data.weightedNotes > 0 ? this.soloStream(soloModeReplay.score) : -1,
-      countdown,
-      mission,
-      missionValue,
-      assistLevel: options.assistMode ? this.soloStream(soloModeReplay.assistLevel) : -1,
-      result: this.soloStream(soloModeReplay.result),
-      combo: this.soloStream(soloModeReplay.combo),
-    });
   }
 
   soloStream(id: number) {
@@ -269,15 +355,14 @@ export class Stage extends Archetype {
       if (beat > chartExtent.lastBeat) break;
       const target = this.barTimelineTime(beat, ref);
       if (target <= timeline) continue;
-      const scaledTime = ref > 0
-        ? readScrollTime(clock.segment, target, index => archetypes.ScrollClock.import.get(index))
-        : target;
+      const scaledTime =
+        ref > 0 ? readScrollTime(clock.segment, target, (index) => archetypes.ScrollClock.import.get(index)) : target;
       const depth = scaledTime - now;
       if (depth > note.duration) {
         if (ref <= 0) break;
         continue;
       }
-      if (depth < 0 || options.laneCover > 0 && depth > note.coverDuration) continue;
+      if (depth < 0 || (options.laneCover > 0 && depth > note.coverDuration)) continue;
       if (options.hidden > 0 && depth < note.duration * options.hidden) continue;
 
       const y = approach(-note.duration, 0, -depth);

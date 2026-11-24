@@ -10,26 +10,21 @@ import { scaledScreen } from "../scaledScreen.js";
 import { skin } from "../skin.js";
 import { archetypes } from "./index.js";
 import { inputClock, sourceTimingProfile, sourceTimingProfileDataName } from "../inputClock.js";
-import { soloModeImports, sourceFloat, sourceMultiply } from "../../../../../shared/src/engine/data/soloMode.js";
+import { soloModeImports } from "../../../../../shared/src/engine/data/soloMode.js";
 import { assistMemory } from "../assist.js";
-import { soloModeConfig, soloResultMemory } from "../soloMode.js";
+import { gekisouProgressMemory, soloModeConfig } from "../soloMode.js";
 
 export class Initialization extends Archetype {
   import = this.defineImport({
     timingProfile: { name: sourceTimingProfileDataName, type: Number },
     ...soloModeImports,
   });
-  sharedMemory = this.defineSharedMemory({ assist: assistMemory, solo: soloResultMemory });
+  sharedMemory = this.defineSharedMemory({ assist: assistMemory, gekisou: gekisouProgressMemory });
 
   preprocessOrder = -1;
 
   preprocess() {
     inputClock.profile = this.import.timingProfile === sourceTimingProfile ? sourceTimingProfile : 0;
-    soloModeConfig.bandPower = this.import.power > 0 ? this.import.power : options.soloBandPower;
-    const difficulty = sourceFloat(1 + sourceMultiply(this.import.difficulty - 5, 0.005));
-    soloModeConfig.multiplier = sourceMultiply(sourceMultiply(3, soloModeConfig.bandPower), difficulty);
-    soloModeConfig.weightedNoteTenths = Math.max(0, this.import.weightedNotes) * 10;
-    soloModeConfig.noteCount = 0;
     soloModeConfig.ranges.get(0).mission = this.import.mission1;
     soloModeConfig.ranges.get(0).start = this.import.start1;
     soloModeConfig.ranges.get(0).end = this.import.end1;
@@ -39,7 +34,6 @@ export class Initialization extends Archetype {
     soloModeConfig.ranges.get(2).mission = this.import.mission3;
     soloModeConfig.ranges.get(2).start = this.import.start3;
     soloModeConfig.ranges.get(2).end = this.import.end3;
-    this.sharedMemory.solo.life = 1000;
     this.sharedMemory.assist.resultFrame = -9999;
     const targetAspectRatio = nativeStage.targetAspectRatio;
 

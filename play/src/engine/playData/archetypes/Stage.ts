@@ -6,7 +6,10 @@ import {
   NativeLaneEffectType,
   nativeEmptyLaneFeedbackPair,
 } from "../../../../../shared/src/engine/data/nativeLaneFeedback.js";
-import { nativeLaneLineLayout, nativeOutsideLineLayout } from "../../../../../shared/src/engine/data/nativeLaneLines.js";
+import {
+  nativeLaneLineLayout,
+  nativeOutsideLineLayout,
+} from "../../../../../shared/src/engine/data/nativeLaneLines.js";
 import {
   getNativeArrowAnimationSkin,
   NativeArrowAnimationSkin,
@@ -33,11 +36,16 @@ import { layer, skin } from "../skin.js";
 import { canEmpty } from "./InputManager.js";
 import { assistLevel, finishAssistFrame } from "../assist.js";
 import {
-  finishSoloMode, getLuckState, getSoloResult, settleSoloJudgments, soloModeConfig,
-  updateSoloLuck, usesSoloMode,
+  getGekisouProgress,
+  getLuckState,
+  settleSoloJudgments,
+  soloModeConfig,
+  updateSoloLuck,
+  usesSoloMode,
 } from "../soloMode.js";
-import { luckMemory } from "../gekisouLuck.js";
-import { drawSoloModeHud } from "../../../../../shared/src/engine/data/soloModeHud.js";
+import { luckGaugeLimit, luckMemory } from "../../../../../shared/src/engine/data/gekisouLuck.js";
+import { drawAssistHud, drawGekisouHud, gekisouHudVisible } from "../../../../../shared/src/engine/data/soloModeHud.js";
+import { scaledScreen } from "../scaledScreen.js";
 import { inputFrameMs } from "../inputClock.js";
 import { archetypes } from "./index.js";
 import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHeldIntervals.js";
@@ -96,7 +104,6 @@ export class Stage extends Archetype {
     if (usesSoloMode()) {
       settleSoloJudgments();
       finishAssistFrame();
-      finishSoloMode();
       if (options.gekisouMode) {
         const now = inputFrameMs();
         updateSoloLuck(now);
@@ -145,31 +152,28 @@ export class Stage extends Archetype {
   }
 
   drawModeHud() {
-    const result = getSoloResult();
     const now = inputFrameMs();
-    let mission = 0;
-    let missionValue = 0;
-    let countdown = 0;
-    if (options.gekisouMode) {
-      for (let i = 0; i < 3; i++) {
-        const range = soloModeConfig.ranges.get(i);
-        if (range.mission === 0 || now < range.start - 3000 || now >= range.end) continue;
-        mission = range.mission;
-        countdown = Math.max(0, Math.ceil((range.start - now) / 1000));
-        const stage = result.ranges.get(i);
-        missionValue = mission === 1 ? stage.combo : mission === 3 ? stage.just : getLuckState(i).points;
-        break;
-      }
+    const ratio = scaledScreen.wToH;
+    if (options.assistMode) drawAssistHud(skin.sprites, ratio, assistLevel(), scaledScreen.r, scaledScreen.t);
+
+    if (!options.gekisouMode) return;
+    for (let i = 0; i < 3; i++) {
+      const range = soloModeConfig.ranges.get(i);
+      const mission = range.mission;
+      if (!gekisouHudVisible(now, mission, range.start, range.end)) continue;
+      const progress = getGekisouProgress(i);
+      const luck = getLuckState(i);
+      drawGekisouHud(skin.sprites, ratio, {
+        mission,
+        sinceStart: now - range.start,
+        sinceEnd: now - range.end,
+        value: mission === 1 ? progress.combo : mission === 3 ? progress.just : luck.points,
+        luckGauge: luck.gauge / luckGaugeLimit(luck.rushCombo),
+        luckRush: luck.rushCombo,
+        luckDraw: time.now - luck.lastDrawAt < 0.6 ? luck.lastDraw : 0,
+      });
+      break;
     }
-    drawSoloModeHud(skin.sprites, {
-      score: soloModeConfig.weightedNoteTenths > 0 ? result.score : -1,
-      countdown,
-      mission,
-      missionValue,
-      assistLevel: options.assistMode ? assistLevel() : -1,
-      result: result.grade,
-      combo: result.bestCombo,
-    });
   }
 
   updateHeldSFX() {
@@ -270,15 +274,14 @@ export class Stage extends Archetype {
       if (beat > chartExtent.lastBeat) break;
       const target = this.barTimelineTime(beat, ref);
       if (target <= timeline) continue;
-      const scaledTime = ref > 0
-        ? readScrollTime(clock.segment, target, index => archetypes.ScrollClock.import.get(index))
-        : target;
+      const scaledTime =
+        ref > 0 ? readScrollTime(clock.segment, target, (index) => archetypes.ScrollClock.import.get(index)) : target;
       const depth = scaledTime - now;
       if (depth > note.duration) {
         if (ref <= 0) break;
         continue;
       }
-      if (depth < 0 || options.laneCover > 0 && depth > note.coverDuration) continue;
+      if (depth < 0 || (options.laneCover > 0 && depth > note.coverDuration)) continue;
       if (options.hidden > 0 && depth < note.duration * options.hidden) continue;
 
       const y = approach(-note.duration, 0, -depth);

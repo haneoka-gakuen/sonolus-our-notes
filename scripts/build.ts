@@ -10,7 +10,7 @@ import {
   type LaneClipSpriteReference,
 } from "../shared/src/engine/data/nativeLaneClipContract.ts";
 import { SIMPLE_LOOP_WORLD_ROM as sourceLoopRomAbi } from "../shared/src/engine/data/simpleLoopWorldRomAbi.ts";
-import { GEKISOU_STAGE_ROM } from "../shared/src/engine/data/gekisouStageRomAbi.ts";
+import { GEKISOU_COUNTDOWN_ROM, GEKISOU_STAGE_ROM } from "../shared/src/engine/data/gekisouStageRomAbi.ts";
 const engineRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const distRoot = resolve(engineRoot, "dist");
 /** Existing C producer output, shared by every runtime facet. */
@@ -112,8 +112,13 @@ function loadEngineRom(): Buffer {
   if (gekisou.length < headerSize * 4 || gekisou.readFloatLE(0) !== magic)
     throw new Error("GEKISO stage ROM header mismatch");
   const frames = Math.round(gekisou.readFloatLE(8) * gekisou.readFloatLE(4) / 1000) + gekisou.readFloatLE(12) + gekisou.readFloatLE(16) + gekisou.readFloatLE(20);
-  if (!Number.isSafeInteger(frames) || frames <= 0 || gekisou.length !== (headerSize + 2 * frames * slotCount * slotStride) * 4)
-    throw new Error("GEKISO stage ROM frame count mismatch");
+  if (!Number.isSafeInteger(frames) || frames <= 0) throw new Error("GEKISO stage ROM frame count mismatch");
+  const countdown = headerSize + 2 * frames * slotCount * slotStride;
+  const countdownLength = 1 + Math.round(GEKISOU_COUNTDOWN_ROM.durationMs * gekisou.readFloatLE(4) / 1000) *
+    GEKISOU_COUNTDOWN_ROM.missionCount * GEKISOU_COUNTDOWN_ROM.slotCount * GEKISOU_COUNTDOWN_ROM.slotStride;
+  if (gekisou.length !== (countdown + countdownLength) * 4 ||
+    gekisou.readFloatLE(countdown * 4) !== GEKISOU_COUNTDOWN_ROM.magic)
+    throw new Error("GEKISO countdown ROM frame count mismatch");
   bytes.writeFloatLE(bytes.length / 4, GEKISOU_STAGE_ROM.pointerSlot * 4);
   return Buffer.concat([bytes, gekisou]);
 }
