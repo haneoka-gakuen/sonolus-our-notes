@@ -162,6 +162,7 @@ export abstract class FlatNote extends Note {
 
   updateParallel() {
     if (this.import.scrollRef > 0 && this.scrollNow > this.scrollTarget + this.scrollDuration * .16) return;
+    if (this.import.scrollRef > 0 && this.scrollNow < this.visualTime.min - this.scrollDuration * .1) return;
     if (options.hidden > 0 && this.scrollNow > this.hiddenTime) return;
     if (this.scrollCovered) return;
 

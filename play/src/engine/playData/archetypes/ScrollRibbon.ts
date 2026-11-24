@@ -1,5 +1,5 @@
 import { scrollRibbonSchema } from "../../../../../shared/src/engine/data/scrollRibbon.js";
-import { forcedScrollDuration } from "../../../../../shared/src/engine/data/scroll.js";
+import { forcedScrollDuration, recoverScrollSpawn } from "../../../../../shared/src/engine/data/scroll.js";
 import { getNativeSlideSpriteId } from "../../../../../shared/src/engine/data/nativeSlideSkin.js";
 import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { options } from "../../configuration/options.js";
@@ -15,6 +15,13 @@ export class ScrollRibbon extends Archetype {
   minimumDepth = this.entityMemory(Number);
   maximumDepth = this.entityMemory(Number);
   preprocess() {
+    if (!archetypes.ScrollClock.import.get(this.import.aClockL).exactSpawn) {
+      const first = recoverScrollSpawn(this.import.aClockL, this.import.aClockR, this.import.aRatio,
+        this.import.aValue, this.import.bTime, ref => archetypes.ScrollClock.import.get(ref));
+      const second = recoverScrollSpawn(this.import.bClockL, this.import.bClockR, this.import.bRatio,
+        this.import.bValue, this.import.bTime, ref => archetypes.ScrollClock.import.get(ref));
+      this.import.spawn = Math.min(this.import.spawn, first, second);
+    }
     if (options.mirror) {
       const leftA = this.import.aLeft, leftB = this.import.bLeft;
       this.import.aLeft = -this.import.aRight; this.import.aRight = -leftA;

@@ -22,6 +22,7 @@ import {
 import { options } from "../../configuration/options.js";
 import { approach } from "../../../../../shared/src/engine/data/note.js";
 import { simLine } from "../../../../../shared/src/engine/data/simLine.js";
+import { readScrollTime } from "../../../../../shared/src/engine/data/scroll.js";
 import { chartExtent } from "../chartExtent.js";
 import { effect, sfxDistance } from "../effect.js";
 import { heldSoundActivity, updateHeldSound, stopHeldSound, scheduleHeldSound } from "../sound.js";
@@ -244,35 +245,43 @@ export class Stage extends Archetype {
     );
   }
 
-  // LiveAllBarLineView: one line across the lane per bar while the bar is
-  // inside the approach window. Level data carries BPM changes only, so bars
-  // are every four beats (the preview's measure numbering uses the same rule)
-  // and end at the last note. A monotonic cursor keeps this to a handful of
-  // lookups per frame; it also walks back after a replay seek.
+  // Bar order follows musical time even when the selected visual clock reverses.
   barCursor = this.entityMemory(Number);
 
   drawBarLines() {
     if (!options.measureLineDisplay || !skin.sprites.simLine.exists) return;
+    const ref = chartExtent.barScrollRef;
+    const clock = archetypes.ScrollClock.sharedMemory.get(ref);
+    const now = ref > 0 ? clock.current : time.scaled;
+    const timeline = ref > 0 ? time.now : now;
 
     for (let i = 0; i < 64; i++) {
       if (this.barCursor < 4) break;
-      if (this.barScaledTime(this.barCursor - 4) <= time.scaled) break;
+      if (this.barTimelineTime(this.barCursor - 4, ref) <= timeline) break;
       this.barCursor -= 4;
     }
     for (let i = 0; i < 64; i++) {
-      if (this.barScaledTime(this.barCursor) > time.scaled) break;
+      if (this.barTimelineTime(this.barCursor, ref) > timeline) break;
       this.barCursor += 4;
     }
 
     for (let i = 0; i < 16; i++) {
       const beat = this.barCursor + i * 4;
       if (beat > chartExtent.lastBeat) break;
-      const scaledTime = this.barScaledTime(beat);
-      if (scaledTime > time.scaled + note.duration) break;
-      if (note.isCovered(scaledTime)) continue;
-      if (options.hidden > 0 && scaledTime - time.scaled < note.duration * options.hidden) continue;
+      const target = this.barTimelineTime(beat, ref);
+      if (target <= timeline) continue;
+      const scaledTime = ref > 0
+        ? readScrollTime(clock.segment, target, index => archetypes.ScrollClock.import.get(index))
+        : target;
+      const depth = scaledTime - now;
+      if (depth > note.duration) {
+        if (ref <= 0) break;
+        continue;
+      }
+      if (depth < 0 || options.laneCover > 0 && depth > note.coverDuration) continue;
+      if (options.hidden > 0 && depth < note.duration * options.hidden) continue;
 
-      const y = approach(scaledTime - note.duration, scaledTime, time.scaled);
+      const y = approach(-note.duration, 0, -depth);
       skin.sprites.simLine.draw(
         new Rect({ l: -6 * y, r: 6 * y, b: y + simLine.h, t: y - simLine.h }),
         [layer.barLine],
@@ -281,8 +290,9 @@ export class Stage extends Archetype {
     }
   }
 
-  barScaledTime(beat: number) {
-    return timeScaleChanges.at(bpmChanges.at(beat).time).scaledTime;
+  barTimelineTime(beat: number, ref: number) {
+    const raw = bpmChanges.at(beat).time;
+    return ref > 0 ? raw : timeScaleChanges.at(raw).scaledTime;
   }
 
   drawLaneDetails() {

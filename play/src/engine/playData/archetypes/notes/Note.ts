@@ -1,10 +1,11 @@
 import { laneCoverVisibleFraction } from "../../../../../../shared/src/engine/data/laneCover.js";
-import { forcedScrollDuration } from "../../../../../../shared/src/engine/data/scroll.js";
+import { forcedScrollDuration, recoverScrollSpawn } from "../../../../../../shared/src/engine/data/scroll.js";
 import { currentScrollTime } from "../../scroll.js";
 import { note } from "../../note.js";
 import { EngineArchetypeDataName } from "@sonolus/core";
 import { options } from "../../../configuration/options.js";
 import { chartExtent } from "../../chartExtent.js";
+import { archetypes } from "../index.js";
 
 export abstract class Note extends Archetype {
   hasInput = true;
@@ -65,6 +66,21 @@ export abstract class Note extends Archetype {
 
     this.targetTime = bpmChanges.at(this.import.beat).time;
     this.import.scrollTarget = this.import.scrollRef > 0 ? this.import.scrollTarget : timeScaleChanges.at(this.targetTime).scaledTime;
+    const scrollRef = this.import.scrollRef;
+    if (scrollRef > 0) {
+      if (this.import.originalVisible && !archetypes.ScrollClock.import.get(scrollRef).exactSpawn)
+        this.import.scrollSpawn = Math.min(this.import.scrollSpawn,
+          recoverScrollSpawn(scrollRef, scrollRef, 0, this.scrollTarget, this.import.originalTimeMs / 1000,
+            ref => archetypes.ScrollClock.import.get(ref)));
+      if (options.measureLineDisplay && this.hasInput && this.import.originalVisible) {
+        const clock = archetypes.ScrollClock.sharedMemory.get(scrollRef);
+        const count = ++clock.visibleInputs;
+        if (count > chartExtent.barScrollUsage || count === chartExtent.barScrollUsage && scrollRef < chartExtent.barScrollRef) {
+          chartExtent.barScrollRef = scrollRef;
+          chartExtent.barScrollUsage = count;
+        }
+      }
+    }
     this.import.scrollViewDuration = this.import.forceNoteSpeed > 0 ? forcedScrollDuration(this.import.forceNoteSpeed) : note.duration;
     this.import.scrollCoverDuration = this.scrollDuration * laneCoverVisibleFraction(options.laneCover);
     chartExtent.lastBeat = Math.max(chartExtent.lastBeat, this.import.beat);
