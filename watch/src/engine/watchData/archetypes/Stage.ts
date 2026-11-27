@@ -279,9 +279,8 @@ export class Stage extends Archetype {
   }
 
   drawModeHud() {
-    const ratio = scaledScreen.wToH;
     if (options.assistMode && replay.isReplay)
-      drawAssistHud(skin.sprites, ratio, this.soloStream(soloModeReplay.assistLevel), scaledScreen.r, scaledScreen.t);
+      drawAssistHud(skin.sprites, this.soloStream(soloModeReplay.assistLevel), scaledScreen.r, scaledScreen.b, scaledScreen.wToH);
 
     if (!options.gekisouMode) return;
     const data = archetypes.Initialization.import.get(0);

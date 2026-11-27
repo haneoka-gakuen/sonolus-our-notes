@@ -33,6 +33,15 @@ export abstract class InputNote extends Note {
     }
   }
 
+  protected requestHitHaptic() {
+    if (!options.hapticsEnabled || !this.hasInput) return;
+    const stage = archetypes.Stage.sharedMemory.get(1);
+    if (stage.lastHapticTime === time.now) return;
+    // Chords share one tactile pulse per update cycle.
+    stage.lastHapticTime = time.now;
+    this.result.haptic = HapticType.Medium;
+  }
+
   recordModeJudgment(judgment: number, rawJudgment: number) {
     if (this.modeJudged) return;
     this.modeJudged = true;

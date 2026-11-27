@@ -361,8 +361,6 @@ export abstract class FlatNote extends InputNote {
 
   playHitEffects(hitTime: number) {
     this.noteEffectBirth = hitTime;
-    // HapticFeedback.judgement: Bad..Just vibrate (native judgement >= 2).
-    this.result.haptic = options.hapticsEnabled && this.nativeJudgment >= 2 ? HapticType.Medium : HapticType.None;
     if (this.shouldPlaySFX && this.nativeJudgment >= 3) this.playSFX();
     // LiveGameNoteEffectBase.Play maps Miss to animator state 0, so no
     // authored effect animation is selected.
@@ -385,6 +383,7 @@ export abstract class FlatNote extends InputNote {
         canJudgeJust(this.import.judgementType) && isGekisouJust(this.import.originalTimeMs, inputFrameMs()))
       judgment = 6;
     this.nativeJudgment = judgment;
+    if (judgment >= 2) this.requestHitHaptic();
     this.originalExport("judgment", judgment);
     if (usesSoloMode()) this.recordModeJudgment(judgment, raw);
     return judgment >= 5 ? Judgment.Perfect : judgment >= 3 ? Judgment.Great : judgment === 2 ? Judgment.Good : Judgment.Miss;

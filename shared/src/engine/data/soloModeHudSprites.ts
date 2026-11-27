@@ -48,8 +48,19 @@ const fixedSprites = {
 
 const luckSymbols = symbolSprites("luckSymbol", "Luck Symbol");
 const rushSymbols = symbolSprites("rushSymbol", "Rush Symbol");
+const assistSprites = {
+  assistTitleLeft: "Our Notes Assist Title Left",
+  assistTitleRight: "Our Notes Assist Title Right",
+  assistLevel0: "Our Notes Assist Level 0",
+  assistLevel1: "Our Notes Assist Level 1",
+  assistLevel2: "Our Notes Assist Level 2",
+  assistLevel3: "Our Notes Assist Level 3",
+  assistLevel4: "Our Notes Assist Level 4",
+  assistLevel5: "Our Notes Assist Level 5",
+} as const;
 export const soloHudSpriteNames = {
   ...fixedSprites,
   ...luckSymbols,
   ...rushSymbols,
-} as typeof fixedSprites & typeof luckSymbols & typeof rushSymbols;
+  ...assistSprites,
+} as typeof fixedSprites & typeof luckSymbols & typeof rushSymbols & typeof assistSprites;

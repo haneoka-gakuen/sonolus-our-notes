@@ -1,4 +1,3 @@
-import { options } from "../../../../configuration/options.js";
 import { windows } from "../../../../../../../shared/src/engine/data/windows.js";
 import { getHitbox, getNativeJudgmentLeniency } from "../../../lane.js";
 import { getTraceHit } from "../../../trace.js";
@@ -89,7 +88,7 @@ export abstract class SlideTickNote extends InputNote {
     if (usesSoloMode() && this.hasInput) this.recordModeJudgment(perfect ? 5 : 1, rawPerfect ? 5 : 1);
     this.result.judgment = perfect ? Judgment.Perfect : Judgment.Miss;
     if (this.result.judgment === Judgment.Perfect) {
-      if (options.hapticsEnabled) this.result.haptic = HapticType.Medium;
+      this.requestHitHaptic();
 
       this.playHitEffects();
     }

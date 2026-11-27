@@ -52,7 +52,12 @@ import { sortHeldIntervals } from "../../../../../shared/src/engine/data/sortHel
 
 export class Stage extends Archetype {
   gekisouFrame = this.entityMemory(Number);
-  sharedMemory = this.defineSharedMemory({ luck: Tuple(3, luckMemory), modeFirst: Number, modeLast: Number });
+  sharedMemory = this.defineSharedMemory({
+    luck: Tuple(3, luckMemory),
+    modeFirst: Number,
+    modeLast: Number,
+    lastHapticTime: Number,
+  });
   hitbox = this.entityMemory(Rect);
   slotHitbox = this.entityMemory(Rect);
   holdInstanceId = this.entityMemory(LoopedEffectClipInstanceId);
@@ -68,6 +73,7 @@ export class Stage extends Archetype {
   }
 
   preprocess() {
+    this.sharedMemory.lastHapticTime = -999999;
     initializeConnectWallDraw();
     if (options.sfxEnabled && options.autoSFX && effect.clips.normalHold.exists) {
       this.scheduleHeldSFX();
@@ -153,8 +159,8 @@ export class Stage extends Archetype {
 
   drawModeHud() {
     const now = inputFrameMs();
-    const ratio = scaledScreen.wToH;
-    if (options.assistMode) drawAssistHud(skin.sprites, ratio, assistLevel(), scaledScreen.r, scaledScreen.t);
+    if (options.assistMode)
+      drawAssistHud(skin.sprites, assistLevel(), scaledScreen.r, scaledScreen.b, scaledScreen.wToH);
 
     if (!options.gekisouMode) return;
     for (let i = 0; i < 3; i++) {
